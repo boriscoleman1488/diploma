@@ -145,6 +145,59 @@ export class DishService {
         }
     }
 
+    async getDishes() {
+        try {
+            const { data: dishes, error } = await this.supabase
+                .from('dishes')
+                .select(`
+                    *,
+                    profiles:user_id(full_name, email, profile_tag),
+                    dish_category_relations(
+                        dish_categories(id, name)
+                    ),
+                    dish_ratings(rating_type),
+                    dish_comments(id)
+                `)
+                .eq('status', this.DISH_STATUS.APPROVED)
+                .order('created_at', { ascending: false })
+
+            if (error) {
+                this.logger.error('Dishes fetch error', { error: error.message })
+                return {
+                    success: false,
+                    error: 'Database error',
+                    message: 'Unable to fetch dishes'
+                }
+            }
+
+            const processedDishes = (dishes || []).map(dish => ({
+                ...dish,
+                categories: dish.dish_category_relations?.map(rel => rel.dish_categories) || [],
+                ratings: dish.dish_ratings || [],
+                comments_count: dish.dish_comments?.length || 0
+            }))
+
+            processedDishes.forEach(dish => {
+                delete dish.dish_category_relations
+                delete dish.dish_ratings
+                delete dish.dish_comments
+            })
+
+            return {
+                success: true,
+                dishes: processedDishes,
+                total: processedDishes.length
+            }
+        } catch (error) {
+            this.logger.error('Dishes fetch error', { error: error.message })
+            return {
+                success: false,
+                error: 'Internal server error',
+                message: 'Unable to fetch dishes'
+            }
+        }
+    }
+
     async createDish(userId, dishData) {
         try {
             const { title, description, category_ids, servings, ingredients, steps, main_image_url } = dishData
