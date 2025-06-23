@@ -3,7 +3,6 @@ export class AuthService {
     static PROFILE_TAG_RANDOM_RANGE = 10000
     static DEFAULT_USER_ROLE = 'user'
 
-
     static ERROR_MESSAGES = {
         'already registered': 'Користувач з такою електронною адресою вже існує',
         'weak password': 'Пароль занадто слабкий',
@@ -85,11 +84,14 @@ export class AuthService {
 
     async register(email, password, fullName) {
         try {
+            // Register user with Supabase Auth
             const { data, error } = await this.supabase.auth.signUp({
                 email,
                 password,
                 options: {
-                    data: { full_name: fullName }
+                    data: { full_name: fullName },
+                    // Disable email confirmation if auto-confirm is enabled in Supabase
+                    emailRedirectTo: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback`
                 }
             })
 
@@ -105,15 +107,17 @@ export class AuthService {
                 }
             }
 
+            // Create user profile
             const profileResult = await this._createUserProfile(data.user, fullName)
             if (!profileResult.success) {
                 return profileResult
             }
 
-            // Send welcome email
+            // Send welcome email regardless of email confirmation status
             if (this.emailService) {
                 try {
                     await this.emailService.sendWelcomeEmail(email, fullName)
+                    this.logger.info('Welcome email sent successfully', { email })
                 } catch (emailError) {
                     this.logger.warn('Failed to send welcome email', { 
                         error: emailError.message, 
@@ -122,10 +126,13 @@ export class AuthService {
                 }
             }
 
+            // Check if email confirmation is required
+            const requiresEmailConfirmation = !data.user.email_confirmed_at
+
             const responseData = {
-                message: data.user.email_confirmed_at
-                    ? 'Реєстрація успішна. Тепер ви можете увійти.'
-                    : 'Реєстрація успішна. Будь ласка, перевірте вашу електронну пошту для підтвердження.',
+                message: requiresEmailConfirmation
+                    ? 'Реєстрація успішна. Будь ласка, перевірте вашу електронну пошту для підтвердження.'
+                    : 'Реєстрація успішна. Тепер ви можете увійти.',
                 user: {
                     id: data.user.id,
                     email: data.user.email,
@@ -133,14 +140,15 @@ export class AuthService {
                     fullName: data.user.user_metadata?.full_name,
                     profileTag: profileResult.profileTag
                 },
-                requiresEmailConfirmation: !data.user.email_confirmed_at
+                requiresEmailConfirmation
             }
 
             return this._handleSuccess('Registration', responseData, {
                 userId: data.user.id,
                 email: data.user.email,
                 profileTag: profileResult.profileTag,
-                confirmationSent: !data.user.email_confirmed_at
+                emailConfirmed: !requiresEmailConfirmation,
+                confirmationSent: requiresEmailConfirmation
             })
 
         } catch (error) {
@@ -301,7 +309,9 @@ export class AuthService {
 
     async forgotPassword(email) {
         try {
-            const { error } = await this.supabase.auth.resetPasswordForEmail(email)
+            const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/reset-password`
+            })
 
             if (error) {
                 return this._handleError('Password reset', error, { email })
