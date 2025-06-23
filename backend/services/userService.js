@@ -431,16 +431,52 @@ export class UserService {
         try {
             this._validateUserId(userId)
             
+            // First, check if user exists
+            const { data: existingUser, error: checkError } = await this.supabase
+                .from('profiles')
+                .select('id, email')
+                .eq('id', userId)
+                .single()
+
+            if (checkError || !existingUser) {
+                return this._handleError(
+                    new Error('User not found'),
+                    'User not found',
+                    { userId }
+                )
+            }
+
+            // Delete from auth.users table using admin client
+            const { error: authError } = await this.supabase.auth.admin.deleteUser(userId)
+
+            if (authError) {
+                this.logger.error('Failed to delete user from auth', { 
+                    error: authError.message, 
+                    userId,
+                    userEmail: existingUser.email 
+                })
+                return this._handleError(authError, 'Unable to delete user account', { userId })
+            }
+
+            // The profile should be automatically deleted due to foreign key constraint
+            // But let's verify and clean up if needed
             const { error: profileError } = await this.supabase
                 .from('profiles')
                 .delete()
                 .eq('id', userId)
 
-            if (profileError) {
-                return this._handleError(profileError, 'Unable to delete user profile', { userId })
+            // Don't fail if profile is already deleted
+            if (profileError && profileError.code !== 'PGRST116') {
+                this.logger.warn('Profile cleanup failed but user was deleted from auth', { 
+                    error: profileError.message, 
+                    userId 
+                })
             }
             
-            this.logger.info('User deleted successfully by admin', { userId })
+            this.logger.info('User deleted successfully by admin', { 
+                userId, 
+                userEmail: existingUser.email 
+            })
             return this._handleSuccess({}, 'User deleted successfully')
             
         } catch (error) {
