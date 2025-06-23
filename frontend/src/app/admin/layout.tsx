@@ -1,6 +1,7 @@
 import { AuthGuard } from '@/components/auth/AuthGuard'
 import { AdminGuard } from '@/components/auth/AdminGuard'
 import { Navigation } from '@/components/layout/Navigation'
+import { AdminSidebar } from '@/components/admin/AdminSidebar'
 
 export default function AdminLayout({
   children,
@@ -12,9 +13,12 @@ export default function AdminLayout({
       <AdminGuard>
         <div className="min-h-screen bg-gray-50">
           <Navigation />
-          <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-            {children}
-          </main>
+          <div className="flex">
+            <AdminSidebar />
+            <main className="flex-1 p-6">
+              {children}
+            </main>
+          </div>
         </div>
       </AdminGuard>
     </AuthGuard>

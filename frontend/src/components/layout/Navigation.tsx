@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { User, Settings, LogOut, Menu, X, Shield } from 'lucide-react'
+import { User, Settings, LogOut, Menu, X, Shield, Grid3X3 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
@@ -12,6 +12,7 @@ import { apiClient } from '@/lib/api'
 
 const navigation = [
   { name: 'Профіль', href: '/profile', icon: User },
+  { name: 'Категорії', href: '/categories', icon: Grid3X3 },
   { name: 'Налаштування', href: '/profile/settings', icon: Settings },
 ]
 
@@ -66,7 +67,8 @@ export function Navigation() {
             <div className="hidden md:ml-10 md:flex md:space-x-8">
               {allNavigation.map((item) => {
                 const Icon = item.icon
-                const isActive = pathname === item.href
+                const isActive = pathname === item.href || 
+                  (item.href === '/admin/users' && pathname.startsWith('/admin'))
                 
                 return (
                   <Link
@@ -139,7 +141,8 @@ export function Navigation() {
           <div className="pt-2 pb-3 space-y-1">
             {allNavigation.map((item) => {
               const Icon = item.icon
-              const isActive = pathname === item.href
+              const isActive = pathname === item.href || 
+                (item.href === '/admin/users' && pathname.startsWith('/admin'))
               
               return (
                 <Link
