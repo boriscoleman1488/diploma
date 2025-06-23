@@ -309,6 +309,32 @@ export class UserService {
                 mimetype 
             })
 
+            // First, check if the bucket exists and is accessible
+            const { data: buckets, error: bucketsError } = await this.supabase.storage.listBuckets()
+            
+            if (bucketsError) {
+                this.logger.error('Failed to list storage buckets', { 
+                    error: bucketsError.message,
+                    userId 
+                })
+                return this._handleError(bucketsError, 'Storage service unavailable')
+            }
+
+            const avatarBucket = buckets.find(bucket => bucket.id === 'avatars')
+            if (!avatarBucket) {
+                this.logger.error('Avatars bucket not found', { 
+                    userId,
+                    availableBuckets: buckets.map(b => b.id)
+                })
+                return this._handleError(new Error('Avatars bucket not found'), 'Storage configuration error')
+            }
+
+            this.logger.info('Avatars bucket found', { 
+                userId,
+                bucketId: avatarBucket.id,
+                bucketPublic: avatarBucket.public
+            })
+
             // Upload to Supabase Storage
             const { data: uploadData, error: uploadError } = await this.supabase.storage
                 .from('avatars')
@@ -321,6 +347,8 @@ export class UserService {
                 this.logger.error('Avatar upload failed', { 
                     error: uploadError.message, 
                     code: uploadError.statusCode,
+                    details: uploadError.details,
+                    hint: uploadError.hint,
                     userId, 
                     filename: uniqueFilename 
                 })
@@ -339,6 +367,10 @@ export class UserService {
                 .getPublicUrl(uniqueFilename)
 
             if (!urlData.publicUrl) {
+                this.logger.error('Failed to get public URL', { 
+                    userId,
+                    filename: uniqueFilename
+                })
                 return this._handleError(
                     new Error('Failed to get public URL'),
                     'Не вдалося отримати посилання на файл'

@@ -117,19 +117,39 @@ export default async function userRoutes(fastify, options) {
         preHandler: [authenticateUser]
     }, async (request, reply) => {
         try {
+            fastify.log.info('Avatar upload request received', { 
+                userId: request.user.id,
+                contentType: request.headers['content-type']
+            })
+
             const data = await request.file()
 
             if (!data) {
+                fastify.log.warn('No file provided in avatar upload', { userId: request.user.id })
                 return reply.code(400).send({
+                    success: false,
                     error: 'No file provided',
                     message: 'Будь ласка, оберіть файл зображення'
                 })
             }
 
+            fastify.log.info('File received for avatar upload', {
+                userId: request.user.id,
+                filename: data.filename,
+                mimetype: data.mimetype,
+                encoding: data.encoding
+            })
+
             // Validate file type
             const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
             if (!allowedTypes.includes(data.mimetype)) {
+                fastify.log.warn('Invalid file type for avatar upload', {
+                    userId: request.user.id,
+                    mimetype: data.mimetype,
+                    allowedTypes
+                })
                 return reply.code(400).send({
+                    success: false,
                     error: 'Invalid file type',
                     message: 'Дозволені тільки файли JPG, PNG та WebP'
                 })
@@ -139,8 +159,20 @@ export default async function userRoutes(fastify, options) {
             const maxSize = 5 * 1024 * 1024 // 5MB
             const buffer = await data.toBuffer()
             
+            fastify.log.info('File buffer created', {
+                userId: request.user.id,
+                bufferSize: buffer.length,
+                maxSize
+            })
+            
             if (buffer.length > maxSize) {
+                fastify.log.warn('File too large for avatar upload', {
+                    userId: request.user.id,
+                    fileSize: buffer.length,
+                    maxSize
+                })
                 return reply.code(400).send({
+                    success: false,
                     error: 'File too large',
                     message: 'Розмір файлу не повинен перевищувати 5МБ'
                 })
@@ -154,19 +186,37 @@ export default async function userRoutes(fastify, options) {
             )
 
             if (!result.success) {
+                fastify.log.error('Avatar upload service failed', {
+                    userId: request.user.id,
+                    error: result.error,
+                    message: result.message
+                })
                 return reply.code(400).send({
+                    success: false,
                     error: result.error,
                     message: result.message
                 })
             }
 
-            return reply.send(result)
+            fastify.log.info('Avatar upload completed successfully', {
+                userId: request.user.id,
+                avatarUrl: result.avatarUrl
+            })
+
+            return reply.send({
+                success: true,
+                avatarUrl: result.avatarUrl,
+                profile: result.profile,
+                message: 'Аватар завантажено успішно'
+            })
         } catch (error) {
             fastify.log.error('Avatar upload error', {
                 error: error.message,
-                userId: request.user.id
+                stack: error.stack,
+                userId: request.user?.id
             })
             return reply.code(500).send({
+                success: false,
                 error: 'Internal server error',
                 message: 'Не вдалося завантажити аватар'
             })
