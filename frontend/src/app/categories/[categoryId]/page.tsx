@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useCategories } from '@/hooks/useCategories'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -221,11 +222,13 @@ export default function CategoryDetailsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {dishes.map((dish) => (
                     <Card key={dish.id} className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-md">
-                      <div className="aspect-w-16 aspect-h-9 relative overflow-hidden rounded-t-lg">
-                        <img
+                      <div className="aspect-w-16 aspect-h-9 relative overflow-hidden rounded-t-lg h-48">
+                        <Image
                           src={dish.main_image_url}
                           alt={dish.title}
-                          className="w-full h-48 object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                         <div className="absolute top-3 right-3">
                           <div className="bg-white/90 backdrop-blur-sm rounded-full p-2">
