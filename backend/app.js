@@ -17,6 +17,7 @@ import { CollectionService } from './services/collectionService.js'
 import { EmailService } from './services/emailService.js'
 
 import authRoutes from './routes/auth.js'
+import edamamRoutes from './routes/edamam/index.js'
 
 import userRoutes from './routes/users/index.js'
 import userAdminRoutes from './routes/users/admin.js'
@@ -133,6 +134,7 @@ fastify.decorate('ratingService', ratingService)
 fastify.decorate('collectionService', collectionService)
 
 await fastify.register(authRoutes, { prefix: '/api/auth' })
+await fastify.register(edamamRoutes, { prefix: '/api/edamam' })
 
 // User routes
 await fastify.register(userRoutes, { prefix: '/api/users' })
@@ -164,7 +166,8 @@ fastify.get('/', async (request, reply) => {
       admin: '/api/admin',
       comments: '/api/comments',
       ratings: '/api/ratings',
-      collections: '/api/collections'
+      collections: '/api/collections',
+      edamam: '/api/edamam'
     }
   }
 })
@@ -176,7 +179,8 @@ fastify.get('/health', async (request, reply) => {
     timestamp: new Date().toISOString(),
     services: {
       database: 'unknown',
-      storage: 'unknown'
+      storage: 'unknown',
+      edamam: 'unknown'
     }
   }
 
@@ -200,7 +204,20 @@ fastify.get('/health', async (request, reply) => {
     health.services.storage = 'unhealthy'
   }
 
-  const isHealthy = Object.values(health.services).every(status => status === 'healthy')
+  try {
+    // Перевіряємо Edamam API
+    if (edamamService && process.env.EDAMAM_APP_ID && process.env.EDAMAM_APP_KEY) {
+      health.services.edamam = 'healthy'
+    } else {
+      health.services.edamam = 'not_configured'
+    }
+  } catch (error) {
+    health.services.edamam = 'unhealthy'
+  }
+
+  const isHealthy = Object.values(health.services).every(status => 
+    status === 'healthy' || status === 'not_configured'
+  )
   health.status = isHealthy ? 'healthy' : 'degraded'
 
   return health
@@ -224,7 +241,8 @@ fastify.setNotFoundHandler((request, reply) => {
       'POST /api/comments/:dishId',
       'GET /api/comments/:dishId',
       'GET /api/ratings/:dishId',
-      'GET /api/collections'
+      'GET /api/collections',
+      'GET /api/edamam/search'
     ]
   })
 })
@@ -288,6 +306,13 @@ const start = async () => {
       }
     } catch (storageError) {
       console.log('⚠️ Помилка підключення до Supabase Storage:', storageError.message)
+    }
+
+    // Тестуємо Edamam API при запуску
+    if (process.env.EDAMAM_APP_ID && process.env.EDAMAM_APP_KEY) {
+      console.log('✅ Edamam API налаштовано')
+    } else {
+      console.log('⚠️ Edamam API не налаштовано. Додайте EDAMAM_APP_ID та EDAMAM_APP_KEY до .env файлу')
     }
   } catch (err) {
     console.error('Помилка запуску сервера:', err)

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { IngredientSearch } from '@/components/dishes/IngredientSearch'
 import { apiClient } from '@/lib/api'
 import { 
   ChefHat, 
@@ -17,7 +18,10 @@ import {
   Trash2, 
   ArrowLeft,
   Upload,
-  X
+  X,
+  Search,
+  Clock,
+  Users
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -30,7 +34,8 @@ interface Category {
 const ingredientSchema = z.object({
   name: z.string().min(1, 'Назва інгредієнта обов\'язкова'),
   amount: z.number().min(0, 'Кількість повинна бути позитивною'),
-  unit: z.string().min(1, 'Одиниця виміру обов\'язкова')
+  unit: z.string().min(1, 'Одиниця виміру обов\'язкова'),
+  edamam_food_id: z.string().optional()
 })
 
 const stepSchema = z.object({
@@ -49,11 +54,13 @@ const dishSchema = z.object({
 })
 
 type DishFormData = z.infer<typeof dishSchema>
+type Ingredient = z.infer<typeof ingredientSchema>
 
 export default function AddDishPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [showIngredientSearch, setShowIngredientSearch] = useState(false)
   const router = useRouter()
 
   const {
@@ -62,15 +69,16 @@ export default function AddDishPage() {
     handleSubmit,
     formState: { errors },
     setValue,
-    watch
+    watch,
+    getValues
   } = useForm<DishFormData>({
     resolver: zodResolver(dishSchema),
     defaultValues: {
       title: '',
       description: '',
-      servings: 1,
+      servings: 4,
       category_ids: [],
-      ingredients: [{ name: '', amount: 0, unit: '' }],
+      ingredients: [],
       steps: [{ description: '', duration_minutes: 0 }],
       main_image_url: ''
     }
@@ -111,6 +119,16 @@ export default function AddDishPage() {
     setValue('category_ids', newSelected)
   }
 
+  const handleAddIngredientFromSearch = (ingredient: Ingredient) => {
+    appendIngredient(ingredient)
+    setShowIngredientSearch(false)
+    toast.success(`Інгредієнт "${ingredient.name}" додано`)
+  }
+
+  const handleAddManualIngredient = () => {
+    appendIngredient({ name: '', amount: 0, unit: 'г' })
+  }
+
   const onSubmit = async (data: DishFormData) => {
     setIsLoading(true)
     try {
@@ -136,6 +154,11 @@ export default function AddDishPage() {
     }
   }
 
+  const totalCookingTime = stepFields.reduce((total, step, index) => {
+    const duration = watch(`steps.${index}.duration_minutes`) || 0
+    return total + duration
+  }, 0)
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -155,7 +178,7 @@ export default function AddDishPage() {
                   Додати нову страву
                 </h1>
                 <p className="text-primary-100 mt-1">
-                  Створіть свій унікальний рецепт
+                  Створіть свій унікальний рецепт з автоматичним пошуком інгредієнтів
                 </p>
               </div>
             </div>
@@ -187,7 +210,7 @@ export default function AddDishPage() {
               </label>
               <Textarea
                 {...register('description')}
-                placeholder="Опишіть вашу страву"
+                placeholder="Опишіть вашу страву, її особливості та смак"
                 rows={4}
                 error={errors.description?.message}
               />
@@ -195,7 +218,8 @@ export default function AddDishPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <Users className="w-4 h-4 mr-2" />
                   Кількість порцій *
                 </label>
                 <Input
@@ -218,6 +242,23 @@ export default function AddDishPage() {
                 />
               </div>
             </div>
+
+            {/* Cooking Time Display */}
+            {totalCookingTime > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center">
+                  <Clock className="w-5 h-5 text-blue-600 mr-2" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-800">
+                      Загальний час приготування
+                    </p>
+                    <p className="text-lg font-bold text-blue-900">
+                      {totalCookingTime} хвилин
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -231,7 +272,7 @@ export default function AddDishPage() {
               {categories.map((category) => (
                 <label
                   key={category.id}
-                  className="flex items-center space-x-2 cursor-pointer"
+                  className="flex items-center space-x-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   <input
                     type="checkbox"
@@ -251,23 +292,43 @@ export default function AddDishPage() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               Інгредієнти *
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => appendIngredient({ name: '', amount: 0, unit: '' })}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Додати інгредієнт
-              </Button>
+              <div className="flex space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowIngredientSearch(!showIngredientSearch)}
+                  leftIcon={<Search className="w-4 h-4" />}
+                >
+                  {showIngredientSearch ? 'Приховати пошук' : 'Пошук інгредієнтів'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddManualIngredient}
+                  leftIcon={<Plus className="w-4 h-4" />}
+                >
+                  Додати вручну
+                </Button>
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Ingredient Search */}
+            {showIngredientSearch && (
+              <IngredientSearch
+                onAddIngredient={handleAddIngredientFromSearch}
+                className="mb-6"
+              />
+            )}
+
+            {/* Manual Ingredients */}
             {ingredientFields.map((field, index) => (
-              <div key={field.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div key={field.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end p-4 border border-gray-200 rounded-lg">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Назва
+                    Назва інгредієнта
                   </label>
                   <Input
                     {...register(`ingredients.${index}.name`)}
@@ -292,11 +353,20 @@ export default function AddDishPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Одиниця
                     </label>
-                    <Input
+                    <select
                       {...register(`ingredients.${index}.unit`)}
-                      placeholder="г, мл, шт"
-                      error={errors.ingredients?.[index]?.unit?.message}
-                    />
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                    >
+                      <option value="г">г</option>
+                      <option value="кг">кг</option>
+                      <option value="мл">мл</option>
+                      <option value="л">л</option>
+                      <option value="шт">шт</option>
+                      <option value="ст.л.">ст.л.</option>
+                      <option value="ч.л.">ч.л.</option>
+                      <option value="склянка">склянка</option>
+                      <option value="пучок">пучок</option>
+                    </select>
                   </div>
                   {ingredientFields.length > 1 && (
                     <Button
@@ -312,6 +382,32 @@ export default function AddDishPage() {
                 </div>
               </div>
             ))}
+
+            {ingredientFields.length === 0 && (
+              <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                <ChefHat className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-4">Ще немає інгредієнтів</p>
+                <div className="flex justify-center space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowIngredientSearch(true)}
+                    leftIcon={<Search className="w-4 h-4" />}
+                  >
+                    Знайти інгредієнти
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAddManualIngredient}
+                    leftIcon={<Plus className="w-4 h-4" />}
+                  >
+                    Додати вручну
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {errors.ingredients && (
               <p className="text-sm text-red-600">{errors.ingredients.message}</p>
             )}
@@ -328,8 +424,8 @@ export default function AddDishPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => appendStep({ description: '', duration_minutes: 0 })}
+                leftIcon={<Plus className="w-4 h-4" />}
               >
-                <Plus className="w-4 h-4 mr-2" />
                 Додати крок
               </Button>
             </CardTitle>
@@ -338,15 +434,21 @@ export default function AddDishPage() {
             {stepFields.map((field, index) => (
               <div key={field.id} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium text-gray-900">Крок {index + 1}</h4>
+                  <h4 className="font-medium text-gray-900 flex items-center">
+                    <span className="bg-primary-100 text-primary-800 text-sm font-medium px-2.5 py-0.5 rounded-full mr-2">
+                      {index + 1}
+                    </span>
+                    Крок {index + 1}
+                  </h4>
                   {stepFields.length > 1 && (
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => removeStep(index)}
+                      leftIcon={<Trash2 className="w-4 h-4" />}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      Видалити
                     </Button>
                   )}
                 </div>
@@ -357,13 +459,14 @@ export default function AddDishPage() {
                     </label>
                     <Textarea
                       {...register(`steps.${index}.description`)}
-                      placeholder="Опишіть що потрібно зробити"
+                      placeholder="Детально опишіть що потрібно зробити на цьому кроці"
                       rows={3}
                       error={errors.steps?.[index]?.description?.message}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                      <Clock className="w-4 h-4 mr-1" />
                       Час (хвилини)
                     </label>
                     <Input
