@@ -134,7 +134,7 @@ export default function AdminCategoriesPage() {
               onClick={() => setShowCreateModal(true)}
               size="lg"
               className="bg-white text-purple-600 hover:bg-gray-50 shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 px-8 py-4 text-lg font-semibold"
-              leftIcon={<Plus className="w-6 h-6" />}
+              leftIcon={Plus}
             >
               Створити категорію
             </Button>
@@ -275,7 +275,7 @@ export default function AdminCategoriesPage() {
                 <Button
                   onClick={() => setShowCreateModal(true)}
                   size="lg"
-                  leftIcon={<Plus className="w-6 h-6" />}
+                  leftIcon={Plus}
                   className="px-8 py-4 text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
                 >
                   Створити категорію
@@ -341,7 +341,7 @@ export default function AdminCategoriesPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => setEditingCategory(category)}
-                            leftIcon={<Edit className="w-4 h-4" />}
+                            leftIcon={Edit}
                             className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors duration-200"
                           >
                             Редагувати
@@ -351,7 +351,7 @@ export default function AdminCategoriesPage() {
                             size="sm"
                             onClick={() => handleDeleteCategory(category.id, category.name)}
                             disabled={isUpdating}
-                            leftIcon={<Trash2 className="w-4 h-4" />}
+                            leftIcon={Trash2}
                             className="hover:shadow-lg transition-shadow duration-200"
                           >
                             Видалити

@@ -241,7 +241,7 @@ export default function AdminUsersPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleViewUser(user.id)}
-                            leftIcon={<Eye className="w-4 h-4" />}
+                            leftIcon={Eye}
                           >
                             Переглянути
                           </Button>
@@ -268,7 +268,7 @@ export default function AdminUsersPage() {
                   size="sm"
                   onClick={() => handlePageChange(pagination.page - 1)}
                   disabled={pagination.page === 1}
-                  leftIcon={<ChevronLeft className="w-4 h-4" />}
+                  leftIcon={ChevronLeft}
                 >
                   Попередня
                 </Button>
@@ -280,7 +280,7 @@ export default function AdminUsersPage() {
                   size="sm"
                   onClick={() => handlePageChange(pagination.page + 1)}
                   disabled={pagination.page === pagination.totalPages}
-                  rightIcon={<ChevronRight className="w-4 h-4" />}
+                  rightIcon={ChevronRight}
                 >
                   Наступна
                 </Button>

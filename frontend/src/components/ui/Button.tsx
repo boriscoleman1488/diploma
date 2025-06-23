@@ -1,4 +1,4 @@
-import { ButtonHTMLAttributes, forwardRef } from 'react'
+import React, { ButtonHTMLAttributes, forwardRef } from 'react'
 import { cn } from '@/lib/utils'
 import { LoadingSpinner } from './LoadingSpinner'
 
@@ -6,8 +6,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'danger'
   size?: 'sm' | 'md' | 'lg'
   isLoading?: boolean
-  leftIcon?: React.ReactNode
-  rightIcon?: React.ReactNode
+  leftIcon?: React.ElementType
+  rightIcon?: React.ElementType
   asChild?: boolean
 }
 
@@ -18,8 +18,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       variant = 'primary',
       size = 'md',
       isLoading = false,
-      leftIcon,
-      rightIcon,
+      leftIcon: LeftIcon,
+      rightIcon: RightIcon,
       children,
       disabled,
       asChild,
@@ -42,6 +42,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       lg: 'px-6 py-3 text-base',
     }
 
+    const iconSizeClasses = {
+      sm: 'w-3 h-3',
+      md: 'w-4 h-4',
+      lg: 'w-5 h-5',
+    }
+
+    const iconSizeClass = iconSizeClasses[size]
+
     // If asChild is true, render children directly without button wrapper
     if (asChild) {
       return <>{children}</>
@@ -61,14 +69,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {isLoading ? (
           <LoadingSpinner size="sm" className="mr-2" />
-        ) : leftIcon ? (
-          <span className="mr-2">{leftIcon}</span>
+        ) : LeftIcon ? (
+          <LeftIcon className={cn(iconSizeClass, 'mr-2')} />
         ) : null}
         
         {children}
         
-        {rightIcon && !isLoading && (
-          <span className="ml-2">{rightIcon}</span>
+        {RightIcon && !isLoading && (
+          <RightIcon className={cn(iconSizeClass, 'ml-2')} />
         )}
       </button>
     )
