@@ -176,14 +176,16 @@ function DishDetailsModal({ dish, isOpen, onClose, onModerate, onDelete, isUpdat
             <div>
               <h4 className="font-medium text-gray-900 mb-2">Категорії</h4>
               <div className="flex flex-wrap gap-2">
-                {dish.categories.map((cat, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                  >
-                    {cat.dish_categories.name}
-                  </span>
-                ))}
+                {dish.categories
+                  .filter(cat => cat && cat.dish_categories && cat.dish_categories.name)
+                  .map((cat, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                    >
+                      {cat.dish_categories.name}
+                    </span>
+                  ))}
               </div>
             </div>
           )}
