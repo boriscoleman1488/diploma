@@ -728,8 +728,8 @@ export class DishService {
                 dish_category_relations(
                     dish_categories(id, name)
                 ),
-                dish_ratings(rating_type, profiles(full_name, profile_tag)),
-                dish_comments(content, created_at, profiles(full_name, profile_tag))
+                dish_ratings(rating_type, profiles!user_id(full_name, profile_tag)),
+                dish_comments(content, created_at, profiles!user_id(full_name, profile_tag))
             `)
                 .eq('id', dishId)
                 .single()
