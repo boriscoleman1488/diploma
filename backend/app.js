@@ -44,20 +44,19 @@ process.on('unhandledRejection', (reason, promise) => {
 
 dotenv.config()
 
-// Правильна конфігурація логера для нових версій Pino
+// Simplified logger configuration to avoid worker thread issues
 const fastify = Fastify({
   logger: process.env.NODE_ENV === 'production' 
-    ? true 
+    ? {
+        level: 'info'
+      }
     : {
         level: process.env.LOG_LEVEL || 'info',
-        transport: {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            translateTime: 'HH:MM:ss Z',
-            ignore: 'pid,hostname',
-            messageFormat: '{msg}'
-          }
+        prettyPrint: {
+          colorize: true,
+          translateTime: 'HH:MM:ss Z',
+          ignore: 'pid,hostname',
+          messageFormat: '{msg}'
         }
       }
 })
