@@ -97,7 +97,8 @@ export function Navigation() {
               {allNavigation.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href || 
-                  (item.href === '/admin/users' && pathname.startsWith('/admin'))
+                  (item.href === '/admin/users' && pathname.startsWith('/admin')) ||
+                  (item.href === '/dishes' && pathname.startsWith('/dishes'))
                 
                 return (
                   <Link
@@ -174,7 +175,8 @@ export function Navigation() {
             {allNavigation.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href || 
-                (item.href === '/admin/users' && pathname.startsWith('/admin'))
+                (item.href === '/admin/users' && pathname.startsWith('/admin')) ||
+                (item.href === '/dishes' && pathname.startsWith('/dishes'))
               
               return (
                 <Link
