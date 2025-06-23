@@ -1,5 +1,4 @@
-import AWS from 'aws-sdk'
-import { v4 as uuidv4 } from 'uuid'
+import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
 
 export class S3Service {
     constructor(logger) {
@@ -7,20 +6,21 @@ export class S3Service {
         this.isConfigured = this._checkConfiguration()
         
         if (this.isConfigured) {
-            // Налаштування для Supabase S3 Connection
-            this.s3 = new AWS.S3({
-                accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-                secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+            // Налаштування для Supabase S3 Connection з AWS SDK v3
+            this.s3Client = new S3Client({
+                credentials: {
+                    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+                    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+                },
                 region: process.env.AWS_REGION,
                 endpoint: process.env.AWS_S3_ENDPOINT,
-                s3ForcePathStyle: true, // Обов'язково для Supabase S3
-                signatureVersion: 'v4'
+                forcePathStyle: true, // Обов'язково для Supabase S3
             })
             
             this.bucket = process.env.AWS_S3_BUCKET || 'avatars'
             this.cdnUrl = process.env.CDN_URL
             
-            this.logger.info('S3 Service configured for Supabase', {
+            this.logger.info('S3 Service configured for Supabase with AWS SDK v3', {
                 endpoint: process.env.AWS_S3_ENDPOINT,
                 region: process.env.AWS_REGION,
                 bucket: this.bucket
@@ -48,7 +48,7 @@ export class S3Service {
 
     _generateFileName(userId, originalName, fileType) {
         const timestamp = Date.now()
-        const randomId = uuidv4().substring(0, 8)
+        const randomId = Math.random().toString(36).substring(2, 10)
         const extension = this._getFileExtension(originalName, fileType)
         
         return `avatars/${userId}/${timestamp}-${randomId}.${extension}`
@@ -106,7 +106,7 @@ export class S3Service {
                 endpoint: process.env.AWS_S3_ENDPOINT
             })
 
-            const uploadParams = {
+            const command = new PutObjectCommand({
                 Bucket: this.bucket,
                 Key: fileName,
                 Body: fileBuffer,
@@ -118,16 +118,15 @@ export class S3Service {
                     'upload-timestamp': Date.now().toString(),
                     'original-name': originalName || 'unknown'
                 }
-            }
+            })
 
-            const result = await this.s3.upload(uploadParams).promise()
+            const result = await this.s3Client.send(command)
             
             const publicUrl = this._getPublicUrl(fileName)
             
             this.logger.info('Supabase S3 avatar upload successful', {
                 userId,
                 fileName,
-                location: result.Location,
                 publicUrl,
                 etag: result.ETag
             })
@@ -136,15 +135,14 @@ export class S3Service {
                 success: true,
                 url: publicUrl,
                 key: fileName,
-                location: result.Location,
                 etag: result.ETag
             }
 
         } catch (error) {
             this.logger.error('Supabase S3 avatar upload failed', {
                 error: error.message,
-                code: error.code,
-                statusCode: error.statusCode,
+                name: error.name,
+                code: error.$metadata?.httpStatusCode,
                 userId,
                 stack: error.stack
             })
@@ -161,12 +159,12 @@ export class S3Service {
         try {
             this.logger.info('Deleting avatar from Supabase S3', { key })
 
-            const deleteParams = {
+            const command = new DeleteObjectCommand({
                 Bucket: this.bucket,
                 Key: key
-            }
+            })
 
-            await this.s3.deleteObject(deleteParams).promise()
+            await this.s3Client.send(command)
             
             this.logger.info('Supabase S3 avatar deletion successful', { key })
 
@@ -175,7 +173,8 @@ export class S3Service {
         } catch (error) {
             this.logger.error('Supabase S3 avatar deletion failed', {
                 error: error.message,
-                code: error.code,
+                name: error.name,
+                code: error.$metadata?.httpStatusCode,
                 key,
                 stack: error.stack
             })
@@ -190,13 +189,13 @@ export class S3Service {
         }
 
         try {
-            const listParams = {
+            const command = new ListObjectsV2Command({
                 Bucket: this.bucket,
                 Prefix: `avatars/${userId}/`,
                 MaxKeys: 100
-            }
+            })
 
-            const result = await this.s3.listObjectsV2(listParams).promise()
+            const result = await this.s3Client.send(command)
             
             this.logger.info('Listed user avatars from Supabase S3', {
                 userId,
@@ -211,7 +210,8 @@ export class S3Service {
         } catch (error) {
             this.logger.error('Supabase S3 list avatars failed', {
                 error: error.message,
-                code: error.code,
+                name: error.name,
+                code: error.$metadata?.httpStatusCode,
                 userId,
                 stack: error.stack
             })
@@ -296,12 +296,12 @@ export class S3Service {
 
         try {
             // Спробуємо отримати список об'єктів в bucket
-            const listParams = {
+            const command = new ListObjectsV2Command({
                 Bucket: this.bucket,
                 MaxKeys: 1
-            }
+            })
 
-            await this.s3.listObjectsV2(listParams).promise()
+            await this.s3Client.send(command)
             
             this.logger.info('Supabase S3 connection test successful', {
                 endpoint: process.env.AWS_S3_ENDPOINT,
@@ -313,7 +313,8 @@ export class S3Service {
         } catch (error) {
             this.logger.error('Supabase S3 connection test failed', {
                 error: error.message,
-                code: error.code,
+                name: error.name,
+                code: error.$metadata?.httpStatusCode,
                 endpoint: process.env.AWS_S3_ENDPOINT,
                 bucket: this.bucket
             })
@@ -321,7 +322,7 @@ export class S3Service {
             return { 
                 success: false, 
                 error: error.message,
-                code: error.code 
+                code: error.$metadata?.httpStatusCode 
             }
         }
     }
