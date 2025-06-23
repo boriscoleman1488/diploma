@@ -825,6 +825,100 @@ export class DishService {
                 }
             }
 
+            // Delete all related records first to avoid foreign key constraint violations
+            this.logger.info('Starting admin dish deletion - cleaning up related records', { dishId })
+
+            // Delete dish comments
+            const { error: commentsError } = await this.supabase
+                .from('dish_comments')
+                .delete()
+                .eq('dish_id', dishId)
+
+            if (commentsError) {
+                this.logger.error('Failed to delete dish comments', { dishId, error: commentsError.message })
+                return {
+                    success: false,
+                    error: 'Database error',
+                    message: 'Unable to delete dish comments'
+                }
+            }
+
+            // Delete dish ratings
+            const { error: ratingsError } = await this.supabase
+                .from('dish_ratings')
+                .delete()
+                .eq('dish_id', dishId)
+
+            if (ratingsError) {
+                this.logger.error('Failed to delete dish ratings', { dishId, error: ratingsError.message })
+                return {
+                    success: false,
+                    error: 'Database error',
+                    message: 'Unable to delete dish ratings'
+                }
+            }
+
+            // Delete dish collection items
+            const { error: collectionItemsError } = await this.supabase
+                .from('dish_collection_items')
+                .delete()
+                .eq('dish_id', dishId)
+
+            if (collectionItemsError) {
+                this.logger.error('Failed to delete dish collection items', { dishId, error: collectionItemsError.message })
+                return {
+                    success: false,
+                    error: 'Database error',
+                    message: 'Unable to delete dish from collections'
+                }
+            }
+
+            // Delete dish ingredients
+            const { error: ingredientsError } = await this.supabase
+                .from('dish_ingredients')
+                .delete()
+                .eq('dish_id', dishId)
+
+            if (ingredientsError) {
+                this.logger.error('Failed to delete dish ingredients', { dishId, error: ingredientsError.message })
+                return {
+                    success: false,
+                    error: 'Database error',
+                    message: 'Unable to delete dish ingredients'
+                }
+            }
+
+            // Delete dish steps
+            const { error: stepsError } = await this.supabase
+                .from('dish_steps')
+                .delete()
+                .eq('dish_id', dishId)
+
+            if (stepsError) {
+                this.logger.error('Failed to delete dish steps', { dishId, error: stepsError.message })
+                return {
+                    success: false,
+                    error: 'Database error',
+                    message: 'Unable to delete dish steps'
+                }
+            }
+
+            // Delete dish category relations
+            const { error: categoryRelationsError } = await this.supabase
+                .from('dish_category_relations')
+                .delete()
+                .eq('dish_id', dishId)
+
+            if (categoryRelationsError) {
+                this.logger.error('Failed to delete dish category relations', { dishId, error: categoryRelationsError.message })
+                return {
+                    success: false,
+                    error: 'Database error',
+                    message: 'Unable to delete dish category relations'
+                }
+            }
+
+            // Finally, delete the dish itself
             const { error: deleteError } = await this.supabase
                 .from('dishes')
                 .delete()
