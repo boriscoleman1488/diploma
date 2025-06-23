@@ -44,6 +44,14 @@ process.on('unhandledRejection', (reason, promise) => {
 
 dotenv.config()
 
+// Log environment variables for debugging (without exposing sensitive data)
+console.log('Environment variables check:', {
+  EDAMAM_APP_FOOD_ID: process.env.EDAMAM_APP_FOOD_ID ? `${process.env.EDAMAM_APP_FOOD_ID.substring(0, 4)}...` : 'missing',
+  EDAMAM_APP_FOOD_KEY: process.env.EDAMAM_APP_FOOD_KEY ? `${process.env.EDAMAM_APP_FOOD_KEY.substring(0, 4)}...` : 'missing',
+  EDAMAM_APP_NUTRITION_ID: process.env.EDAMAM_APP_NUTRITION_ID ? `${process.env.EDAMAM_APP_NUTRITION_ID.substring(0, 4)}...` : 'missing',
+  EDAMAM_APP_NUTRITION_KEY: process.env.EDAMAM_APP_NUTRITION_KEY ? `${process.env.EDAMAM_APP_NUTRITION_KEY.substring(0, 4)}...` : 'missing'
+})
+
 // Simple logger configuration without deprecated features
 const fastify = Fastify({
   logger: process.env.NODE_ENV === 'production' 

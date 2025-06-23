@@ -15,6 +15,14 @@ export class EdamamService {
     // Check if APIs are configured
     this.isFoodApiConfigured = !!(this.foodAppId && this.foodAppKey)
     this.isNutritionApiConfigured = !!(this.nutritionAppId && this.nutritionAppKey)
+    
+    // Log configuration status for debugging
+    console.log('EdamamService configuration:', {
+      foodApiConfigured: this.isFoodApiConfigured,
+      nutritionApiConfigured: this.isNutritionApiConfigured,
+      foodAppId: this.foodAppId ? `${this.foodAppId.substring(0, 4)}...` : 'missing',
+      nutritionAppId: this.nutritionAppId ? `${this.nutritionAppId.substring(0, 4)}...` : 'missing'
+    })
   }
 
   // Food Database API methods
@@ -109,7 +117,18 @@ export class EdamamService {
 
   // Nutrition Analysis API methods
   async analyzeNutrition(ingredients) {
+    console.log('analyzeNutrition called with:', { 
+      ingredientsCount: ingredients?.length,
+      isConfigured: this.isNutritionApiConfigured,
+      nutritionAppId: this.nutritionAppId ? `${this.nutritionAppId.substring(0, 4)}...` : 'missing',
+      nutritionAppKey: this.nutritionAppKey ? `${this.nutritionAppKey.substring(0, 4)}...` : 'missing'
+    })
+
     if (!this.isNutritionApiConfigured) {
+      console.error('Nutrition API not configured:', {
+        nutritionAppId: this.nutritionAppId,
+        nutritionAppKey: this.nutritionAppKey
+      })
       return {
         success: false,
         error: 'Edamam Nutrition Analysis API не налаштовано. Додайте EDAMAM_APP_NUTRITION_ID та EDAMAM_APP_NUTRITION_KEY до .env файлу'
@@ -127,6 +146,11 @@ export class EdamamService {
         return `${ingredient.amount} ${ingredient.unit} ${ingredient.name}`
       })
 
+      console.log('Sending request to Edamam Nutrition API:', {
+        url: this.nutritionAnalysisUrl,
+        ingredients: edamamIngredients
+      })
+
       const url = `${this.nutritionAnalysisUrl}?app_id=${this.nutritionAppId}&app_key=${this.nutritionAppKey}`
 
       const requestBody = {
@@ -142,7 +166,10 @@ export class EdamamService {
         body: JSON.stringify(requestBody)
       })
 
+      console.log('Edamam API response status:', response.status)
+
       const data = await response.json()
+      console.log('Edamam API response data:', data)
 
       if (!response.ok) {
         // Handle specific Edamam API errors
@@ -152,7 +179,13 @@ export class EdamamService {
         if (response.status === 422) {
           throw new Error('Не вдалося розпізнати деякі інгредієнти. Спробуйте використати більш конкретні назви')
         }
-        throw new Error(`Edamam Nutrition Analysis API error: ${data.message || 'Unknown error'}`)
+        if (response.status === 403) {
+          throw new Error('Доступ заборонено. Перевірте ваші API credentials та ліміти')
+        }
+        if (response.status === 429) {
+          throw new Error('Перевищено ліміт запитів. Спробуйте пізніше')
+        }
+        throw new Error(`Edamam Nutrition Analysis API error (${response.status}): ${data.message || data.error || 'Unknown error'}`)
       }
 
       // Extract key nutritional information
@@ -206,6 +239,7 @@ export class EdamamService {
       }
 
     } catch (error) {
+      console.error('Nutrition analysis error:', error)
       return {
         success: false,
         error: error.message
