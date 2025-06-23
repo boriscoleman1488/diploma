@@ -47,7 +47,7 @@ export default async function userRoutes(fastify, options) {
     fastify.get('/profile/:userId', {
         handler: async (request, reply) => {
             const { userId } = request.params
-            const result = await userService.getPublicProfile(userId)
+            const result = await fastify.userService.getPublicProfile(userId)
 
             if (!result.success) {
                 return reply.code(404).send({
@@ -66,7 +66,7 @@ export default async function userRoutes(fastify, options) {
     fastify.get('/stats', {
         preHandler: [authenticateUser],
         handler: async (request, reply) => {
-            const result = await userService.getUserStats(request.user)
+            const result = await fastify.userService.getUserStats(request.user)
 
             if (!result.success) {
                 return reply.code(400).send({
@@ -114,28 +114,43 @@ export default async function userRoutes(fastify, options) {
     })
 
     fastify.post('/avatar', {
-        preHandler: [authenticateUser],
-        schema: {
-            type: 'object',
-            properties: {
-                avatar: {
-                    type: 'string',
-                    format: 'binary'
-                }
-            }
-        },
-        handler: async (request, reply) => {
-            if (!request.file) {
+        preHandler: [authenticateUser]
+    }, async (request, reply) => {
+        try {
+            const data = await request.file()
+
+            if (!data) {
                 return reply.code(400).send({
-                    error: 'No file uploaded',
-                    message: 'Please select an image file'
+                    error: 'No file provided',
+                    message: 'Будь ласка, оберіть файл зображення'
                 })
             }
 
-            const result = await userService.uploadAvatar(
+            // Validate file type
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+            if (!allowedTypes.includes(data.mimetype)) {
+                return reply.code(400).send({
+                    error: 'Invalid file type',
+                    message: 'Дозволені тільки файли JPG, PNG та WebP'
+                })
+            }
+
+            // Validate file size (5MB max)
+            const maxSize = 5 * 1024 * 1024 // 5MB
+            const buffer = await data.toBuffer()
+            
+            if (buffer.length > maxSize) {
+                return reply.code(400).send({
+                    error: 'File too large',
+                    message: 'Розмір файлу не повинен перевищувати 5МБ'
+                })
+            }
+
+            const result = await fastify.userService.uploadAvatar(
                 request.user.id,
-                request.file.buffer,
-                request.file.mimetype
+                buffer,
+                data.mimetype,
+                data.filename
             )
 
             if (!result.success) {
@@ -146,13 +161,22 @@ export default async function userRoutes(fastify, options) {
             }
 
             return reply.send(result)
+        } catch (error) {
+            fastify.log.error('Avatar upload error', {
+                error: error.message,
+                userId: request.user.id
+            })
+            return reply.code(500).send({
+                error: 'Internal server error',
+                message: 'Не вдалося завантажити аватар'
+            })
         }
     })
 
     fastify.get('/search/:tag', {
         handler: async (request, reply) => {
             const { tag } = request.params
-            const result = await userService.getUserByTag(tag)
+            const result = await fastify.userService.getUserByTag(tag)
 
             if (!result.success) {
                 return reply.code(404).send({

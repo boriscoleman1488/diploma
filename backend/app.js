@@ -2,6 +2,7 @@ import Fastify from 'fastify'
 import fastifyHelmet from '@fastify/helmet'
 import fastifyCors from '@fastify/cors'
 import fastifyRateLimit from '@fastify/rate-limit'
+import fastifyMultipart from '@fastify/multipart'
 import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv'
 
@@ -97,6 +98,14 @@ fastify.addHook('onRequest', async (request, reply) => {
 await fastify.register(fastifyRateLimit, {
   max: 100,
   timeWindow: '1 minute'
+})
+
+// Register multipart support for file uploads
+await fastify.register(fastifyMultipart, {
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+    files: 1 // Only allow 1 file at a time
+  }
 })
 
 const supabaseClient = createClient(config.supabaseUrl, config.supabaseAnonKey)

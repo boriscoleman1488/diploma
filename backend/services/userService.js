@@ -15,11 +15,12 @@ export class UserService {
             INVALID_FILE_TYPE: 'Invalid file type',
             FILE_TOO_LARGE: 'File too large',
             INVALID_ROLE: 'Invalid role',
-            INTERNAL_ERROR: 'Internal server error'
+            INTERNAL_ERROR: 'Internal server error',
+            UPLOAD_FAILED: 'Upload failed'
         }
         
-        this.ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/jpg']
-        this.MAX_FILE_SIZE = 2 * 1024 * 1024 // 2MB
+        this.ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+        this.MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
     }
 
     // Допоміжні методи
@@ -61,11 +62,11 @@ export class UserService {
 
     _validateImageFile(fileBuffer, mimetype) {
         if (!this.ALLOWED_IMAGE_TYPES.includes(mimetype)) {
-            throw new Error('Only JPG and PNG images are allowed')
+            throw new Error('Only JPG, PNG and WebP images are allowed')
         }
         
         if (fileBuffer.length > this.MAX_FILE_SIZE) {
-            throw new Error('Image size must be less than 2MB')
+            throw new Error('Image size must be less than 5MB')
         }
     }
 
@@ -292,37 +293,79 @@ export class UserService {
         }
     }
 
-    async uploadAvatar(userId, fileBuffer, mimetype) {
+    async uploadAvatar(userId, fileBuffer, mimetype, filename) {
         try {
             this._validateUserId(userId)
             this._validateImageFile(fileBuffer, mimetype)
 
+            // Generate unique filename
             const fileExtension = mimetype.split('/')[1]
-            const fileName = `avatars/${userId}/${Date.now()}.${fileExtension}`
+            const uniqueFilename = `${userId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
+            const filePath = `avatars/${uniqueFilename}`
 
+            // Upload to Supabase Storage
             const { data: uploadData, error: uploadError } = await this.supabase.storage
-                .from('user-avatars')
-                .upload(fileName, fileBuffer, {
+                .from('avatars')
+                .upload(filePath, fileBuffer, {
                     contentType: mimetype,
                     upsert: false
                 })
 
             if (uploadError) {
-                return this._handleError(uploadError, 'Upload failed')
+                this.logger.error('Avatar upload failed', { 
+                    error: uploadError.message, 
+                    userId, 
+                    filename 
+                })
+                return this._handleError(uploadError, this.ERRORS.UPLOAD_FAILED)
             }
 
+            // Get public URL
             const { data: urlData } = this.supabase.storage
-                .from('user-avatars')
-                .getPublicUrl(fileName)
+                .from('avatars')
+                .getPublicUrl(filePath)
 
-            this.logger.info('Avatar uploaded successfully', { fileName, userId })
+            if (!urlData.publicUrl) {
+                return this._handleError(
+                    new Error('Failed to get public URL'),
+                    this.ERRORS.UPLOAD_FAILED
+                )
+            }
+
+            // Update user profile with new avatar URL
+            const { data: profile, error: updateError } = await this.supabase
+                .from('profiles')
+                .update({
+                    avatar_url: urlData.publicUrl,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', userId)
+                .select()
+                .single()
+
+            if (updateError) {
+                // Try to clean up uploaded file
+                await this.supabase.storage
+                    .from('avatars')
+                    .remove([filePath])
+                    .catch(() => {}) // Ignore cleanup errors
+
+                return this._handleError(updateError, 'Failed to update profile with avatar')
+            }
+
+            this.logger.info('Avatar uploaded successfully', { 
+                userId, 
+                filename: uniqueFilename,
+                publicUrl: urlData.publicUrl 
+            })
+
             return this._handleSuccess({
                 avatarUrl: urlData.publicUrl,
-                fileName: fileName
+                profile: profile
             }, 'Avatar uploaded successfully')
             
         } catch (error) {
-            return this._handleError(error, this.ERRORS.INTERNAL_ERROR)
+            return this._handleError(error, this.ERRORS.INTERNAL_ERROR, { userId })
         }
     }
 
