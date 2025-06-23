@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Avatar } from '@/components/ui/Avatar'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { t } from '@/lib/translations'
 import { 
   User, 
   Mail, 
@@ -25,19 +24,19 @@ import toast from 'react-hot-toast'
 import { isValidImageFile, compressImage } from '@/lib/utils'
 
 const profileSchema = z.object({
-  full_name: z.string().min(2, t('messages.fullNameRequired')).optional(),
+  full_name: z.string().min(2, 'Повне ім\'я повинно містити принаймні 2 символи').optional(),
   profile_tag: z.string()
-    .min(3, t('messages.profileTagTooShort'))
-    .regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, t('messages.profileTagInvalid'))
+    .min(3, 'Тег профілю повинен містити принаймні 3 символи')
+    .regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, 'Тег профілю повинен починатися з літери і містити лише літери, цифри та підкреслення')
     .optional(),
 })
 
 const passwordSchema = z.object({
-  currentPassword: z.string().min(1, t('messages.passwordRequired')),
-  newPassword: z.string().min(6, t('messages.passwordTooShort')),
+  currentPassword: z.string().min(1, 'Поточний пароль обов\'язковий'),
+  newPassword: z.string().min(6, 'Новий пароль повинен містити принаймні 6 символів'),
   confirmPassword: z.string(),
 }).refine((data) => data.newPassword === data.confirmPassword, {
-  message: t('messages.passwordsDontMatch'),
+  message: "Паролі не співпадають",
   path: ["confirmPassword"],
 })
 
@@ -85,7 +84,7 @@ export default function SettingsPage() {
     const result = await updateProfile(data)
     if (!result.success) {
       // Backend error will be displayed as-is
-      toast.error(result.error || t('messages.failedToUpdateProfile'))
+      toast.error(result.error || 'Не вдалося оновити профіль')
     }
   }
 
@@ -102,7 +101,7 @@ export default function SettingsPage() {
     if (!file) return
 
     if (!isValidImageFile(file)) {
-      toast.error(t('messages.invalidImageFile'))
+      toast.error('Будь ласка, оберіть дійсний файл зображення (JPG, PNG або WebP)')
       return
     }
 
@@ -112,10 +111,10 @@ export default function SettingsPage() {
       const result = await uploadAvatar(compressedFile)
       if (!result.success) {
         // Backend error will be displayed as-is
-        toast.error(result.error || t('messages.failedToUploadAvatar'))
+        toast.error(result.error || 'Не вдалося завантажити аватар')
       }
     } catch (error) {
-      toast.error(t('messages.failedToProcessImage'))
+      toast.error('Не вдалося обробити зображення')
     } finally {
       setIsUploadingAvatar(false)
       // Reset the input
@@ -128,7 +127,7 @@ export default function SettingsPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <LoadingSpinner size="lg" />
-          <p className="mt-4 text-gray-600">{t('messages.loadingSettings')}</p>
+          <p className="mt-4 text-gray-600">Завантаження налаштувань...</p>
         </div>
       </div>
     )
@@ -137,7 +136,7 @@ export default function SettingsPage() {
   if (!profile) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">{t('messages.profileNotFound')}</p>
+        <p className="text-gray-600">Профіль не знайдено</p>
       </div>
     )
   }
@@ -145,7 +144,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">{t('profile.profileSettings')}</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Налаштування профілю</h1>
         <p className="mt-1 text-sm text-gray-600">
           Керуйте налаштуваннями вашого акаунту та вподобаннями
         </p>
@@ -156,7 +155,7 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <Camera className="w-5 h-5 mr-2" />
-            {t('profile.profilePicture')}
+            Фото профілю
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -175,7 +174,7 @@ export default function SettingsPage() {
                   asChild
                 >
                   <span>
-                    {isUploadingAvatar ? t('common.uploading') : t('profile.changeAvatar')}
+                    {isUploadingAvatar ? 'Завантаження...' : 'Змінити аватар'}
                   </span>
                 </Button>
               </label>
@@ -188,7 +187,7 @@ export default function SettingsPage() {
                 disabled={isUploadingAvatar}
               />
               <p className="mt-2 text-sm text-gray-500">
-                {t('profile.avatarHelper')}
+                JPG, PNG або WebP. Максимальний розмір 2МБ.
               </p>
             </div>
           </div>
@@ -200,34 +199,34 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <User className="w-5 h-5 mr-2" />
-            {t('profile.profileInformation')}
+            Інформація профілю
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
             <Input
               {...profileForm.register('full_name')}
-              label={t('profile.fullName')}
-              placeholder={t('auth.enterFullName')}
+              label="Повне ім'я"
+              placeholder="Введіть ваше повне ім'я"
               error={profileForm.formState.errors.full_name?.message}
               leftIcon={<User className="w-4 h-4" />}
             />
 
             <Input
               {...profileForm.register('profile_tag')}
-              label={t('profile.profileTag')}
+              label="Тег профілю"
               placeholder="Введіть ваш тег профілю"
               error={profileForm.formState.errors.profile_tag?.message}
-              helperText={t('profile.profileTagHelper')}
+              helperText="Це буде ваш унікальний ідентифікатор (наприклад, @ваш_тег)"
               leftIcon={<span className="text-gray-400">@</span>}
             />
 
             <Input
               value={profile.email}
-              label={t('auth.emailAddress')}
+              label="Адреса електронної пошти"
               disabled
               leftIcon={<Mail className="w-4 h-4" />}
-              helperText={t('profile.emailCannotChange')}
+              helperText="Електронну пошту не можна змінити. Зверніться до підтримки, якщо потрібно."
             />
 
             <Button
@@ -236,7 +235,7 @@ export default function SettingsPage() {
               disabled={isUpdating}
               leftIcon={<Save className="w-4 h-4" />}
             >
-              {t('profile.saveChanges')}
+              Зберегти зміни
             </Button>
           </form>
         </CardContent>
@@ -247,7 +246,7 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <Lock className="w-5 h-5 mr-2" />
-            {t('profile.changePassword')}
+            Змінити пароль
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -255,8 +254,8 @@ export default function SettingsPage() {
             <Input
               {...passwordForm.register('currentPassword')}
               type={showCurrentPassword ? 'text' : 'password'}
-              label={t('profile.currentPassword')}
-              placeholder={t('profile.enterCurrentPassword')}
+              label="Поточний пароль"
+              placeholder="Введіть ваш поточний пароль"
               error={passwordForm.formState.errors.currentPassword?.message}
               leftIcon={<Lock className="w-4 h-4" />}
               rightIcon={
@@ -277,8 +276,8 @@ export default function SettingsPage() {
             <Input
               {...passwordForm.register('newPassword')}
               type={showNewPassword ? 'text' : 'password'}
-              label={t('profile.newPassword')}
-              placeholder={t('profile.enterNewPassword')}
+              label="Новий пароль"
+              placeholder="Введіть ваш новий пароль"
               error={passwordForm.formState.errors.newPassword?.message}
               leftIcon={<Lock className="w-4 h-4" />}
               rightIcon={
@@ -299,8 +298,8 @@ export default function SettingsPage() {
             <Input
               {...passwordForm.register('confirmPassword')}
               type={showConfirmPassword ? 'text' : 'password'}
-              label={t('profile.confirmNewPassword')}
-              placeholder={t('profile.confirmNewPasswordText')}
+              label="Підтвердіть новий пароль"
+              placeholder="Підтвердіть ваш новий пароль"
               error={passwordForm.formState.errors.confirmPassword?.message}
               leftIcon={<Lock className="w-4 h-4" />}
               rightIcon={
@@ -324,7 +323,7 @@ export default function SettingsPage() {
               disabled={isUpdating}
               leftIcon={<Save className="w-4 h-4" />}
             >
-              {t('profile.changePassword')}
+              Змінити пароль
             </Button>
           </form>
         </CardContent>

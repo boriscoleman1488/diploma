@@ -11,12 +11,11 @@ import { useAuthStore } from '@/store/authStore'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { t } from '@/lib/translations'
 import toast from 'react-hot-toast'
 
 const loginSchema = z.object({
-  email: z.string().email(t('messages.validEmailRequired')),
-  password: z.string().min(1, t('messages.passwordRequired')),
+  email: z.string().email('Будь ласка, введіть дійсну адресу електронної пошти'),
+  password: z.string().min(1, 'Пароль обов\'язковий'),
 })
 
 type LoginFormData = z.infer<typeof loginSchema>
@@ -38,11 +37,11 @@ export default function LoginPage() {
     const result = await login(data)
     
     if (result.success) {
-      toast.success(t('messages.welcomeBack'))
+      toast.success('З поверненням!')
       router.push('/profile')
     } else {
       // Backend error will be displayed as-is
-      toast.error(result.error || t('messages.loginFailed'))
+      toast.error(result.error || 'Помилка входу')
     }
   }
 
@@ -54,30 +53,30 @@ export default function LoginPage() {
             <span className="text-white font-bold text-xl">R</span>
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            {t('auth.signInToAccount')}
+            Увійдіть до вашого акаунту
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {t('auth.dontHaveAccount')}{' '}
+            Або{' '}
             <Link
               href="/auth/register"
               className="font-medium text-primary-600 hover:text-primary-500"
             >
-              {t('auth.createAccount')}
+              створіть новий акаунт
             </Link>
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>{t('auth.login')}</CardTitle>
+            <CardTitle>Вхід</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <Input
                 {...register('email')}
                 type="email"
-                label={t('auth.emailAddress')}
-                placeholder={t('auth.enterEmail')}
+                label="Адреса електронної пошти"
+                placeholder="Введіть вашу електронну пошту"
                 error={errors.email?.message}
                 leftIcon={<Mail className="w-4 h-4" />}
                 autoComplete="email"
@@ -86,8 +85,8 @@ export default function LoginPage() {
               <Input
                 {...register('password')}
                 type={showPassword ? 'text' : 'password'}
-                label={t('auth.password')}
-                placeholder={t('auth.enterPassword')}
+                label="Пароль"
+                placeholder="Введіть ваш пароль"
                 error={errors.password?.message}
                 leftIcon={<Lock className="w-4 h-4" />}
                 rightIcon={
@@ -112,7 +111,7 @@ export default function LoginPage() {
                     href="/auth/forgot-password"
                     className="font-medium text-primary-600 hover:text-primary-500"
                   >
-                    {t('auth.forgotPassword')}
+                    Забули пароль?
                   </Link>
                 </div>
               </div>
@@ -123,7 +122,7 @@ export default function LoginPage() {
                 isLoading={isLoading}
                 disabled={isLoading}
               >
-                {t('auth.signIn')}
+                Увійти
               </Button>
             </form>
           </CardContent>

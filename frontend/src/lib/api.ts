@@ -1,5 +1,4 @@
 import { AuthSession } from '@/types/auth'
-import { t } from './translations'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
 
@@ -30,12 +29,12 @@ class ApiClient {
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({
-        error: t('errors.networkError'),
+        error: 'Помилка мережі',
         message: `HTTP ${response.status}: ${response.statusText}`,
       }))
       
-      // Use backend error message if available, otherwise use translated fallback
-      const errorMessage = errorData.message || errorData.error || t('errors.unknownError')
+      // Use backend error message if available, otherwise use fallback
+      const errorMessage = errorData.message || errorData.error || 'Невідома помилка'
       throw new Error(errorMessage)
     }
 
@@ -61,7 +60,7 @@ class ApiClient {
       if (error instanceof Error) {
         throw error
       }
-      throw new Error(t('errors.networkError'))
+      throw new Error('Помилка мережі')
     }
   }
 
@@ -78,7 +77,7 @@ class ApiClient {
       if (error instanceof Error) {
         throw error
       }
-      throw new Error(t('errors.networkError'))
+      throw new Error('Помилка мережі')
     }
   }
 
@@ -95,7 +94,7 @@ class ApiClient {
       if (error instanceof Error) {
         throw error
       }
-      throw new Error(t('errors.networkError'))
+      throw new Error('Помилка мережі')
     }
   }
 
@@ -111,7 +110,7 @@ class ApiClient {
       if (error instanceof Error) {
         throw error
       }
-      throw new Error(t('errors.networkError'))
+      throw new Error('Помилка мережі')
     }
   }
 
@@ -136,7 +135,7 @@ class ApiClient {
       if (error instanceof Error) {
         throw error
       }
-      throw new Error(t('errors.networkError'))
+      throw new Error('Помилка мережі')
     }
   }
 }

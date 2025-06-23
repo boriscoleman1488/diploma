@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { AdminUser, AdminUserDetails, AdminUsersResponse, AdminUserDetailsResponse, UpdateUserRoleData, AdminStats } from '@/types/admin'
 import { apiClient } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
-import { t } from '@/lib/translations'
 import toast from 'react-hot-toast'
 
 export function useAdminUsers() {
@@ -50,7 +49,7 @@ export function useAdminUsers() {
       }
     } catch (error) {
       console.error('Failed to fetch users:', error)
-      toast.error(error instanceof Error ? error.message : t('messages.failedToLoadUsers'))
+      toast.error(error instanceof Error ? error.message : 'Не вдалося завантажити користувачів')
     } finally {
       setIsLoading(false)
     }
@@ -68,7 +67,7 @@ export function useAdminUsers() {
       return null
     } catch (error) {
       console.error('Failed to fetch user details:', error)
-      toast.error(error instanceof Error ? error.message : t('messages.failedToLoadUserDetails'))
+      toast.error(error instanceof Error ? error.message : 'Не вдалося завантажити деталі користувача')
       return null
     } finally {
       setIsLoading(false)
@@ -87,7 +86,7 @@ export function useAdminUsers() {
       const response = await apiClient.put(`/admin/users/role/${userId}`, { role })
       
       if (response.success) {
-        toast.success(t('messages.userRoleUpdated'))
+        toast.success('Роль користувача оновлено успішно')
         
         // Update users list
         setUsers(prev => prev.map(user => 
@@ -101,9 +100,9 @@ export function useAdminUsers() {
         
         return { success: true }
       }
-      return { success: false, error: response.error || t('messages.failedToUpdateUserRole') }
+      return { success: false, error: response.error || 'Не вдалося оновити роль користувача' }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : t('messages.failedToUpdateUserRole')
+      const errorMessage = error instanceof Error ? error.message : 'Не вдалося оновити роль користувача'
       toast.error(errorMessage)
       return { success: false, error: errorMessage }
     } finally {
@@ -123,7 +122,7 @@ export function useAdminUsers() {
       const response = await apiClient.delete(`/admin/users/${userId}`)
       
       if (response.success) {
-        toast.success(t('messages.userDeleted'))
+        toast.success('Користувача видалено успішно')
         
         // Remove user from list
         setUsers(prev => prev.filter(user => user.id !== userId))
@@ -145,9 +144,9 @@ export function useAdminUsers() {
         
         return { success: true }
       }
-      return { success: false, error: response.error || t('messages.failedToDeleteUser') }
+      return { success: false, error: response.error || 'Не вдалося видалити користувача' }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : t('messages.failedToDeleteUser')
+      const errorMessage = error instanceof Error ? error.message : 'Не вдалося видалити користувача'
       toast.error(errorMessage)
       return { success: false, error: errorMessage }
     } finally {

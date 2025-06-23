@@ -8,12 +8,11 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
-import { t } from '@/lib/translations'
 import { apiClient } from '@/lib/api'
 
 const navigation = [
-  { name: t('profile.profile'), href: '/profile', icon: User },
-  { name: t('navigation.settings'), href: '/profile/settings', icon: Settings },
+  { name: 'Профіль', href: '/profile', icon: User },
+  { name: 'Налаштування', href: '/profile/settings', icon: Settings },
 ]
 
 export function Navigation() {
@@ -113,7 +112,7 @@ export function Navigation() {
               className="hidden md:flex"
               leftIcon={<LogOut className="w-4 h-4" />}
             >
-              {t('auth.logout')}
+              Вийти
             </Button>
 
             {/* Mobile menu button */}
@@ -187,7 +186,7 @@ export function Navigation() {
                 >
                   <div className="flex items-center">
                     <LogOut className="w-4 h-4 mr-3" />
-                    {t('auth.logout')}
+                    Вийти з системи
                   </div>
                 </button>
               </div>

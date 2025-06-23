@@ -11,16 +11,15 @@ import { useAuthStore } from '@/store/authStore'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { t } from '@/lib/translations'
 import toast from 'react-hot-toast'
 
 const registerSchema = z.object({
-  fullName: z.string().min(2, t('messages.fullNameRequired')),
-  email: z.string().email(t('messages.validEmailRequired')),
-  password: z.string().min(6, t('messages.passwordTooShort')),
+  fullName: z.string().min(2, 'Повне ім\'я повинно містити принаймні 2 символи'),
+  email: z.string().email('Будь ласка, введіть дійсну адресу електронної пошти'),
+  password: z.string().min(6, 'Пароль повинен містити принаймні 6 символів'),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: t('messages.passwordsDontMatch'),
+  message: "Паролі не співпадають",
   path: ["confirmPassword"],
 })
 
@@ -46,14 +45,14 @@ export default function RegisterPage() {
     
     if (result.success) {
       if (result.requiresEmailConfirmation) {
-        toast.success(t('messages.emailConfirmationSent'))
+        toast.success('Реєстрація успішна! Будь ласка, перевірте вашу електронну пошту для підтвердження.')
       } else {
-        toast.success(t('messages.registrationSuccessful'))
+        toast.success('Реєстрація успішна! Тепер ви можете увійти.')
       }
       router.push('/auth/login')
     } else {
       // Backend error will be displayed as-is
-      toast.error(result.error || t('messages.registrationFailed'))
+      toast.error(result.error || 'Помилка реєстрації')
     }
   }
 
@@ -65,30 +64,30 @@ export default function RegisterPage() {
             <span className="text-white font-bold text-xl">R</span>
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            {t('auth.createYourAccount')}
+            Створіть ваш акаунт
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {t('auth.alreadyHaveAccount')}{' '}
+            Або{' '}
             <Link
               href="/auth/login"
               className="font-medium text-primary-600 hover:text-primary-500"
             >
-              {t('auth.orSignInExisting')}
+              увійдіть до існуючого акаунту
             </Link>
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>{t('auth.register')}</CardTitle>
+            <CardTitle>Реєстрація</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <Input
                 {...register('fullName')}
                 type="text"
-                label={t('auth.fullName')}
-                placeholder={t('auth.enterFullName')}
+                label="Повне ім'я"
+                placeholder="Введіть ваше повне ім'я"
                 error={errors.fullName?.message}
                 leftIcon={<User className="w-4 h-4" />}
                 autoComplete="name"
@@ -97,8 +96,8 @@ export default function RegisterPage() {
               <Input
                 {...register('email')}
                 type="email"
-                label={t('auth.emailAddress')}
-                placeholder={t('auth.enterEmail')}
+                label="Адреса електронної пошти"
+                placeholder="Введіть вашу електронну пошту"
                 error={errors.email?.message}
                 leftIcon={<Mail className="w-4 h-4" />}
                 autoComplete="email"
@@ -107,8 +106,8 @@ export default function RegisterPage() {
               <Input
                 {...register('password')}
                 type={showPassword ? 'text' : 'password'}
-                label={t('auth.password')}
-                placeholder={t('auth.enterPassword')}
+                label="Пароль"
+                placeholder="Введіть ваш пароль"
                 error={errors.password?.message}
                 leftIcon={<Lock className="w-4 h-4" />}
                 rightIcon={
@@ -130,8 +129,8 @@ export default function RegisterPage() {
               <Input
                 {...register('confirmPassword')}
                 type={showConfirmPassword ? 'text' : 'password'}
-                label={t('auth.confirmPassword')}
-                placeholder={t('auth.confirmYourPassword')}
+                label="Підтвердіть пароль"
+                placeholder="Підтвердіть ваш пароль"
                 error={errors.confirmPassword?.message}
                 leftIcon={<Lock className="w-4 h-4" />}
                 rightIcon={
@@ -156,7 +155,7 @@ export default function RegisterPage() {
                 isLoading={isLoading}
                 disabled={isLoading}
               >
-                {t('auth.createAccount')}
+                Створити акаунт
               </Button>
             </form>
           </CardContent>

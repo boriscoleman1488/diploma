@@ -7,7 +7,6 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { formatDate, formatRelativeTime } from '@/lib/utils'
-import { t } from '@/lib/translations'
 import { 
   User, 
   Mail, 
@@ -30,7 +29,7 @@ export default function ProfilePage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <LoadingSpinner size="lg" />
-          <p className="mt-4 text-gray-600">{t('messages.loadingProfile')}</p>
+          <p className="mt-4 text-gray-600">Завантаження профілю...</p>
         </div>
       </div>
     )
@@ -39,7 +38,7 @@ export default function ProfilePage() {
   if (!profile) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">{t('messages.profileNotFound')}</p>
+        <p className="text-gray-600">Профіль не знайдено</p>
       </div>
     )
   }
@@ -58,7 +57,7 @@ export default function ProfilePage() {
             />
             <div className="text-white">
               <h1 className="text-2xl font-bold">
-                {profile.full_name || t('common.unknown')}
+                {profile.full_name || 'Невідомо'}
               </h1>
               <p className="text-primary-100 mt-1">
                 @{profile.profile_tag || 'user'}
@@ -76,16 +75,16 @@ export default function ProfilePage() {
             <div className="flex items-center space-x-4 text-sm text-gray-600">
               <div className="flex items-center">
                 <Calendar className="w-4 h-4 mr-1" />
-                {t('profile.joined')} {formatDate(profile.created_at)}
+                Приєднався {formatDate(profile.created_at)}
               </div>
               <div className="flex items-center">
                 <Clock className="w-4 h-4 mr-1" />
-                {t('profile.lastUpdated')} {formatRelativeTime(profile.updated_at)}
+                Останнє оновлення {formatRelativeTime(profile.updated_at)}
               </div>
             </div>
             <Link href="/profile/settings">
               <Button variant="outline" size="sm" leftIcon={<Settings className="w-4 h-4" />}>
-                {t('profile.editProfile')}
+                Редагувати профіль
               </Button>
             </Link>
           </div>
@@ -102,7 +101,7 @@ export default function ProfilePage() {
                   <ChefHat className="w-6 h-6 text-primary-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">{t('stats.recipesCreated')}</p>
+                  <p className="text-sm font-medium text-gray-600">Створено рецептів</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.recipesCreated}</p>
                 </div>
               </div>
@@ -116,7 +115,7 @@ export default function ProfilePage() {
                   <Heart className="w-6 h-6 text-red-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">{t('stats.favoriteRecipes')}</p>
+                  <p className="text-sm font-medium text-gray-600">Улюблені рецепти</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.favoriteRecipes}</p>
                 </div>
               </div>
@@ -134,9 +133,9 @@ export default function ProfilePage() {
                   )}
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">{t('profile.emailStatus')}</p>
+                  <p className="text-sm font-medium text-gray-600">Статус електронної пошти</p>
                   <p className="text-sm font-semibold text-gray-900">
-                    {user?.emailConfirmed ? t('profile.verified') : t('profile.notVerified')}
+                    {user?.emailConfirmed ? 'Підтверджено' : 'Не підтверджено'}
                   </p>
                 </div>
               </div>
@@ -150,11 +149,11 @@ export default function ProfilePage() {
                   <Clock className="w-6 h-6 text-blue-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">{t('profile.lastLogin')}</p>
+                  <p className="text-sm font-medium text-gray-600">Останній вхід</p>
                   <p className="text-sm font-semibold text-gray-900">
                     {stats.lastLogin !== 'Unknown' 
                       ? formatRelativeTime(stats.lastLogin)
-                      : t('common.unknown')
+                      : 'Невідомо'
                     }
                   </p>
                 </div>
@@ -170,25 +169,25 @@ export default function ProfilePage() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <User className="w-5 h-5 mr-2" />
-              {t('profile.profileInformation')}
+              Інформація профілю
             </CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="space-y-4">
               <div>
-                <dt className="text-sm font-medium text-gray-500">{t('profile.fullName')}</dt>
+                <dt className="text-sm font-medium text-gray-500">Повне ім'я</dt>
                 <dd className="mt-1 text-sm text-gray-900">
-                  {profile.full_name || t('common.notProvided')}
+                  {profile.full_name || 'Не вказано'}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">{t('profile.profileTag')}</dt>
+                <dt className="text-sm font-medium text-gray-500">Тег профілю</dt>
                 <dd className="mt-1 text-sm text-gray-900">
-                  @{profile.profile_tag || t('common.notSet')}
+                  @{profile.profile_tag || 'Не встановлено'}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">{t('auth.email')}</dt>
+                <dt className="text-sm font-medium text-gray-500">Електронна пошта</dt>
                 <dd className="mt-1 text-sm text-gray-900">{profile.email}</dd>
               </div>
               <div>
@@ -209,23 +208,23 @@ export default function ProfilePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t('common.quickActions')}</CardTitle>
+            <CardTitle>Швидкі дії</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               <Link href="/profile/settings" className="block">
                 <Button variant="outline" className="w-full justify-start" leftIcon={<Settings className="w-4 h-4" />}>
-                  {t('profile.profileSettings')}
+                  Налаштування профілю
                 </Button>
               </Link>
               <Link href="/profile/settings" className="block">
                 <Button variant="outline" className="w-full justify-start" leftIcon={<User className="w-4 h-4" />}>
-                  {t('profile.changePassword')}
+                  Змінити пароль
                 </Button>
               </Link>
               {!user?.emailConfirmed && (
                 <Button variant="outline" className="w-full justify-start" leftIcon={<Mail className="w-4 h-4" />}>
-                  {t('common.verifyEmail')}
+                  Підтвердити електронну пошту
                 </Button>
               )}
             </div>
