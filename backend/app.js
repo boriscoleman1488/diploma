@@ -229,6 +229,44 @@ fastify.setNotFoundHandler((request, reply) => {
   })
 })
 
+// Function to ensure avatars bucket exists
+async function ensureAvatarsBucket() {
+  try {
+    const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets()
+    
+    if (listError) {
+      console.log('⚠️ Не вдалося перевірити buckets:', listError.message)
+      return false
+    }
+
+    const avatarBucket = buckets.find(bucket => bucket.id === 'avatars')
+    
+    if (!avatarBucket) {
+      console.log('📦 Створюємо bucket "avatars"...')
+      
+      const { data: newBucket, error: createError } = await supabaseAdmin.storage.createBucket('avatars', {
+        public: true,
+        fileSizeLimit: 5242880, // 5MB
+        allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+      })
+      
+      if (createError) {
+        console.log('❌ Помилка створення bucket "avatars":', createError.message)
+        return false
+      }
+      
+      console.log('✅ Bucket "avatars" створено успішно')
+      return true
+    } else {
+      console.log('✅ Bucket "avatars" вже існує')
+      return true
+    }
+  } catch (error) {
+    console.log('❌ Помилка при роботі з bucket:', error.message)
+    return false
+  }
+}
+
 const start = async () => {
   try {
     await fastify.listen({
@@ -242,12 +280,9 @@ const start = async () => {
       const { data: buckets, error } = await supabaseClient.storage.listBuckets()
       if (!error && buckets) {
         console.log('✅ Supabase Storage підключено успішно')
-        const avatarBucket = buckets.find(bucket => bucket.id === 'avatars')
-        if (avatarBucket) {
-          console.log('✅ Bucket "avatars" знайдено')
-        } else {
-          console.log('⚠️ Bucket "avatars" не знайдено')
-        }
+        
+        // Перевіряємо та створюємо bucket "avatars" якщо потрібно
+        await ensureAvatarsBucket()
       } else {
         console.log('⚠️ Supabase Storage недоступно:', error?.message)
       }
