@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { User, Settings, LogOut, Menu, X, Shield, Grid3X3 } from 'lucide-react'
+import { User, Settings, LogOut, Menu, X, Shield, Grid3X3, ChefHat } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
@@ -13,7 +13,9 @@ import { apiClient } from '@/lib/api'
 const navigation = [
   { name: 'Профіль', href: '/profile', icon: User },
   { name: 'Категорії', href: '/categories', icon: Grid3X3 },
+  { name: 'Страви', href: '/dishes', icon: ChefHat },
   { name: 'Налаштування', href: '/profile/settings', icon: Settings },
+
 ]
 
 export function Navigation() {
