@@ -95,13 +95,15 @@ export class AuthService {
 
     async register(email, password, fullName) {
         try {
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+            
             // Register user with Supabase Auth
             const { data, error } = await this.supabase.auth.signUp({
                 email,
                 password,
                 options: {
                     data: { full_name: fullName },
-                    emailRedirectTo: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback`
+                    emailRedirectTo: `${frontendUrl}/auth/callback`
                 }
             })
 
@@ -328,8 +330,10 @@ export class AuthService {
 
     async forgotPassword(email) {
         try {
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+            
             const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/reset-password`
+                redirectTo: `${frontendUrl}/auth/reset-password`
             })
 
             if (error) {
@@ -348,11 +352,13 @@ export class AuthService {
 
     async resendConfirmation(email) {
         try {
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+            
             const { error } = await this.supabase.auth.resend({
                 type: 'signup',
                 email,
                 options: {
-                    emailRedirectTo: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback`
+                    emailRedirectTo: `${frontendUrl}/auth/callback`
                 }
             })
 

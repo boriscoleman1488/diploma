@@ -67,7 +67,9 @@ const config = {
   supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
   supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY,
   supabaseJwtSecret: process.env.SUPABASE_JWT_SECRET,
-  port: process.env.PORT || 3000
+  port: process.env.PORT || 3000,
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  allowedOrigins: process.env.ALLOWED_ORIGINS || 'http://localhost:5173'
 }
 
 if (!config.supabaseUrl || !config.supabaseAnonKey || !config.supabaseJwtSecret) {
@@ -80,7 +82,7 @@ await fastify.register(fastifyHelmet, {
 })
 
 await fastify.register(fastifyCors, {
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || true,
+  origin: config.allowedOrigins.split(',') || true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
