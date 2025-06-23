@@ -1,6 +1,7 @@
 export class DishService {
-    constructor(supabase, logger, collectionService) {
+    constructor(supabase, logger, collectionService, supabaseAdmin) {
         this.supabase = supabase
+        this.supabaseAdmin = supabaseAdmin
         this.logger = logger
         this.collectionService = collectionService
 
@@ -810,7 +811,7 @@ export class DishService {
 
     async deleteDishByAdmin(dishId) {
         try {
-            const { data: dish, error: fetchError } = await this.supabase
+            const { data: dish, error: fetchError } = await this.supabaseAdmin
                 .from('dishes')
                 .select('id, title')
                 .eq('id', dishId)
@@ -829,7 +830,7 @@ export class DishService {
             this.logger.info('Starting admin dish deletion - cleaning up related records', { dishId })
 
             // Delete dish comments
-            const { error: commentsError } = await this.supabase
+            const { error: commentsError } = await this.supabaseAdmin
                 .from('dish_comments')
                 .delete()
                 .eq('dish_id', dishId)
@@ -844,7 +845,7 @@ export class DishService {
             }
 
             // Delete dish ratings
-            const { error: ratingsError } = await this.supabase
+            const { error: ratingsError } = await this.supabaseAdmin
                 .from('dish_ratings')
                 .delete()
                 .eq('dish_id', dishId)
@@ -859,7 +860,7 @@ export class DishService {
             }
 
             // Delete dish collection items
-            const { error: collectionItemsError } = await this.supabase
+            const { error: collectionItemsError } = await this.supabaseAdmin
                 .from('dish_collection_items')
                 .delete()
                 .eq('dish_id', dishId)
@@ -874,7 +875,7 @@ export class DishService {
             }
 
             // Delete dish ingredients
-            const { error: ingredientsError } = await this.supabase
+            const { error: ingredientsError } = await this.supabaseAdmin
                 .from('dish_ingredients')
                 .delete()
                 .eq('dish_id', dishId)
@@ -889,7 +890,7 @@ export class DishService {
             }
 
             // Delete dish steps
-            const { error: stepsError } = await this.supabase
+            const { error: stepsError } = await this.supabaseAdmin
                 .from('dish_steps')
                 .delete()
                 .eq('dish_id', dishId)
@@ -904,7 +905,7 @@ export class DishService {
             }
 
             // Delete dish category relations
-            const { error: categoryRelationsError } = await this.supabase
+            const { error: categoryRelationsError } = await this.supabaseAdmin
                 .from('dish_category_relations')
                 .delete()
                 .eq('dish_id', dishId)
@@ -919,7 +920,7 @@ export class DishService {
             }
 
             // Finally, delete the dish itself
-            const { error: deleteError } = await this.supabase
+            const { error: deleteError } = await this.supabaseAdmin
                 .from('dishes')
                 .delete()
                 .eq('id', dishId)

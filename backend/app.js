@@ -114,10 +114,10 @@ const emailService = new EmailService(fastify.log)
 const authService = new AuthService(supabaseClient, fastify.log, emailService)
 const categoryService = new CategoryService(supabaseClient, fastify.log)
 const userService = new UserService(supabaseClient, fastify.log, emailService)
-const dishService = new DishService(supabaseClient, fastify.log)
+const collectionService = new CollectionService(supabaseClient, fastify.log)
+const dishService = new DishService(supabaseClient, fastify.log, collectionService, supabaseAdmin)
 const commentService = new CommentService(supabaseClient, fastify.log)
 const ratingService = new RatingService(supabaseClient, fastify.log)
-const collectionService = new CollectionService(supabaseClient, fastify.log)
 const edamamService = new EdamamService(
   process.env.EDAMAM_APP_ID,
   process.env.EDAMAM_APP_KEY
