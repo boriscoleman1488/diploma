@@ -44,20 +44,14 @@ process.on('unhandledRejection', (reason, promise) => {
 
 dotenv.config()
 
-// Simplified logger configuration to avoid worker thread issues
+// Simple logger configuration without deprecated features
 const fastify = Fastify({
   logger: process.env.NODE_ENV === 'production' 
     ? {
         level: 'info'
       }
     : {
-        level: process.env.LOG_LEVEL || 'info',
-        prettyPrint: {
-          colorize: true,
-          translateTime: 'HH:MM:ss Z',
-          ignore: 'pid,hostname',
-          messageFormat: '{msg}'
-        }
+        level: process.env.LOG_LEVEL || 'info'
       }
 })
 
