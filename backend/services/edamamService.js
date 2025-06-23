@@ -115,10 +115,38 @@ export class EdamamService {
     }
   }
 
+  // Helper function to normalize ingredient strings
+  normalizeIngredientString(ingredient) {
+    const { name, amount, unit } = ingredient
+    
+    // Convert units to more standard forms that Edamam recognizes
+    const unitMapping = {
+      'г': 'gram',
+      'кг': 'kilogram', 
+      'мл': 'milliliter',
+      'л': 'liter',
+      'шт': 'piece',
+      'ст.л.': 'tablespoon',
+      'ч.л.': 'teaspoon',
+      'склянка': 'cup',
+      'пучок': 'bunch'
+    }
+    
+    const normalizedUnit = unitMapping[unit] || unit
+    
+    // Format: "amount unit ingredient_name"
+    const ingredientString = `${amount} ${normalizedUnit} ${name}`
+    
+    console.log(`Normalized ingredient: "${name}" ${amount} ${unit} -> "${ingredientString}"`)
+    
+    return ingredientString
+  }
+
   // Nutrition Analysis API methods
   async analyzeNutrition(ingredients) {
     console.log('analyzeNutrition called with:', { 
       ingredientsCount: ingredients?.length,
+      ingredients: ingredients,
       isConfigured: this.isNutritionApiConfigured,
       nutritionAppId: this.nutritionAppId ? `${this.nutritionAppId.substring(0, 4)}...` : 'missing',
       nutritionAppKey: this.nutritionAppKey ? `${this.nutritionAppKey.substring(0, 4)}...` : 'missing'
@@ -140,15 +168,15 @@ export class EdamamService {
         throw new Error('Ingredients array is required')
       }
 
-      // Convert ingredients to Edamam format
+      // Convert ingredients to Edamam format with better normalization
       const edamamIngredients = ingredients.map(ingredient => {
-        // Create ingredient string in format "amount unit ingredient_name"
-        return `${ingredient.amount} ${ingredient.unit} ${ingredient.name}`
+        return this.normalizeIngredientString(ingredient)
       })
 
       console.log('Sending request to Edamam Nutrition API:', {
         url: this.nutritionAnalysisUrl,
-        ingredients: edamamIngredients
+        ingredients: edamamIngredients,
+        originalIngredients: ingredients
       })
 
       const url = `${this.nutritionAnalysisUrl}?app_id=${this.nutritionAppId}&app_key=${this.nutritionAppKey}`
@@ -157,6 +185,8 @@ export class EdamamService {
         title: "Recipe Nutrition Analysis",
         ingr: edamamIngredients
       }
+
+      console.log('Request body:', JSON.stringify(requestBody, null, 2))
 
       const response = await fetch(url, {
         method: 'POST',
@@ -169,7 +199,7 @@ export class EdamamService {
       console.log('Edamam API response status:', response.status)
 
       const data = await response.json()
-      console.log('Edamam API response data:', data)
+      console.log('Edamam API response data:', JSON.stringify(data, null, 2))
 
       if (!response.ok) {
         // Handle specific Edamam API errors
@@ -177,7 +207,11 @@ export class EdamamService {
           throw new Error('Неправильні credentials для Edamam Nutrition Analysis API. Перевірте EDAMAM_APP_NUTRITION_ID та EDAMAM_APP_NUTRITION_KEY')
         }
         if (response.status === 422) {
-          throw new Error('Не вдалося розпізнати деякі інгредієнти. Спробуйте використати більш конкретні назви')
+          console.error('Unprocessable ingredients:', {
+            ingredients: edamamIngredients,
+            response: data
+          })
+          throw new Error('Не вдалося розпізнати деякі інгредієнти. Спробуйте використати більш конкретні назви або стандартні одиниці виміру')
         }
         if (response.status === 403) {
           throw new Error('Доступ заборонено. Перевірте ваші API credentials та ліміти')
@@ -186,6 +220,12 @@ export class EdamamService {
           throw new Error('Перевищено ліміт запитів. Спробуйте пізніше')
         }
         throw new Error(`Edamam Nutrition Analysis API error (${response.status}): ${data.message || data.error || 'Unknown error'}`)
+      }
+
+      // Check if we got valid nutrition data
+      if (!data.calories && !data.totalNutrients) {
+        console.warn('No nutrition data returned:', data)
+        throw new Error('API повернув порожні дані. Можливо, інгредієнти не розпізнано')
       }
 
       // Extract key nutritional information
@@ -202,7 +242,7 @@ export class EdamamService {
         ingredients: data.ingredients || []
       }
 
-      // Extract main macronutrients
+      // Extract main macronutrients with better error handling
       const macros = {
         protein: {
           quantity: Math.round((nutrition.totalNutrients.PROCNT?.quantity || 0) * 10) / 10,
@@ -229,6 +269,12 @@ export class EdamamService {
           unit: nutrition.totalNutrients.NA?.unit || 'mg'
         }
       }
+
+      console.log('Processed nutrition data:', {
+        calories: nutrition.calories,
+        macros: macros,
+        totalNutrients: Object.keys(nutrition.totalNutrients)
+      })
 
       return {
         success: true,
