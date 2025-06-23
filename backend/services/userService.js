@@ -17,15 +17,13 @@ export class UserService {
             FILE_TOO_LARGE: 'File too large',
             INVALID_ROLE: 'Invalid role',
             INTERNAL_ERROR: 'Internal server error',
-            UPLOAD_FAILED: 'Upload failed',
-            S3_NOT_CONFIGURED: 'S3 service not configured'
+            UPLOAD_FAILED: 'Upload failed'
         }
         
         this.ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
         this.MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
     }
 
-    // Допоміжні методи
     _handleSuccess(data, message = null) {
         return {
             success: true,
@@ -103,7 +101,6 @@ export class UserService {
                 return this._handleError(error, 'Unable to fetch profile', { userId })
             }
 
-            this.logger.info('Profile fetched successfully', { userId })
             return this._handleSuccess({ profile })
             
         } catch (error) {
@@ -189,7 +186,7 @@ export class UserService {
             
             const { data: profile, error } = await this.supabase
                 .from('profiles')
-                .select('id, full_name, bio, avatar_url, created_at')
+                .select('id, full_name, avatar_url, created_at')
                 .eq('id', userId)
                 .single()
 
@@ -204,7 +201,6 @@ export class UserService {
                 return this._handleError(error, 'Unable to fetch profile', { userId })
             }
 
-            this.logger.info('Public profile fetched', { userId })
             return this._handleSuccess({ profile })
             
         } catch (error) {
@@ -225,7 +221,6 @@ export class UserService {
                 emailConfirmed: user.emailConfirmed
             }
 
-            this.logger.info('User stats fetched', { userId: user.id, stats })
             return this._handleSuccess({ stats })
             
         } catch (error) {
@@ -265,10 +260,8 @@ export class UserService {
                 return this._handleError(updateError, 'Unable to update password', { email })
             }
 
-            // Send password change notification email
             if (this.emailService) {
                 try {
-                    // Get user profile for full name
                     const { data: profile } = await this.supabase
                         .from('profiles')
                         .select('full_name')
@@ -308,7 +301,9 @@ export class UserService {
                 s3Configured: !!this.s3Service?.isConfigured
             })
 
-            // Якщо S3 налаштовано, використовуємо його
+            let avatarUrl
+
+            // Try S3 first if configured
             if (this.s3Service?.isConfigured) {
                 try {
                     const uploadResult = await this.s3Service.uploadAvatar(
@@ -318,174 +313,31 @@ export class UserService {
                         filename
                     )
 
-                    if (!uploadResult.success) {
-                        throw new Error(uploadResult.error || 'S3 upload failed')
+                    if (uploadResult.success) {
+                        avatarUrl = uploadResult.url
+                        this.logger.info('Avatar uploaded successfully via S3', { userId, avatarUrl })
+                    } else {
+                        throw new Error('S3 upload failed')
                     }
-
-                    // Оновлюємо профіль користувача з новим URL аватара
-                    const { data: profile, error: updateError } = await this.supabase
-                        .from('profiles')
-                        .update({
-                            avatar_url: uploadResult.url,
-                            updated_at: new Date().toISOString()
-                        })
-                        .eq('id', userId)
-                        .select()
-                        .single()
-
-                    if (updateError) {
-                        this.logger.error('Failed to update profile with S3 avatar URL', { 
-                            error: updateError.message, 
-                            userId,
-                            avatarUrl: uploadResult.url 
-                        })
-                        
-                        // Спробуємо видалити завантажений файл з S3
-                        try {
-                            await this.s3Service.deleteAvatar(uploadResult.key)
-                        } catch (cleanupError) {
-                            this.logger.warn('Failed to cleanup S3 file after profile update error', {
-                                error: cleanupError.message,
-                                key: uploadResult.key
-                            })
-                        }
-
-                        return this._handleError(updateError, 'Не вдалося оновити профіль з аватаром')
-                    }
-
-                    // Очищуємо старі аватари (залишаємо тільки 3 останніх)
-                    this.s3Service.cleanupOldAvatars(userId, 3).catch(error => {
-                        this.logger.warn('Failed to cleanup old avatars', {
-                            error: error.message,
-                            userId
-                        })
-                    })
-
-                    this.logger.info('Avatar uploaded successfully via S3', { 
-                        userId, 
-                        avatarUrl: uploadResult.url 
-                    })
-
-                    return this._handleSuccess({
-                        avatarUrl: uploadResult.url,
-                        profile: profile
-                    }, 'Аватар завантажено успішно')
-
                 } catch (s3Error) {
                     this.logger.error('S3 avatar upload failed, falling back to Supabase', {
                         error: s3Error.message,
-                        userId,
-                        stack: s3Error.stack
+                        userId
                     })
                     
-                    // Fallback to Supabase storage if S3 fails
+                    // Fallback to Supabase storage
+                    avatarUrl = await this._uploadAvatarToSupabase(userId, fileBuffer, mimetype, filename)
                 }
+            } else {
+                // Use Supabase storage directly
+                avatarUrl = await this._uploadAvatarToSupabase(userId, fileBuffer, mimetype, filename)
             }
 
-            // Fallback: використовуємо Supabase Storage
-            return await this._uploadAvatarToSupabase(userId, fileBuffer, mimetype, filename)
-            
-        } catch (error) {
-            this.logger.error('Avatar upload error', { 
-                error: error.message, 
-                userId,
-                stack: error.stack 
-            })
-            return this._handleError(error, 'Не вдалося завантажити аватар', { userId })
-        }
-    }
-
-    async _uploadAvatarToSupabase(userId, fileBuffer, mimetype, filename) {
-        try {
-            // Generate unique filename with user ID prefix (required by RLS policy)
-            const fileExtension = mimetype.split('/')[1]
-            const uniqueFilename = `${userId}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
-
-            this.logger.info('Starting Supabase avatar upload', { 
-                userId, 
-                filename: uniqueFilename,
-                fileSize: fileBuffer.length,
-                mimetype 
-            })
-
-            // First, check if the bucket exists and is accessible
-            const { data: buckets, error: bucketsError } = await this.supabase.storage.listBuckets()
-            
-            if (bucketsError) {
-                this.logger.error('Failed to list storage buckets', { 
-                    error: bucketsError.message,
-                    userId 
-                })
-                return this._handleError(bucketsError, 'Storage service unavailable')
-            }
-
-            const avatarBucket = buckets.find(bucket => bucket.id === 'avatars')
-            if (!avatarBucket) {
-                this.logger.error('Avatars bucket not found', { 
-                    userId,
-                    availableBuckets: buckets.map(b => b.id)
-                })
-                return this._handleError(new Error('Avatars bucket not found'), 'Storage configuration error')
-            }
-
-            this.logger.info('Avatars bucket found', { 
-                userId,
-                bucketId: avatarBucket.id,
-                bucketPublic: avatarBucket.public
-            })
-
-            // Upload to Supabase Storage
-            const { data: uploadData, error: uploadError } = await this.supabase.storage
-                .from('avatars')
-                .upload(uniqueFilename, fileBuffer, {
-                    contentType: mimetype,
-                    upsert: false
-                })
-
-            if (uploadError) {
-                this.logger.error('Supabase avatar upload failed', { 
-                    error: uploadError.message, 
-                    code: uploadError.statusCode,
-                    details: uploadError.details,
-                    hint: uploadError.hint,
-                    userId, 
-                    filename: uniqueFilename 
-                })
-                return this._handleError(uploadError, 'Не вдалося завантажити файл до Supabase Storage')
-            }
-
-            this.logger.info('Avatar uploaded to Supabase storage successfully', { 
-                userId, 
-                filename: uniqueFilename,
-                path: uploadData.path 
-            })
-
-            // Get public URL
-            const { data: urlData } = this.supabase.storage
-                .from('avatars')
-                .getPublicUrl(uniqueFilename)
-
-            if (!urlData.publicUrl) {
-                this.logger.error('Failed to get public URL from Supabase', { 
-                    userId,
-                    filename: uniqueFilename
-                })
-                return this._handleError(
-                    new Error('Failed to get public URL'),
-                    'Не вдалося отримати посилання на файл'
-                )
-            }
-
-            this.logger.info('Got public URL for avatar from Supabase', { 
-                userId, 
-                publicUrl: urlData.publicUrl 
-            })
-
-            // Update user profile with new avatar URL
+            // Update profile with new avatar URL
             const { data: profile, error: updateError } = await this.supabase
                 .from('profiles')
                 .update({
-                    avatar_url: urlData.publicUrl,
+                    avatar_url: avatarUrl,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', userId)
@@ -493,63 +345,73 @@ export class UserService {
                 .single()
 
             if (updateError) {
-                this.logger.error('Failed to update profile with Supabase avatar URL', { 
+                this.logger.error('Failed to update profile with avatar URL', { 
                     error: updateError.message, 
                     userId,
-                    publicUrl: urlData.publicUrl 
+                    avatarUrl 
                 })
-                
-                // Try to clean up uploaded file
-                await this.supabase.storage
-                    .from('avatars')
-                    .remove([uniqueFilename])
-                    .catch(() => {}) // Ignore cleanup errors
-
-                return this._handleError(updateError, 'Не вдалося оновити профіль з аватаром')
+                return this._handleError(updateError, 'Failed to update profile with avatar')
             }
-
-            this.logger.info('Avatar uploaded successfully via Supabase', { 
-                userId, 
-                filename: uniqueFilename,
-                publicUrl: urlData.publicUrl 
-            })
 
             return this._handleSuccess({
-                avatarUrl: urlData.publicUrl,
+                avatarUrl: avatarUrl,
                 profile: profile
-            }, 'Аватар завантажено успішно')
-
+            }, 'Avatar uploaded successfully')
+            
         } catch (error) {
-            this.logger.error('Supabase avatar upload error', { 
+            this.logger.error('Avatar upload error', { 
                 error: error.message, 
-                userId,
-                stack: error.stack 
+                userId
             })
-            return this._handleError(error, 'Не вдалося завантажити аватар до Supabase', { userId })
+            return this._handleError(error, 'Failed to upload avatar', { userId })
         }
     }
 
-    async deleteProfile(userId) {
-        try {
-            this._validateUserId(userId)
-            
-            const { error: profileError } = await this.supabase
-                .from('users')
-                .delete()
-                .eq('id', userId)
+    async _uploadAvatarToSupabase(userId, fileBuffer, mimetype, filename) {
+        const fileExtension = mimetype.split('/')[1]
+        const uniqueFilename = `${userId}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
 
-            if (profileError) {
-                return this._handleError(profileError, 'Unable to delete profile', { userId })
-            }
+        this.logger.info('Starting Supabase avatar upload', { 
+            userId, 
+            filename: uniqueFilename,
+            fileSize: fileBuffer.length,
+            mimetype 
+        })
 
-            this.logger.info('Profile deleted successfully', { userId })
-            return this._handleSuccess({}, 'Profile deleted successfully')
-            
-        } catch (error) {
-            return this._handleError(error, this.ERRORS.INTERNAL_ERROR, { userId })
+        const { data: uploadData, error: uploadError } = await this.supabase.storage
+            .from('avatars')
+            .upload(uniqueFilename, fileBuffer, {
+                contentType: mimetype,
+                upsert: false
+            })
+
+        if (uploadError) {
+            this.logger.error('Supabase avatar upload failed', { 
+                error: uploadError.message, 
+                userId, 
+                filename: uniqueFilename 
+            })
+            throw new Error('Failed to upload to Supabase Storage')
         }
+
+        const { data: urlData } = this.supabase.storage
+            .from('avatars')
+            .getPublicUrl(uniqueFilename)
+
+        if (!urlData.publicUrl) {
+            throw new Error('Failed to get public URL')
+        }
+
+        this.logger.info('Avatar uploaded successfully via Supabase', { 
+            userId, 
+            filename: uniqueFilename,
+            publicUrl: urlData.publicUrl 
+        })
+
+        return urlData.publicUrl
     }
 
+    // Admin methods
     async getAllUsers(page = 1, limit = 10, search = '') {
         try {
             const pageNum = Math.max(1, parseInt(page))
@@ -657,7 +519,6 @@ export class UserService {
         try {
             this._validateUserId(userId)
             
-            // First, check if user exists
             const { data: existingUser, error: checkError } = await this.supabase
                 .from('profiles')
                 .select('id, email')
@@ -672,7 +533,6 @@ export class UserService {
                 )
             }
 
-            // Delete from auth.users table using admin client
             if (supabaseAdmin) {
                 const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
@@ -686,14 +546,11 @@ export class UserService {
                 }
             }
 
-            // The profile should be automatically deleted due to foreign key constraint
-            // But let's verify and clean up if needed
             const { error: profileError } = await this.supabase
                 .from('profiles')
                 .delete()
                 .eq('id', userId)
 
-            // Don't fail if profile is already deleted
             if (profileError && profileError.code !== 'PGRST116') {
                 this.logger.warn('Profile cleanup failed but user was deleted from auth', { 
                     error: profileError.message, 
@@ -745,30 +602,6 @@ export class UserService {
             
         } catch (error) {
             return this._handleError(error, this.ERRORS.INTERNAL_ERROR)
-        }
-    }
-
-    async searchUsersByTag(query) {
-        try {
-            if (!query?.trim()) {
-                return this._handleSuccess({ users: [] })
-            }
-            
-            const searchQuery = query.trim()
-            const { data: users, error } = await this.supabase
-                .from('profiles')
-                .select('id, full_name, profile_tag, avatar_url')
-                .ilike('profile_tag', `%${searchQuery}%`)
-                .limit(20)
-
-            if (error) {
-                return this._handleError(error, 'Unable to search users', { query: searchQuery })
-            }
-
-            return this._handleSuccess({ users })
-            
-        } catch (error) {
-            return this._handleError(error, this.ERRORS.INTERNAL_ERROR, { query })
         }
     }
 }
