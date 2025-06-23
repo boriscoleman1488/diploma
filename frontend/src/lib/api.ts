@@ -14,9 +14,11 @@ class ApiClient {
     this.session = session
   }
 
-  private getAuthHeaders(): HeadersInit {
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
+  private getAuthHeaders(includeContentType: boolean = true): HeadersInit {
+    const headers: HeadersInit = {}
+
+    if (includeContentType) {
+      headers['Content-Type'] = 'application/json'
     }
 
     if (this.session?.access_token) {
@@ -52,7 +54,7 @@ class ApiClient {
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         method: 'GET',
-        headers: this.getAuthHeaders(),
+        headers: this.getAuthHeaders(false), // Don't include Content-Type for GET
       })
 
       return this.handleResponse<T>(response)
@@ -68,7 +70,7 @@ class ApiClient {
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         method: 'POST',
-        headers: this.getAuthHeaders(),
+        headers: this.getAuthHeaders(true),
         body: data ? JSON.stringify(data) : undefined,
       })
 
@@ -85,7 +87,7 @@ class ApiClient {
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         method: 'PUT',
-        headers: this.getAuthHeaders(),
+        headers: this.getAuthHeaders(true),
         body: data ? JSON.stringify(data) : undefined,
       })
 
@@ -102,7 +104,7 @@ class ApiClient {
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         method: 'DELETE',
-        headers: this.getAuthHeaders(),
+        headers: this.getAuthHeaders(false), // Don't include Content-Type for DELETE without body
       })
 
       return this.handleResponse<T>(response)
