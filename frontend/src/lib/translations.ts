@@ -165,6 +165,8 @@ export const translations = {
     userDeleted: 'Користувача видалено успішно',
     failedToDeleteUser: 'Не вдалося видалити користувача',
     confirmDeleteUser: 'Ви впевнені, що хочете видалити цього користувача? Ця дія незворотна.',
+    cannotModifyOwnRole: 'Ви не можете змінити власну роль',
+    cannotDeleteOwnAccount: 'Ви не можете видалити власний акаунт',
   },
 
   // Errors (these will be overridden by backend errors when available)

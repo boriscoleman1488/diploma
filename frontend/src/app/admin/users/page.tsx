@@ -20,7 +20,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Mail,
-  Calendar
+  Calendar,
+  Crown
 } from 'lucide-react'
 
 export default function AdminUsersPage() {
@@ -31,6 +32,7 @@ export default function AdminUsersPage() {
     users,
     selectedUser,
     stats,
+    currentUserProfile,
     isLoading,
     isUpdating,
     pagination,
@@ -39,6 +41,7 @@ export default function AdminUsersPage() {
     updateUserRole,
     deleteUser,
     setSelectedUser,
+    canModifyUser,
   } = useAdminUsers()
 
   const debouncedSearch = debounce((query: string) => {
@@ -186,56 +189,66 @@ export default function AdminUsersPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {users.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Avatar
-                            src={user.avatar_url}
-                            name={user.full_name || user.email}
-                            size="sm"
-                          />
-                          <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-900">
-                              {user.full_name || t('common.unknown')}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              @{user.profile_tag || 'user'}
+                  {users.map((user) => {
+                    const isCurrentUser = currentUserProfile && user.id === currentUserProfile.id
+                    const canModify = canModifyUser(user.id)
+                    
+                    return (
+                      <tr key={user.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Avatar
+                              src={user.avatar_url}
+                              name={user.full_name || user.email}
+                              size="sm"
+                            />
+                            <div className="ml-3">
+                              <div className="text-sm font-medium text-gray-900 flex items-center">
+                                {user.full_name || t('common.unknown')}
+                                {isCurrentUser && (
+                                  <Crown className="w-4 h-4 ml-2 text-yellow-500" title="Ваш акаунт" />
+                                )}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                @{user.profile_tag || 'user'}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center text-sm text-gray-900">
-                          <Mail className="w-4 h-4 mr-2 text-gray-400" />
-                          {user.email}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <UserRoleSelect
-                          currentRole={user.role}
-                          onRoleChange={(role) => updateUserRole(user.id, role)}
-                          disabled={isUpdating}
-                        />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center text-sm text-gray-900">
-                          <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                          {formatDate(user.created_at)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewUser(user.id)}
-                          leftIcon={<Eye className="w-4 h-4" />}
-                        >
-                          Переглянути
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center text-sm text-gray-900">
+                            <Mail className="w-4 h-4 mr-2 text-gray-400" />
+                            {user.email}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <UserRoleSelect
+                            currentRole={user.role}
+                            onRoleChange={(role) => updateUserRole(user.id, role)}
+                            disabled={isUpdating}
+                            canModify={canModify}
+                            isCurrentUser={isCurrentUser}
+                          />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center text-sm text-gray-900">
+                            <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                            {formatDate(user.created_at)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewUser(user.id)}
+                            leftIcon={<Eye className="w-4 h-4" />}
+                          >
+                            Переглянути
+                          </Button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -285,6 +298,8 @@ export default function AdminUsersPage() {
           onRoleChange={updateUserRole}
           onDelete={deleteUser}
           isUpdating={isUpdating}
+          canModifyUser={canModifyUser}
+          currentUserProfile={currentUserProfile}
         />
       )}
     </div>

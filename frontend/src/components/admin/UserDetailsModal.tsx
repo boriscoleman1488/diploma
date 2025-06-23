@@ -15,7 +15,8 @@ import {
   Shield, 
   CheckCircle, 
   XCircle,
-  Trash2
+  Trash2,
+  AlertTriangle
 } from 'lucide-react'
 
 interface UserDetailsModalProps {
@@ -24,6 +25,8 @@ interface UserDetailsModalProps {
   onRoleChange: (userId: string, role: 'user' | 'admin') => Promise<{ success: boolean; error?: string }>
   onDelete: (userId: string) => Promise<{ success: boolean; error?: string }>
   isUpdating: boolean
+  canModifyUser: (userId: string) => boolean
+  currentUserProfile: any
 }
 
 export function UserDetailsModal({ 
@@ -31,9 +34,18 @@ export function UserDetailsModal({
   onClose, 
   onRoleChange, 
   onDelete, 
-  isUpdating 
+  isUpdating,
+  canModifyUser,
+  currentUserProfile
 }: UserDetailsModalProps) {
+  const isCurrentUser = currentUserProfile && user.id === currentUserProfile.id
+  const canModify = canModifyUser(user.id)
+
   const handleDelete = async () => {
+    if (isCurrentUser) {
+      return
+    }
+
     if (window.confirm(t('messages.confirmDeleteUser'))) {
       const result = await onDelete(user.id)
       if (result.success) {
@@ -60,6 +72,23 @@ export function UserDetailsModal({
         </div>
 
         <div className="p-6 space-y-6">
+          {/* Current User Warning */}
+          {isCurrentUser && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
+                <div>
+                  <h3 className="text-sm font-medium text-yellow-800">
+                    Це ваш власний акаунт
+                  </h3>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    Ви не можете змінювати власну роль або видаляти власний акаунт з міркувань безпеки.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* User Header */}
           <div className="flex items-center space-x-4">
             <Avatar
@@ -70,6 +99,9 @@ export function UserDetailsModal({
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
                 {user.full_name || t('common.unknown')}
+                {isCurrentUser && (
+                  <span className="ml-2 text-sm text-blue-600 font-normal">(Ви)</span>
+                )}
               </h3>
               <p className="text-gray-600">@{user.profile_tag || 'user'}</p>
               <p className="text-sm text-gray-500">{user.email}</p>
@@ -183,6 +215,8 @@ export function UserDetailsModal({
                     currentRole={user.role}
                     onRoleChange={(role) => onRoleChange(user.id, role)}
                     disabled={isUpdating}
+                    canModify={canModify}
+                    isCurrentUser={isCurrentUser}
                   />
                 </div>
                 
@@ -190,13 +224,16 @@ export function UserDetailsModal({
                   <Button
                     variant="danger"
                     onClick={handleDelete}
-                    disabled={isUpdating}
+                    disabled={isUpdating || isCurrentUser}
                     leftIcon={<Trash2 className="w-4 h-4" />}
                   >
                     {t('admin.deleteUser')}
                   </Button>
                   <p className="mt-2 text-sm text-gray-500">
-                    Ця дія незворотна. Користувач та всі його дані будуть видалені.
+                    {isCurrentUser 
+                      ? 'Ви не можете видалити власний акаунт.'
+                      : 'Ця дія незворотна. Користувач та всі його дані будуть видалені.'
+                    }
                   </p>
                 </div>
               </div>

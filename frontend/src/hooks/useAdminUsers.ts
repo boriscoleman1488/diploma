@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { AdminUser, AdminUserDetails, AdminUsersResponse, AdminUserDetailsResponse, UpdateUserRoleData, AdminStats } from '@/types/admin'
 import { apiClient } from '@/lib/api'
+import { useAuthStore } from '@/store/authStore'
 import { t } from '@/lib/translations'
 import toast from 'react-hot-toast'
 
@@ -8,6 +9,7 @@ export function useAdminUsers() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [selectedUser, setSelectedUser] = useState<AdminUserDetails | null>(null)
   const [stats, setStats] = useState<AdminStats | null>(null)
+  const [currentUserProfile, setCurrentUserProfile] = useState<AdminUser | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [pagination, setPagination] = useState({
@@ -16,6 +18,20 @@ export function useAdminUsers() {
     total: 0,
     totalPages: 0
   })
+  
+  const { user } = useAuthStore()
+
+  // Fetch current user profile to get admin info
+  const fetchCurrentUserProfile = async () => {
+    try {
+      const response = await apiClient.get('/users/profile')
+      if (response.success && response.profile) {
+        setCurrentUserProfile(response.profile)
+      }
+    } catch (error) {
+      console.error('Failed to fetch current user profile:', error)
+    }
+  }
 
   const fetchUsers = async (page = 1, limit = 10, search = '') => {
     setIsLoading(true)
@@ -60,6 +76,12 @@ export function useAdminUsers() {
   }
 
   const updateUserRole = async (userId: string, role: 'user' | 'admin') => {
+    // Prevent admin from changing their own role
+    if (currentUserProfile && userId === currentUserProfile.id) {
+      toast.error('Ви не можете змінити власну роль')
+      return { success: false, error: 'Ви не можете змінити власну роль' }
+    }
+
     setIsUpdating(true)
     try {
       const response = await apiClient.put(`/admin/users/role/${userId}`, { role })
@@ -90,6 +112,12 @@ export function useAdminUsers() {
   }
 
   const deleteUser = async (userId: string) => {
+    // Prevent admin from deleting themselves
+    if (currentUserProfile && userId === currentUserProfile.id) {
+      toast.error('Ви не можете видалити власний акаунт')
+      return { success: false, error: 'Ви не можете видалити власний акаунт' }
+    }
+
     setIsUpdating(true)
     try {
       const response = await apiClient.delete(`/admin/users/${userId}`)
@@ -104,6 +132,16 @@ export function useAdminUsers() {
         if (selectedUser?.id === userId) {
           setSelectedUser(null)
         }
+        
+        // Update pagination if needed
+        const newTotal = pagination.total - 1
+        const newTotalPages = Math.ceil(newTotal / pagination.limit)
+        
+        setPagination(prev => ({
+          ...prev,
+          total: newTotal,
+          totalPages: newTotalPages
+        }))
         
         return { success: true }
       }
@@ -129,7 +167,13 @@ export function useAdminUsers() {
     }
   }
 
+  // Check if user can be modified (not current admin)
+  const canModifyUser = (userId: string) => {
+    return currentUserProfile ? userId !== currentUserProfile.id : true
+  }
+
   useEffect(() => {
+    fetchCurrentUserProfile()
     fetchUsers()
     fetchStats()
   }, [])
@@ -138,6 +182,7 @@ export function useAdminUsers() {
     users,
     selectedUser,
     stats,
+    currentUserProfile,
     isLoading,
     isUpdating,
     pagination,
@@ -147,5 +192,6 @@ export function useAdminUsers() {
     deleteUser,
     fetchStats,
     setSelectedUser,
+    canModifyUser,
   }
 }
