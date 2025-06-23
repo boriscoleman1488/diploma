@@ -42,19 +42,19 @@ process.on('unhandledRejection', (reason, promise) => {
 
 dotenv.config()
 
+// Спрощена конфігурація логера без thread-stream
 const fastify = Fastify({
-  logger: {
-    level: process.env.LOG_LEVEL || 'info',
-    transport: {
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        translateTime: 'HH:MM:ss Z',
-        ignore: 'pid,hostname',
-        messageFormat: '{msg}'
+  logger: process.env.NODE_ENV === 'production' 
+    ? true 
+    : {
+        level: process.env.LOG_LEVEL || 'info',
+        prettyPrint: {
+          colorize: true,
+          translateTime: 'HH:MM:ss Z',
+          ignore: 'pid,hostname',
+          messageFormat: '{msg}'
+        }
       }
-    }
-  }
 })
 
 const config = {
@@ -192,12 +192,11 @@ const start = async () => {
       port: config.port,
       host: '0.0.0.0'
     })
-    fastify.log.info(`🚀 Сервер запущено на http://localhost:${config.port}`)
+    console.log(`🚀 Сервер запущено на http://localhost:${config.port}`)
   } catch (err) {
-    fastify.log.error(err)
+    console.error('Помилка запуску сервера:', err)
     process.exit(1)
   }
 }
 
 start()
-
