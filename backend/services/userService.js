@@ -298,15 +298,14 @@ export class UserService {
             this._validateUserId(userId)
             this._validateImageFile(fileBuffer, mimetype)
 
-            // Generate unique filename
+            // Generate unique filename with user ID prefix
             const fileExtension = mimetype.split('/')[1]
-            const uniqueFilename = `${userId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
-            const filePath = `avatars/${uniqueFilename}`
+            const uniqueFilename = `${userId}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
 
             // Upload to Supabase Storage
             const { data: uploadData, error: uploadError } = await this.supabase.storage
                 .from('avatars')
-                .upload(filePath, fileBuffer, {
+                .upload(uniqueFilename, fileBuffer, {
                     contentType: mimetype,
                     upsert: false
                 })
@@ -315,7 +314,7 @@ export class UserService {
                 this.logger.error('Avatar upload failed', { 
                     error: uploadError.message, 
                     userId, 
-                    filename 
+                    filename: uniqueFilename 
                 })
                 return this._handleError(uploadError, 'Не вдалося завантажити файл')
             }
@@ -323,7 +322,7 @@ export class UserService {
             // Get public URL
             const { data: urlData } = this.supabase.storage
                 .from('avatars')
-                .getPublicUrl(filePath)
+                .getPublicUrl(uniqueFilename)
 
             if (!urlData.publicUrl) {
                 return this._handleError(
@@ -347,7 +346,7 @@ export class UserService {
                 // Try to clean up uploaded file
                 await this.supabase.storage
                     .from('avatars')
-                    .remove([filePath])
+                    .remove([uniqueFilename])
                     .catch(() => {}) // Ignore cleanup errors
 
                 return this._handleError(updateError, 'Не вдалося оновити профіль з аватаром')
