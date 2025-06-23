@@ -44,8 +44,8 @@ export default async function edamamRoutes(fastify, options) {
       fastify.log.error('Edamam search error', { error: error.message })
       return reply.code(500).send({
         success: false,
-        error: 'Internal server error',
-        message: 'Помилка пошуку інгредієнтів'
+        error: error.message || 'Internal server error',
+        message: `Помилка пошуку інгредієнтів: ${error.message}`
       })
     }
   })
@@ -93,8 +93,8 @@ export default async function edamamRoutes(fastify, options) {
       fastify.log.error('Edamam food details error', { error: error.message })
       return reply.code(500).send({
         success: false,
-        error: 'Internal server error',
-        message: 'Помилка отримання інформації про інгредієнт'
+        error: error.message || 'Internal server error',
+        message: `Помилка отримання інформації про інгредієнт: ${error.message}`
       })
     }
   })
@@ -144,7 +144,7 @@ export default async function edamamRoutes(fastify, options) {
         return reply.code(400).send({
           success: false,
           error: result.error,
-          message: 'Не вдалося проаналізувати поживну цінність'
+          message: `Не вдалося проаналізувати поживну цінність: ${result.error}`
         })
       }
 
@@ -156,8 +156,8 @@ export default async function edamamRoutes(fastify, options) {
       fastify.log.error('Nutrition analysis error', { error: error.message })
       return reply.code(500).send({
         success: false,
-        error: 'Internal server error',
-        message: 'Помилка аналізу поживної цінності'
+        error: error.message || 'Internal server error',
+        message: `Помилка аналізу поживної цінності: ${error.message}`
       })
     }
   })
@@ -203,7 +203,7 @@ export default async function edamamRoutes(fastify, options) {
         return reply.code(400).send({
           success: false,
           error: result.error,
-          message: 'Не вдалося проаналізувати інгредієнти'
+          message: `Не вдалося проаналізувати інгредієнти: ${result.error}`
         })
       }
 
@@ -215,8 +215,8 @@ export default async function edamamRoutes(fastify, options) {
       fastify.log.error('Ingredients analysis error', { error: error.message })
       return reply.code(500).send({
         success: false,
-        error: 'Internal server error',
-        message: 'Помилка аналізу інгредієнтів'
+        error: error.message || 'Internal server error',
+        message: `Помилка аналізу інгредієнтів: ${error.message}`
       })
     }
   })
