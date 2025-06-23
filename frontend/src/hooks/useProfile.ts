@@ -22,7 +22,6 @@ export function useProfile() {
       }
     } catch (error) {
       console.error('Failed to fetch profile:', error)
-      // Backend error will be displayed as-is
       toast.error(error instanceof Error ? error.message : 'Не вдалося завантажити профіль')
     } finally {
       setIsLoading(false)
@@ -39,6 +38,7 @@ export function useProfile() {
       }
     } catch (error) {
       console.error('Failed to fetch stats:', error)
+      // Don't show error toast for stats as it's not critical
     }
   }
 

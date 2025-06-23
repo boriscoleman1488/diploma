@@ -62,8 +62,8 @@ export const useAuthStore = create<AuthState>()(
 
       logout: async () => {
         try {
-          // Don't send body for logout
-          await apiClient.post('/auth/logout')
+          // Don't send body for logout - just call the endpoint
+          await apiClient.post('/auth/logout', undefined)
         } catch (error) {
           console.error('Logout error:', error)
         } finally {

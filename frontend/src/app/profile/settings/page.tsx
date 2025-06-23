@@ -166,25 +166,23 @@ export default function SettingsPage() {
             />
             <div>
               <label htmlFor="avatar-upload" className="cursor-pointer">
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                  disabled={isUploadingAvatar}
+                />
                 <Button
+                  type="button"
                   variant="outline"
                   leftIcon={isUploadingAvatar ? <LoadingSpinner size="sm" /> : <Upload className="w-4 h-4" />}
                   disabled={isUploadingAvatar}
-                  asChild
                 >
-                  <span>
-                    {isUploadingAvatar ? 'Завантаження...' : 'Змінити аватар'}
-                  </span>
+                  {isUploadingAvatar ? 'Завантаження...' : 'Змінити аватар'}
                 </Button>
               </label>
-              <input
-                id="avatar-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarUpload}
-                className="hidden"
-                disabled={isUploadingAvatar}
-              />
               <p className="mt-2 text-sm text-gray-500">
                 JPG, PNG або WebP. Максимальний розмір 2МБ.
               </p>
