@@ -5,7 +5,7 @@ export const authenticateUser = async (request, reply) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return reply.code(401).send({
         error: 'Access token required',
-        message: 'Please provide Authorization header with Bearer token'
+        message: 'Будь ласка, увійдіть в систему'
       })
     }
 
@@ -17,7 +17,22 @@ export const authenticateUser = async (request, reply) => {
       request.log.error('Authentication failed', { error: error?.message })
       return reply.code(401).send({
         error: 'Invalid token',
-        message: 'Please log in again'
+        message: 'Будь ласка, увійдіть в систему знову'
+      })
+    }
+
+    // Get user profile from database
+    const { data: profile, error: profileError } = await request.server.supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile) {
+      request.log.error('Profile not found', { error: profileError?.message, userId: user.id })
+      return reply.code(401).send({
+        error: 'Profile not found',
+        message: 'Профіль користувача не знайдено'
       })
     }
 
@@ -25,22 +40,24 @@ export const authenticateUser = async (request, reply) => {
       id: user.id,
       userId: user.id,
       email: user.email,
-      role: user.role || 'authenticated',
+      role: profile.role || 'user',
       emailConfirmed: user.email_confirmed_at !== null,
       lastSignIn: user.last_sign_in_at,
-      metadata: user.user_metadata
+      metadata: user.user_metadata,
+      profile: profile
     }
 
     request.log.info('User authenticated', {
       userId: request.user.id,
-      email: request.user.email
+      email: request.user.email,
+      role: request.user.role
     })
 
   } catch (error) {
     request.log.error('Authentication error', { error: error.message })
     return reply.code(401).send({
       error: 'Authentication failed',
-      message: 'Unable to verify token'
+      message: 'Не вдалося перевірити токен'
     })
   }
 }
@@ -58,8 +75,8 @@ export const blockAuthenticatedUsers = async (request, reply) => {
       if (!error && user) {
         return reply.code(403).send({
           error: 'Already authenticated',
-          message: 'You are already logged in. Please logout first to access this page.',
-          redirectTo: '/user'
+          message: 'Ви вже увійшли в систему. Будь ласка, вийдіть спочатку.',
+          redirectTo: '/profile'
         })
       }
     }
@@ -76,49 +93,16 @@ export const requireRole = (requiredRole) => {
     if (!request.user) {
       return reply.code(401).send({
         error: 'Authentication required',
-        message: 'Please log in first'
+        message: 'Будь ласка, увійдіть в систему спочатку'
       })
     }
 
-    try {
-      const { data: profile, error } = await request.server.supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', request.user.id)
-        .maybeSingle()
+    const userRole = request.user.role
 
-      if (error) {
-        request.log.error('Failed to fetch user profile', { error: error.message, userId: request.user.id })
-        return reply.code(500).send({
-          error: 'Profile fetch failed',
-          message: 'Unable to verify user permissions'
-        })
-      }
-
-      if (!profile) {
-        request.log.warn('No profile found for user', { userId: request.user.id })
-        return reply.code(403).send({
-          error: 'Profile not found',
-          message: 'User profile must be created before accessing this resource'
-        })
-      }
-
-      const userRole = profile.role
-
-      if (userRole !== requiredRole) {
-        return reply.code(403).send({
-          error: 'Insufficient permissions',
-          message: `Required role: ${requiredRole}, your role: ${userRole || 'none'}`
-        })
-      }
-
-      request.user.role = userRole
-
-    } catch (error) {
-      request.log.error('Error checking user role', { error: error.message, userId: request.user.id })
-      return reply.code(500).send({
-        error: 'Permission check failed',
-        message: error.message
+    if (userRole !== requiredRole) {
+      return reply.code(403).send({
+        error: 'Insufficient permissions',
+        message: `Потрібна роль: ${requiredRole}, ваша роль: ${userRole || 'none'}`
       })
     }
   }
@@ -128,50 +112,17 @@ export const requireAdmin = async (request, reply) => {
   if (!request.user) {
     return reply.code(401).send({
       error: 'Authentication required',
-      message: 'Please log in first'
+      message: 'Будь ласка, увійдіть в систему спочатку'
     })
   }
 
-  try {
-    const { data: profile, error } = await request.server.supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', request.user.id)
-      .maybeSingle()
+  const userRole = request.user.role
+  const isAdmin = userRole === 'admin'
 
-    if (error) {
-      request.log.error('Failed to fetch user profile', { error: error.message, userId: request.user.id })
-      return reply.code(500).send({
-        error: 'Profile fetch failed',
-        message: error.message
-      })
-    }
-
-    if (!profile) {
-      request.log.warn('No profile found for user', { userId: request.user.id })
-      return reply.code(403).send({
-        error: 'Profile not found',
-        message: 'User profile must be created before accessing admin resources'
-      })
-    }
-
-    const userRole = profile.role
-    const isAdmin = userRole === 'admin'
-
-    if (!isAdmin) {
-      return reply.code(403).send({
-        error: 'Admin access required',
-        message: 'You need administrator privileges'
-      })
-    }
-
-    request.user.role = userRole
-
-  } catch (error) {
-    request.log.error('Error checking admin role', { error: error.message, userId: request.user.id })
-    return reply.code(500).send({
-      error: 'Permission check failed',
-      message: error.message
+  if (!isAdmin) {
+    return reply.code(403).send({
+      error: 'Admin access required',
+      message: 'Потрібні права адміністратора'
     })
   }
 }

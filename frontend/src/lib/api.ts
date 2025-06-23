@@ -68,10 +68,13 @@ class ApiClient {
 
   async post<T>(endpoint: string, data?: any): Promise<T> {
     try {
+      const headers = this.getAuthHeaders(!!data) // Only include Content-Type if there's data
+      const body = data ? JSON.stringify(data) : undefined
+
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         method: 'POST',
-        headers: this.getAuthHeaders(true),
-        body: data ? JSON.stringify(data) : undefined,
+        headers,
+        body,
       })
 
       return this.handleResponse<T>(response)
@@ -85,10 +88,13 @@ class ApiClient {
 
   async put<T>(endpoint: string, data?: any): Promise<T> {
     try {
+      const headers = this.getAuthHeaders(!!data) // Only include Content-Type if there's data
+      const body = data ? JSON.stringify(data) : undefined
+
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         method: 'PUT',
-        headers: this.getAuthHeaders(true),
-        body: data ? JSON.stringify(data) : undefined,
+        headers,
+        body,
       })
 
       return this.handleResponse<T>(response)

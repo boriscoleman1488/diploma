@@ -26,7 +26,7 @@ export class AuthService {
         })
 
         const errorMessage = Object.entries(AuthService.ERROR_MESSAGES)
-            .find(([key]) => error.message.includes(key))?.[1] || `${operation} failed`
+            .find(([key]) => error.message.includes(key))?.[1] || error.message
 
         return {
             success: false,
@@ -90,7 +90,6 @@ export class AuthService {
                 password,
                 options: {
                     data: { full_name: fullName },
-                    // Disable email confirmation if auto-confirm is enabled in Supabase
                     emailRedirectTo: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback`
                 }
             })
