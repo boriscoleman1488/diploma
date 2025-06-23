@@ -17,6 +17,9 @@ export class DishService {
             VALIDATION_ERROR: 'Validation error',
             DATABASE_ERROR: 'Database error'
         }
+
+        this.ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+        this.MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10MB
     }
 
     async _validateDishExists(dishId, userId = null) {
@@ -55,6 +58,279 @@ export class DishService {
         }
 
         return true
+    }
+
+    _validateImageFile(fileBuffer, mimetype) {
+        if (!this.ALLOWED_IMAGE_TYPES.includes(mimetype)) {
+            throw new Error('Дозволені тільки файли JPG, PNG та WebP')
+        }
+        
+        if (fileBuffer.length > this.MAX_IMAGE_SIZE) {
+            throw new Error('Розмір зображення не повинен перевищувати 10МБ')
+        }
+    }
+
+    async uploadDishImage(userId, fileBuffer, mimetype, originalFilename) {
+        try {
+            this._validateImageFile(fileBuffer, mimetype)
+
+            this.logger.info('Starting dish image upload', { 
+                userId, 
+                originalFilename,
+                fileSize: fileBuffer.length,
+                mimetype
+            })
+
+            // Generate unique filename
+            const fileExtension = mimetype.split('/')[1]
+            const uniqueFilename = `${userId}-dish-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
+
+            // Upload to Supabase Storage
+            const { data: uploadData, error: uploadError } = await this.supabase.storage
+                .from('dish-images')
+                .upload(uniqueFilename, fileBuffer, {
+                    contentType: mimetype,
+                    upsert: false
+                })
+
+            if (uploadError) {
+                this.logger.error('Dish image upload failed', { 
+                    error: uploadError.message, 
+                    userId, 
+                    filename: uniqueFilename 
+                })
+                return {
+                    success: false,
+                    error: 'Upload failed',
+                    message: 'Не вдалося завантажити зображення'
+                }
+            }
+
+            // Get public URL
+            const { data: urlData } = this.supabase.storage
+                .from('dish-images')
+                .getPublicUrl(uniqueFilename)
+
+            if (!urlData.publicUrl) {
+                return {
+                    success: false,
+                    error: 'Failed to get public URL',
+                    message: 'Не вдалося отримати посилання на зображення'
+                }
+            }
+
+            this.logger.info('Dish image uploaded successfully', { 
+                userId, 
+                filename: uniqueFilename,
+                publicUrl: urlData.publicUrl 
+            })
+
+            return {
+                success: true,
+                imageUrl: urlData.publicUrl,
+                filename: uniqueFilename,
+                message: 'Зображення завантажено успішно'
+            }
+            
+        } catch (error) {
+            this.logger.error('Dish image upload error', { 
+                error: error.message, 
+                userId 
+            })
+            return {
+                success: false,
+                error: 'Upload failed',
+                message: error.message || 'Не вдалося завантажити зображення'
+            }
+        }
+    }
+
+    async uploadStepImage(userId, fileBuffer, mimetype, originalFilename) {
+        try {
+            this._validateImageFile(fileBuffer, mimetype)
+
+            this.logger.info('Starting step image upload', { 
+                userId, 
+                originalFilename,
+                fileSize: fileBuffer.length,
+                mimetype
+            })
+
+            // Generate unique filename for step image
+            const fileExtension = mimetype.split('/')[1]
+            const uniqueFilename = `${userId}-step-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
+
+            // Upload to Supabase Storage
+            const { data: uploadData, error: uploadError } = await this.supabase.storage
+                .from('dish-images')
+                .upload(uniqueFilename, fileBuffer, {
+                    contentType: mimetype,
+                    upsert: false
+                })
+
+            if (uploadError) {
+                this.logger.error('Step image upload failed', { 
+                    error: uploadError.message, 
+                    userId, 
+                    filename: uniqueFilename 
+                })
+                return {
+                    success: false,
+                    error: 'Upload failed',
+                    message: 'Не вдалося завантажити зображення кроку'
+                }
+            }
+
+            // Get public URL
+            const { data: urlData } = this.supabase.storage
+                .from('dish-images')
+                .getPublicUrl(uniqueFilename)
+
+            if (!urlData.publicUrl) {
+                return {
+                    success: false,
+                    error: 'Failed to get public URL',
+                    message: 'Не вдалося отримати посилання на зображення'
+                }
+            }
+
+            this.logger.info('Step image uploaded successfully', { 
+                userId, 
+                filename: uniqueFilename,
+                publicUrl: urlData.publicUrl 
+            })
+
+            return {
+                success: true,
+                imageUrl: urlData.publicUrl,
+                filename: uniqueFilename,
+                message: 'Зображення кроку завантажено успішно'
+            }
+            
+        } catch (error) {
+            this.logger.error('Step image upload error', { 
+                error: error.message, 
+                userId 
+            })
+            return {
+                success: false,
+                error: 'Upload failed',
+                message: error.message || 'Не вдалося завантажити зображення кроку'
+            }
+        }
+    }
+
+    async getDishes() {
+        try {
+            const { data: dishes, error } = await this.supabase
+                .from('dishes')
+                .select(`
+                    *,
+                    profiles:user_id(full_name, email, profile_tag),
+                    dish_category_relations(
+                        dish_categories(id, name)
+                    ),
+                    dish_ratings(rating_type),
+                    dish_comments(id),
+                    dish_ingredients(*),
+                    dish_steps(*)
+                `)
+                .eq('status', this.DISH_STATUS.APPROVED)
+                .order('created_at', { ascending: false })
+
+            if (error) {
+                this.logger.error('Dishes fetch error', { error: error.message })
+                return {
+                    success: false,
+                    error: 'Database error',
+                    message: 'Unable to fetch dishes'
+                }
+            }
+
+            const processedDishes = (dishes || []).map(dish => ({
+                ...dish,
+                categories: dish.dish_category_relations?.map(rel => rel.dish_categories) || [],
+                ratings: dish.dish_ratings || [],
+                comments_count: dish.dish_comments?.length || 0,
+                ingredients: dish.dish_ingredients || [],
+                steps: dish.dish_steps?.sort((a, b) => a.step_number - b.step_number) || []
+            }))
+
+            processedDishes.forEach(dish => {
+                delete dish.dish_category_relations
+                delete dish.dish_ratings
+                delete dish.dish_comments
+                delete dish.dish_ingredients
+                delete dish.dish_steps
+            })
+
+            return {
+                success: true,
+                dishes: processedDishes,
+                total: processedDishes.length
+            }
+        } catch (error) {
+            this.logger.error('Dishes fetch error', { error: error.message })
+            return {
+                success: false,
+                error: 'Internal server error',
+                message: 'Unable to fetch dishes'
+            }
+        }
+    }
+
+    async getDishById(dishId) {
+        try {
+            const { data: dish, error } = await this.supabase
+                .from('dishes')
+                .select(`
+                    *,
+                    profiles:user_id(full_name, email, profile_tag, avatar_url),
+                    dish_category_relations(
+                        dish_categories(id, name)
+                    ),
+                    dish_ratings(rating_type, user_id),
+                    dish_ingredients(*),
+                    dish_steps(*)
+                `)
+                .eq('id', dishId)
+                .eq('status', this.DISH_STATUS.APPROVED)
+                .single()
+
+            if (error) {
+                this.logger.error('Dish fetch error', { error: error.message })
+                return {
+                    success: false,
+                    error: 'Dish not found',
+                    message: 'Unable to fetch dish'
+                }
+            }
+
+            const processedDish = {
+                ...dish,
+                categories: dish.dish_category_relations?.map(rel => rel.dish_categories) || [],
+                ratings: dish.dish_ratings || [],
+                ingredients: dish.dish_ingredients?.sort((a, b) => a.order_index - b.order_index) || [],
+                steps: dish.dish_steps?.sort((a, b) => a.step_number - b.step_number) || []
+            }
+
+            delete processedDish.dish_category_relations
+            delete processedDish.dish_ratings
+            delete processedDish.dish_ingredients
+            delete processedDish.dish_steps
+
+            return {
+                success: true,
+                dish: processedDish
+            }
+        } catch (error) {
+            this.logger.error('Dish fetch error', { error: error.message })
+            return {
+                success: false,
+                error: 'Internal server error',
+                message: 'Unable to fetch dish'
+            }
+        }
     }
 
     async _createDishRelations(dishId, { category_ids, ingredients, steps }) {
@@ -142,59 +418,6 @@ export class DishService {
             success: true,
             message,
             ...data
-        }
-    }
-
-    async getDishes() {
-        try {
-            const { data: dishes, error } = await this.supabase
-                .from('dishes')
-                .select(`
-                    *,
-                    profiles:user_id(full_name, email, profile_tag),
-                    dish_category_relations(
-                        dish_categories(id, name)
-                    ),
-                    dish_ratings(rating_type),
-                    dish_comments(id)
-                `)
-                .eq('status', this.DISH_STATUS.APPROVED)
-                .order('created_at', { ascending: false })
-
-            if (error) {
-                this.logger.error('Dishes fetch error', { error: error.message })
-                return {
-                    success: false,
-                    error: 'Database error',
-                    message: 'Unable to fetch dishes'
-                }
-            }
-
-            const processedDishes = (dishes || []).map(dish => ({
-                ...dish,
-                categories: dish.dish_category_relations?.map(rel => rel.dish_categories) || [],
-                ratings: dish.dish_ratings || [],
-                comments_count: dish.dish_comments?.length || 0
-            }))
-
-            processedDishes.forEach(dish => {
-                delete dish.dish_category_relations
-                delete dish.dish_ratings
-                delete dish.dish_comments
-            })
-
-            return {
-                success: true,
-                dishes: processedDishes,
-                total: processedDishes.length
-            }
-        } catch (error) {
-            this.logger.error('Dishes fetch error', { error: error.message })
-            return {
-                success: false,
-                error: 'Internal server error',
-                message: 'Unable to fetch dishes'
-            }
         }
     }
 

@@ -11,17 +11,18 @@ import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { IngredientSearch } from '@/components/dishes/IngredientSearch'
+import { ImageUpload } from '@/components/dishes/ImageUpload'
 import { apiClient } from '@/lib/api'
 import { 
   ChefHat, 
   Plus, 
   Trash2, 
   ArrowLeft,
-  Upload,
   X,
   Search,
   Clock,
-  Users
+  Users,
+  Camera
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -40,7 +41,8 @@ const ingredientSchema = z.object({
 
 const stepSchema = z.object({
   description: z.string().min(1, 'Опис кроку обов\'язковий'),
-  duration_minutes: z.number().min(0).optional()
+  duration_minutes: z.number().min(0).optional(),
+  image_url: z.string().url().optional().or(z.literal(''))
 })
 
 const dishSchema = z.object({
@@ -61,6 +63,7 @@ export default function AddDishPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [showIngredientSearch, setShowIngredientSearch] = useState(false)
+  const [mainImageUrl, setMainImageUrl] = useState('')
   const router = useRouter()
 
   const {
@@ -79,7 +82,7 @@ export default function AddDishPage() {
       servings: 4,
       category_ids: [],
       ingredients: [],
-      steps: [{ description: '', duration_minutes: 0 }],
+      steps: [{ description: '', duration_minutes: 0, image_url: '' }],
       main_image_url: ''
     }
   })
@@ -97,6 +100,11 @@ export default function AddDishPage() {
   useEffect(() => {
     fetchCategories()
   }, [])
+
+  // Update main image URL in form when it changes
+  useEffect(() => {
+    setValue('main_image_url', mainImageUrl)
+  }, [mainImageUrl, setValue])
 
   const fetchCategories = async () => {
     try {
@@ -127,6 +135,14 @@ export default function AddDishPage() {
 
   const handleAddManualIngredient = () => {
     appendIngredient({ name: '', amount: 0, unit: 'г' })
+  }
+
+  const handleStepImageUploaded = (stepIndex: number, imageUrl: string) => {
+    setValue(`steps.${stepIndex}.image_url`, imageUrl)
+  }
+
+  const handleStepImageRemoved = (stepIndex: number) => {
+    setValue(`steps.${stepIndex}.image_url`, '')
   }
 
   const onSubmit = async (data: DishFormData) => {
@@ -178,7 +194,7 @@ export default function AddDishPage() {
                   Додати нову страву
                 </h1>
                 <p className="text-primary-100 mt-1">
-                  Створіть свій унікальний рецепт з автоматичним пошуком інгредієнтів
+                  Створіть свій унікальний рецепт з фотографіями та автоматичним пошуком інгредієнтів
                 </p>
               </div>
             </div>
@@ -192,7 +208,7 @@ export default function AddDishPage() {
           <CardHeader>
             <CardTitle>Основна інформація</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Назва страви *
@@ -216,7 +232,7 @@ export default function AddDishPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                   <Users className="w-4 h-4 mr-2" />
@@ -231,34 +247,41 @@ export default function AddDishPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Головне зображення (URL)
-                </label>
-                <Input
-                  {...register('main_image_url')}
-                  placeholder="https://example.com/image.jpg"
-                  error={errors.main_image_url?.message}
-                />
-              </div>
-            </div>
-
-            {/* Cooking Time Display */}
-            {totalCookingTime > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-center">
-                  <Clock className="w-5 h-5 text-blue-600 mr-2" />
-                  <div>
-                    <p className="text-sm font-medium text-blue-800">
-                      Загальний час приготування
-                    </p>
-                    <p className="text-lg font-bold text-blue-900">
-                      {totalCookingTime} хвилин
-                    </p>
+              {/* Cooking Time Display */}
+              {totalCookingTime > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <Clock className="w-5 h-5 text-blue-600 mr-2" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-800">
+                        Загальний час приготування
+                      </p>
+                      <p className="text-lg font-bold text-blue-900">
+                        {totalCookingTime} хвилин
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+
+            {/* Main Image Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                <Camera className="w-4 h-4 mr-2" />
+                Головне зображення страви
+              </label>
+              <ImageUpload
+                onImageUploaded={setMainImageUrl}
+                currentImageUrl={mainImageUrl}
+                onImageRemoved={() => setMainImageUrl('')}
+                type="dish"
+                placeholder="Завантажити головне зображення страви"
+              />
+              {errors.main_image_url && (
+                <p className="text-sm text-red-600 mt-1">{errors.main_image_url.message}</p>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -423,17 +446,17 @@ export default function AddDishPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => appendStep({ description: '', duration_minutes: 0 })}
+                onClick={() => appendStep({ description: '', duration_minutes: 0, image_url: '' })}
                 leftIcon={<Plus className="w-4 h-4" />}
               >
                 Додати крок
               </Button>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             {stepFields.map((field, index) => (
-              <div key={field.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
+              <div key={field.id} className="border border-gray-200 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
                   <h4 className="font-medium text-gray-900 flex items-center">
                     <span className="bg-primary-100 text-primary-800 text-sm font-medium px-2.5 py-0.5 rounded-full mr-2">
                       {index + 1}
@@ -452,29 +475,48 @@ export default function AddDishPage() {
                     </Button>
                   )}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="md:col-span-3">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Опис кроку
-                    </label>
-                    <Textarea
-                      {...register(`steps.${index}.description`)}
-                      placeholder="Детально опишіть що потрібно зробити на цьому кроці"
-                      rows={3}
-                      error={errors.steps?.[index]?.description?.message}
-                    />
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Step Description and Duration */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Опис кроку *
+                      </label>
+                      <Textarea
+                        {...register(`steps.${index}.description`)}
+                        placeholder="Детально опишіть що потрібно зробити на цьому кроці"
+                        rows={4}
+                        error={errors.steps?.[index]?.description?.message}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                        <Clock className="w-4 h-4 mr-1" />
+                        Час виконання (хвилини)
+                      </label>
+                      <Input
+                        type="number"
+                        {...register(`steps.${index}.duration_minutes`, { valueAsNumber: true })}
+                        placeholder="0"
+                        min={0}
+                        error={errors.steps?.[index]?.duration_minutes?.message}
+                      />
+                    </div>
                   </div>
+
+                  {/* Step Image Upload */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                      <Clock className="w-4 h-4 mr-1" />
-                      Час (хвилини)
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                      <Camera className="w-4 h-4 mr-2" />
+                      Зображення кроку (необов'язково)
                     </label>
-                    <Input
-                      type="number"
-                      {...register(`steps.${index}.duration_minutes`, { valueAsNumber: true })}
-                      placeholder="0"
-                      min={0}
-                      error={errors.steps?.[index]?.duration_minutes?.message}
+                    <ImageUpload
+                      onImageUploaded={(imageUrl) => handleStepImageUploaded(index, imageUrl)}
+                      currentImageUrl={watch(`steps.${index}.image_url`) || ''}
+                      onImageRemoved={() => handleStepImageRemoved(index)}
+                      type="step"
+                      placeholder="Завантажити зображення для цього кроку"
                     />
                   </div>
                 </div>

@@ -201,7 +201,7 @@ export default async function dishRoutes(fastify, options) {
         }
     })
 
-
+    // Upload main dish image
     fastify.post('/upload-image', {
         preHandler: [authenticateUser],
     }, async (request, reply) => {
@@ -211,12 +211,12 @@ export default async function dishRoutes(fastify, options) {
             if (!data) {
                 return reply.code(400).send({
                     error: 'No file provided',
-                    message: 'Please select an image to upload'
+                    message: 'Будь ласка, оберіть зображення для завантаження'
                 })
             }
 
             const buffer = await data.toBuffer()
-            const result = await fastify.dishService.uploadDishImage(request.user.id, buffer, data.mimetype)
+            const result = await fastify.dishService.uploadDishImage(request.user.id, buffer, data.mimetype, data.filename)
 
             if (!result.success) {
                 return reply.code(400).send({
@@ -231,6 +231,40 @@ export default async function dishRoutes(fastify, options) {
             return reply.code(500).send({
                 error: 'Internal server error',
                 message: 'Unable to upload image'
+            })
+        }
+    })
+
+    // Upload step image
+    fastify.post('/upload-step-image', {
+        preHandler: [authenticateUser],
+    }, async (request, reply) => {
+        try {
+            const data = await request.file()
+
+            if (!data) {
+                return reply.code(400).send({
+                    error: 'No file provided',
+                    message: 'Будь ласка, оберіть зображення для завантаження'
+                })
+            }
+
+            const buffer = await data.toBuffer()
+            const result = await fastify.dishService.uploadStepImage(request.user.id, buffer, data.mimetype, data.filename)
+
+            if (!result.success) {
+                return reply.code(400).send({
+                    error: result.error,
+                    message: result.message
+                })
+            }
+
+            return result
+        } catch (error) {
+            fastify.log.error('Step image upload error', { error: error.message })
+            return reply.code(500).send({
+                error: 'Internal server error',
+                message: 'Unable to upload step image'
             })
         }
     })
