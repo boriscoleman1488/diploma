@@ -25,6 +25,10 @@ const nextConfig = {
       },
     ]
   },
+  // Configure the dev server to run on port 5173
+  devIndicators: {
+    buildActivity: true,
+  },
 }
 
 module.exports = nextConfig
