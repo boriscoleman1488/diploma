@@ -67,20 +67,16 @@ export default function CategoriesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Категорії рецептів
+            Категорії страв
           </h1>
           <p className="mt-1 text-sm text-gray-600">
-            Переглядайте та керуйте категоріями рецептів
+            Переглядайте та керуйте категоріями страв
           </p>
         </div>
-        <Button
-          leftIcon={<Plus className="w-4 h-4" />}
-        >
-          Додати категорію
-        </Button>
       </div>
 
       {/* Search */}
@@ -116,27 +112,9 @@ export default function CategoriesPage() {
           filteredCategories.map((category) => (
             <Card key={category.id} className="hover:shadow-md transition-shadow">
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Grid3X3 className="w-5 h-5 mr-2 text-primary-600" />
-                    {category.name}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      leftIcon={<Edit className="w-4 h-4" />}
-                    >
-                      Редагувати
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      leftIcon={<Trash2 className="w-4 h-4" />}
-                    >
-                      Видалити
-                    </Button>
-                  </div>
+                <CardTitle className="flex items-center">
+                  <Grid3X3 className="w-5 h-5 mr-2 text-primary-600" />
+                  {category.name}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -150,7 +128,7 @@ export default function CategoriesPage() {
                   <div className="flex items-center justify-between text-sm text-gray-500">
                     <div className="flex items-center">
                       <ChefHat className="w-4 h-4 mr-1" />
-                      {category.dishes_count || 0} рецептів
+                      {category.dishes_count || 0} страв
                     </div>
                     <div>
                       Створено {formatDate(category.created_at)}

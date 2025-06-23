@@ -101,7 +101,7 @@ export default function ProfilePage() {
                   <ChefHat className="w-6 h-6 text-primary-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Створено рецептів</p>
+                  <p className="text-sm font-medium text-gray-600">Додано страв</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.recipesCreated}</p>
                 </div>
               </div>
@@ -115,7 +115,7 @@ export default function ProfilePage() {
                   <Heart className="w-6 h-6 text-red-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Улюблені рецепти</p>
+                  <p className="text-sm font-medium text-gray-600">Улюблені страви</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.favoriteRecipes}</p>
                 </div>
               </div>

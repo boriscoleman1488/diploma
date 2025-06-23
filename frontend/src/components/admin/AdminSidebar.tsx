@@ -16,7 +16,7 @@ import {
 const adminNavigation = [
   { name: 'Користувачі', href: '/admin/users', icon: Users },
   { name: 'Категорії', href: '/admin/categories', icon: Grid3X3 },
-  { name: 'Рецепти', href: '/admin/dishes', icon: ChefHat },
+  { name: 'Страви', href: '/admin/dishes', icon: ChefHat },
   { name: 'Коментарі', href: '/admin/comments', icon: MessageCircle },
   { name: 'Рейтинги', href: '/admin/ratings', icon: Star },
   { name: 'Колекції', href: '/admin/collections', icon: BookOpen },

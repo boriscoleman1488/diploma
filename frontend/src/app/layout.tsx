@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/providers/Providers'
@@ -7,23 +7,27 @@ import { Toaster } from 'react-hot-toast'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Додаток Рецептів - Керуйте Вашою Кулінарною Подорожжю',
-  description: 'Створюйте, діліться та відкривайте дивовижні рецепти з нашою комплексною платформою управління рецептами.',
-  keywords: ['рецепти', 'кулінарія', 'їжа', 'кухня', 'готування'],
-  authors: [{ name: 'Команда Додатку Рецептів' }],
-  viewport: 'width=device-width, initial-scale=1',
+  title: 'Додаток Страв - Керуйте Вашою Кулінарною Подорожжю',
+  description: 'Створюйте, діліться та відкривайте дивовижні страви з нашою комплексною платформою управління стравами.',
+  keywords: ['страви', 'кулінарія', 'їжа', 'кухня', 'готування'],
+  authors: [{ name: 'Команда Додатку Страв' }],
   robots: 'index, follow',
   openGraph: {
-    title: 'Додаток Рецептів - Керуйте Вашою Кулінарною Подорожжю',
-    description: 'Створюйте, діліться та відкривайте дивовижні рецепти з нашою комплексною платформою управління рецептами.',
+    title: 'Додаток Страв - Керуйте Вашою Кулінарною Подорожжю',
+    description: 'Створюйте, діліться та відкривайте дивовижні страви з нашою комплексною платформою управління стравами.',
     type: 'website',
     locale: 'uk_UA',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Додаток Рецептів - Керуйте Вашою Кулінарною Подорожжю',
-    description: 'Створюйте, діліться та відкривайте дивовижні рецепти з нашою комплексною платформою управління рецептами.',
+    title: 'Додаток Страв - Керуйте Вашою Кулінарною Подорожжю',
+    description: 'Створюйте, діліться та відкривайте дивовижні страви з нашою комплексною платформою управління стравами.',
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({

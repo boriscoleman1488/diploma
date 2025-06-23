@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatDate(date: string | Date): string {
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat('uk-UA', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -19,25 +19,44 @@ export function formatRelativeTime(date: string | Date): string {
   const diffInSeconds = Math.floor((now.getTime() - targetDate.getTime()) / 1000)
 
   if (diffInSeconds < 60) {
-    return 'just now'
+    return 'щойно'
   }
 
   const diffInMinutes = Math.floor(diffInSeconds / 60)
   if (diffInMinutes < 60) {
-    return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`
+    return `${diffInMinutes} ${getMinutesWord(diffInMinutes)} тому`
   }
 
   const diffInHours = Math.floor(diffInMinutes / 60)
   if (diffInHours < 24) {
-    return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`
+    return `${diffInHours} ${getHoursWord(diffInHours)} тому`
   }
 
   const diffInDays = Math.floor(diffInHours / 24)
   if (diffInDays < 7) {
-    return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`
+    return `${diffInDays} ${getDaysWord(diffInDays)} тому`
   }
 
   return formatDate(date)
+}
+
+// Допоміжні функції для правильного відмінювання
+function getMinutesWord(count: number): string {
+  if (count === 1) return 'хвилину'
+  if (count >= 2 && count <= 4) return 'хвилини'
+  return 'хвилин'
+}
+
+function getHoursWord(count: number): string {
+  if (count === 1) return 'годину'
+  if (count >= 2 && count <= 4) return 'години'
+  return 'годин'
+}
+
+function getDaysWord(count: number): string {
+  if (count === 1) return 'день'
+  if (count >= 2 && count <= 4) return 'дні'
+  return 'днів'
 }
 
 export function validateEmail(email: string): boolean {
