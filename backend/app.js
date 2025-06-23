@@ -42,21 +42,12 @@ process.on('unhandledRejection', (reason, promise) => {
 
 dotenv.config()
 
-// Правильна конфігурація логера для нових версій Pino
+// Спрощена конфігурація логера для WebContainer
 const fastify = Fastify({
   logger: process.env.NODE_ENV === 'production' 
     ? true 
     : {
-        level: process.env.LOG_LEVEL || 'info',
-        transport: {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            translateTime: 'HH:MM:ss Z',
-            ignore: 'pid,hostname',
-            messageFormat: '{msg}'
-          }
-        }
+        level: process.env.LOG_LEVEL || 'info'
       }
 })
 
