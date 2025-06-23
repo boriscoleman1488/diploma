@@ -24,13 +24,19 @@ import {
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 
+interface Category {
+  id: string
+  name: string
+  description?: string
+}
+
 export default function DishesPage() {
   const [dishes, setDishes] = useState<Dish[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filteredDishes, setFilteredDishes] = useState<Dish[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('')
-  const [categories, setCategories] = useState<any[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
 
   const fetchDishes = async () => {
     setIsLoading(true)
@@ -77,11 +83,27 @@ export default function DishesPage() {
 
     // Filter by category
     if (selectedCategory) {
-      filtered = filtered.filter(dish =>
-        dish.categories?.some(cat => 
-          cat?.dish_categories?.id === selectedCategory
-        )
-      )
+      filtered = filtered.filter(dish => {
+        // Check if dish has categories and if any category matches the selected one
+        if (!dish.categories || !Array.isArray(dish.categories)) {
+          return false
+        }
+        
+        return dish.categories.some(categoryRelation => {
+          // Handle both possible structures
+          if (categoryRelation && typeof categoryRelation === 'object') {
+            // Structure: { dish_categories: { id, name } }
+            if (categoryRelation.dish_categories) {
+              return categoryRelation.dish_categories.id === selectedCategory
+            }
+            // Direct structure: { id, name }
+            if (categoryRelation.id) {
+              return categoryRelation.id === selectedCategory
+            }
+          }
+          return false
+        })
+      })
     }
 
     setFilteredDishes(filtered)
@@ -112,7 +134,23 @@ export default function DishesPage() {
 
   const getDishCategories = (dish: Dish) => {
     if (!dish.categories || !Array.isArray(dish.categories)) return []
-    return dish.categories.filter(cat => cat?.dish_categories?.name)
+    
+    return dish.categories
+      .map(categoryRelation => {
+        // Handle both possible structures
+        if (categoryRelation && typeof categoryRelation === 'object') {
+          // Structure: { dish_categories: { id, name } }
+          if (categoryRelation.dish_categories && categoryRelation.dish_categories.name) {
+            return categoryRelation.dish_categories
+          }
+          // Direct structure: { id, name }
+          if (categoryRelation.name) {
+            return categoryRelation
+          }
+        }
+        return null
+      })
+      .filter(Boolean) // Remove null values
   }
 
   return (
@@ -233,6 +271,35 @@ export default function DishesPage() {
               </select>
             </div>
           </div>
+          
+          {/* Active filters display */}
+          {(searchQuery || selectedCategory) && (
+            <div className="mt-4 flex items-center gap-2">
+              <span className="text-sm text-gray-500">Активні фільтри:</span>
+              {searchQuery && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  Пошук: "{searchQuery}"
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="ml-1 text-blue-600 hover:text-blue-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {selectedCategory && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Категорія: {categories.find(c => c.id === selectedCategory)?.name}
+                  <button
+                    onClick={() => setSelectedCategory('')}
+                    className="ml-1 text-green-600 hover:text-green-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -252,11 +319,23 @@ export default function DishesPage() {
           </h3>
           <p className="text-gray-600 mb-6">
             {searchQuery || selectedCategory 
-              ? 'Спробуйте змінити критерії пошуку'
+              ? 'Спробуйте змінити критерії пошуку або очистити фільтри'
               : 'Станьте першим, хто додасть страву!'
             }
           </p>
-          {!searchQuery && !selectedCategory && (
+          {searchQuery || selectedCategory ? (
+            <div className="flex justify-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchQuery('')
+                  setSelectedCategory('')
+                }}
+              >
+                Очистити фільтри
+              </Button>
+            </div>
+          ) : (
             <Link href="/dishes/add">
               <Button leftIcon={<Plus className="w-4 h-4" />}>
                 Додати першу страву
@@ -308,7 +387,7 @@ export default function DishesPage() {
                           key={index}
                           className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
                         >
-                          {cat.dish_categories.name}
+                          {cat.name}
                         </span>
                       ))}
                       {dishCategories.length > 3 && (
