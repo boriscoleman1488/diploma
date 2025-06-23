@@ -1,7 +1,7 @@
 import { EdamamService } from '../../services/edamamService.js'
 
 export default async function edamamRoutes(fastify, options) {
-  // Search foods using Edamam API
+  // Search foods using Edamam Food Database API
   fastify.get('/search', {
     schema: {
       querystring: {
@@ -99,7 +99,7 @@ export default async function edamamRoutes(fastify, options) {
     }
   })
 
-  // Analyze nutrition for a recipe
+  // Analyze nutrition for a recipe using Nutrition Analysis API
   fastify.post('/analyze-nutrition', {
     schema: {
       body: {
@@ -162,7 +162,7 @@ export default async function edamamRoutes(fastify, options) {
     }
   })
 
-  // Analyze nutrition for ingredients list (simplified)
+  // Analyze nutrition for ingredients list (simplified endpoint)
   fastify.post('/analyze-ingredients', {
     schema: {
       body: {

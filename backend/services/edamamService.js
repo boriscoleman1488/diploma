@@ -4,9 +4,21 @@ export class EdamamService {
     this.appKey = appKey
     this.foodDatabaseUrl = 'https://api.edamam.com/api/food-database/v2'
     this.nutritionAnalysisUrl = 'https://api.edamam.com/api/nutrition-details'
+    this.isConfigured = !!(appId && appKey)
+  }
+
+  isNutritionAnalysisAvailable() {
+    return this.isConfigured
   }
 
   async searchFood(query, limit = 20) {
+    if (!this.isConfigured) {
+      return {
+        success: false,
+        error: 'Edamam API не налаштовано. Додайте EDAMAM_APP_ID та EDAMAM_APP_KEY до .env файлу'
+      }
+    }
+
     try {
       const url = `${this.foodDatabaseUrl}/parser?app_id=${this.appId}&app_key=${this.appKey}&ingr=${encodeURIComponent(query)}&limit=${limit}`
 
@@ -14,7 +26,7 @@ export class EdamamService {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(`Edamam API error: ${data.message || 'Unknown error'}`)
+        throw new Error(`Edamam Food Database API error: ${data.message || 'Unknown error'}`)
       }
 
       return {
@@ -37,6 +49,13 @@ export class EdamamService {
   }
 
   async getFoodDetails(foodId) {
+    if (!this.isConfigured) {
+      return {
+        success: false,
+        error: 'Edamam API не налаштовано'
+      }
+    }
+
     try {
       const url = `${this.foodDatabaseUrl}/nutrients?app_id=${this.appId}&app_key=${this.appKey}`
 
@@ -57,7 +76,7 @@ export class EdamamService {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(`Edamam API error: ${data.message || 'Unknown error'}`)
+        throw new Error(`Edamam Food Database API error: ${data.message || 'Unknown error'}`)
       }
 
       return {
@@ -76,6 +95,13 @@ export class EdamamService {
   }
 
   async analyzeNutrition(ingredients) {
+    if (!this.isConfigured) {
+      return {
+        success: false,
+        error: 'Edamam Nutrition Analysis API не налаштовано. Додайте правильні EDAMAM_APP_ID та EDAMAM_APP_KEY для Nutrition Analysis API до .env файлу'
+      }
+    }
+
     try {
       if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
         throw new Error('Ingredients array is required')
@@ -105,7 +131,14 @@ export class EdamamService {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(`Edamam Nutrition API error: ${data.message || 'Unknown error'}`)
+        // Handle specific Edamam API errors
+        if (response.status === 401) {
+          throw new Error('Неправильні credentials для Edamam Nutrition Analysis API. Перевірте EDAMAM_APP_ID та EDAMAM_APP_KEY')
+        }
+        if (response.status === 422) {
+          throw new Error('Не вдалося розпізнати деякі інгредієнти. Спробуйте використати більш конкретні назви')
+        }
+        throw new Error(`Edamam Nutrition Analysis API error: ${data.message || 'Unknown error'}`)
       }
 
       // Extract key nutritional information
