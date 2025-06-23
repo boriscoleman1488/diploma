@@ -1,31 +1,41 @@
 export class EdamamService {
-  constructor(appId, appKey) {
-    this.appId = appId
-    this.appKey = appKey
+  constructor(config) {
+    // Food Database API credentials
+    this.foodAppId = config.foodAppId
+    this.foodAppKey = config.foodAppKey
+    
+    // Nutrition Analysis API credentials
+    this.nutritionAppId = config.nutritionAppId
+    this.nutritionAppKey = config.nutritionAppKey
+    
+    // API URLs
     this.foodDatabaseUrl = 'https://api.edamam.com/api/food-database/v2'
     this.nutritionAnalysisUrl = 'https://api.edamam.com/api/nutrition-details'
-    this.isConfigured = !!(appId && appKey)
+    
+    // Check if APIs are configured
+    this.isFoodApiConfigured = !!(this.foodAppId && this.foodAppKey)
+    this.isNutritionApiConfigured = !!(this.nutritionAppId && this.nutritionAppKey)
   }
 
-  isNutritionAnalysisAvailable() {
-    return this.isConfigured
-  }
-
+  // Food Database API methods
   async searchFood(query, limit = 20) {
-    if (!this.isConfigured) {
+    if (!this.isFoodApiConfigured) {
       return {
         success: false,
-        error: 'Edamam API не налаштовано. Додайте EDAMAM_APP_ID та EDAMAM_APP_KEY до .env файлу'
+        error: 'Edamam Food Database API не налаштовано. Додайте EDAMAM_APP_FOOD_ID та EDAMAM_APP_FOOD_KEY до .env файлу'
       }
     }
 
     try {
-      const url = `${this.foodDatabaseUrl}/parser?app_id=${this.appId}&app_key=${this.appKey}&ingr=${encodeURIComponent(query)}&limit=${limit}`
+      const url = `${this.foodDatabaseUrl}/parser?app_id=${this.foodAppId}&app_key=${this.foodAppKey}&ingr=${encodeURIComponent(query)}&limit=${limit}`
 
       const response = await fetch(url)
       const data = await response.json()
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Неправильні credentials для Edamam Food Database API. Перевірте EDAMAM_APP_FOOD_ID та EDAMAM_APP_FOOD_KEY')
+        }
         throw new Error(`Edamam Food Database API error: ${data.message || 'Unknown error'}`)
       }
 
@@ -49,15 +59,15 @@ export class EdamamService {
   }
 
   async getFoodDetails(foodId) {
-    if (!this.isConfigured) {
+    if (!this.isFoodApiConfigured) {
       return {
         success: false,
-        error: 'Edamam API не налаштовано'
+        error: 'Edamam Food Database API не налаштовано'
       }
     }
 
     try {
-      const url = `${this.foodDatabaseUrl}/nutrients?app_id=${this.appId}&app_key=${this.appKey}`
+      const url = `${this.foodDatabaseUrl}/nutrients?app_id=${this.foodAppId}&app_key=${this.foodAppKey}`
 
       const response = await fetch(url, {
         method: 'POST',
@@ -76,6 +86,9 @@ export class EdamamService {
       const data = await response.json()
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Неправильні credentials для Edamam Food Database API')
+        }
         throw new Error(`Edamam Food Database API error: ${data.message || 'Unknown error'}`)
       }
 
@@ -94,11 +107,12 @@ export class EdamamService {
     }
   }
 
+  // Nutrition Analysis API methods
   async analyzeNutrition(ingredients) {
-    if (!this.isConfigured) {
+    if (!this.isNutritionApiConfigured) {
       return {
         success: false,
-        error: 'Edamam Nutrition Analysis API не налаштовано. Додайте правильні EDAMAM_APP_ID та EDAMAM_APP_KEY для Nutrition Analysis API до .env файлу'
+        error: 'Edamam Nutrition Analysis API не налаштовано. Додайте EDAMAM_APP_NUTRITION_ID та EDAMAM_APP_NUTRITION_KEY до .env файлу'
       }
     }
 
@@ -113,7 +127,7 @@ export class EdamamService {
         return `${ingredient.amount} ${ingredient.unit} ${ingredient.name}`
       })
 
-      const url = `${this.nutritionAnalysisUrl}?app_id=${this.appId}&app_key=${this.appKey}`
+      const url = `${this.nutritionAnalysisUrl}?app_id=${this.nutritionAppId}&app_key=${this.nutritionAppKey}`
 
       const requestBody = {
         title: "Recipe Nutrition Analysis",
@@ -133,7 +147,7 @@ export class EdamamService {
       if (!response.ok) {
         // Handle specific Edamam API errors
         if (response.status === 401) {
-          throw new Error('Неправильні credentials для Edamam Nutrition Analysis API. Перевірте EDAMAM_APP_ID та EDAMAM_APP_KEY')
+          throw new Error('Неправильні credentials для Edamam Nutrition Analysis API. Перевірте EDAMAM_APP_NUTRITION_ID та EDAMAM_APP_NUTRITION_KEY')
         }
         if (response.status === 422) {
           throw new Error('Не вдалося розпізнати деякі інгредієнти. Спробуйте використати більш конкретні назви')
@@ -259,6 +273,15 @@ export class EdamamService {
         success: false,
         error: error.message
       }
+    }
+  }
+
+  // Utility methods
+  isConfigured() {
+    return {
+      foodApi: this.isFoodApiConfigured,
+      nutritionApi: this.isNutritionApiConfigured,
+      both: this.isFoodApiConfigured && this.isNutritionApiConfigured
     }
   }
 }

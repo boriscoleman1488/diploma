@@ -118,10 +118,16 @@ const collectionService = new CollectionService(supabaseClient, fastify.log)
 const dishService = new DishService(supabaseClient, fastify.log, collectionService, supabaseAdmin)
 const commentService = new CommentService(supabaseClient, fastify.log)
 const ratingService = new RatingService(supabaseClient, fastify.log)
-const edamamService = new EdamamService(
-  process.env.EDAMAM_APP_ID,
-  process.env.EDAMAM_APP_KEY
-)
+
+// Створюємо EdamamService з правильними credentials для кожного API
+const edamamService = new EdamamService({
+  // Food Database API credentials
+  foodAppId: process.env.EDAMAM_APP_FOOD_ID,
+  foodAppKey: process.env.EDAMAM_APP_FOOD_KEY,
+  // Nutrition Analysis API credentials
+  nutritionAppId: process.env.EDAMAM_APP_NUTRITION_ID,
+  nutritionAppKey: process.env.EDAMAM_APP_NUTRITION_KEY
+})
 
 fastify.decorate('emailService', emailService)
 fastify.decorate('authService', authService)
@@ -180,7 +186,8 @@ fastify.get('/health', async (request, reply) => {
     services: {
       database: 'unknown',
       storage: 'unknown',
-      edamam: 'unknown'
+      edamam_food: 'unknown',
+      edamam_nutrition: 'unknown'
     }
   }
 
@@ -205,14 +212,25 @@ fastify.get('/health', async (request, reply) => {
   }
 
   try {
-    // Перевіряємо Edamam API
-    if (edamamService && process.env.EDAMAM_APP_ID && process.env.EDAMAM_APP_KEY) {
-      health.services.edamam = 'healthy'
+    // Перевіряємо Edamam Food API
+    if (edamamService && process.env.EDAMAM_APP_FOOD_ID && process.env.EDAMAM_APP_FOOD_KEY) {
+      health.services.edamam_food = 'healthy'
     } else {
-      health.services.edamam = 'not_configured'
+      health.services.edamam_food = 'not_configured'
     }
   } catch (error) {
-    health.services.edamam = 'unhealthy'
+    health.services.edamam_food = 'unhealthy'
+  }
+
+  try {
+    // Перевіряємо Edamam Nutrition API
+    if (edamamService && process.env.EDAMAM_APP_NUTRITION_ID && process.env.EDAMAM_APP_NUTRITION_KEY) {
+      health.services.edamam_nutrition = 'healthy'
+    } else {
+      health.services.edamam_nutrition = 'not_configured'
+    }
+  } catch (error) {
+    health.services.edamam_nutrition = 'unhealthy'
   }
 
   const isHealthy = Object.values(health.services).every(status => 
@@ -242,7 +260,8 @@ fastify.setNotFoundHandler((request, reply) => {
       'GET /api/comments/:dishId',
       'GET /api/ratings/:dishId',
       'GET /api/collections',
-      'GET /api/edamam/search'
+      'GET /api/edamam/search',
+      'POST /api/edamam/analyze-nutrition'
     ]
   })
 })
@@ -308,11 +327,17 @@ const start = async () => {
       console.log('⚠️ Помилка підключення до Supabase Storage:', storageError.message)
     }
 
-    // Тестуємо Edamam API при запуску
-    if (process.env.EDAMAM_APP_ID && process.env.EDAMAM_APP_KEY) {
-      console.log('✅ Edamam API налаштовано')
+    // Тестуємо Edamam APIs при запуску
+    if (process.env.EDAMAM_APP_FOOD_ID && process.env.EDAMAM_APP_FOOD_KEY) {
+      console.log('✅ Edamam Food Database API налаштовано')
     } else {
-      console.log('⚠️ Edamam API не налаштовано. Додайте EDAMAM_APP_ID та EDAMAM_APP_KEY до .env файлу')
+      console.log('⚠️ Edamam Food Database API не налаштовано. Додайте EDAMAM_APP_FOOD_ID та EDAMAM_APP_FOOD_KEY до .env файлу')
+    }
+
+    if (process.env.EDAMAM_APP_NUTRITION_ID && process.env.EDAMAM_APP_NUTRITION_KEY) {
+      console.log('✅ Edamam Nutrition Analysis API налаштовано')
+    } else {
+      console.log('⚠️ Edamam Nutrition Analysis API не налаштовано. Додайте EDAMAM_APP_NUTRITION_ID та EDAMAM_APP_NUTRITION_KEY до .env файлу')
     }
   } catch (err) {
     console.error('Помилка запуску сервера:', err)
