@@ -98,4 +98,126 @@ export default async function edamamRoutes(fastify, options) {
       })
     }
   })
+
+  // Analyze nutrition for a recipe
+  fastify.post('/analyze-nutrition', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['ingredients'],
+        properties: {
+          ingredients: {
+            type: 'array',
+            minItems: 1,
+            items: {
+              type: 'object',
+              required: ['name', 'amount', 'unit'],
+              properties: {
+                name: { type: 'string', minLength: 1 },
+                amount: { type: 'number', minimum: 0 },
+                unit: { type: 'string', minLength: 1 }
+              }
+            }
+          },
+          servings: { type: 'integer', minimum: 1, default: 1 }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    try {
+      const { ingredients, servings = 1 } = request.body
+
+      if (!fastify.edamam) {
+        return reply.code(503).send({
+          success: false,
+          error: 'Edamam service not available',
+          message: 'Сервіс аналізу поживності тимчасово недоступний'
+        })
+      }
+
+      const result = await fastify.edamam.analyzeRecipeNutrition({
+        ingredients,
+        servings
+      })
+
+      if (!result.success) {
+        return reply.code(400).send({
+          success: false,
+          error: result.error,
+          message: 'Не вдалося проаналізувати поживну цінність'
+        })
+      }
+
+      return {
+        success: true,
+        nutrition: result.nutrition
+      }
+    } catch (error) {
+      fastify.log.error('Nutrition analysis error', { error: error.message })
+      return reply.code(500).send({
+        success: false,
+        error: 'Internal server error',
+        message: 'Помилка аналізу поживної цінності'
+      })
+    }
+  })
+
+  // Analyze nutrition for ingredients list (simplified)
+  fastify.post('/analyze-ingredients', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['ingredients'],
+        properties: {
+          ingredients: {
+            type: 'array',
+            minItems: 1,
+            items: {
+              type: 'object',
+              required: ['name', 'amount', 'unit'],
+              properties: {
+                name: { type: 'string', minLength: 1 },
+                amount: { type: 'number', minimum: 0 },
+                unit: { type: 'string', minLength: 1 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    try {
+      const { ingredients } = request.body
+
+      if (!fastify.edamam) {
+        return reply.code(503).send({
+          success: false,
+          error: 'Edamam service not available',
+          message: 'Сервіс аналізу поживності тимчасово недоступний'
+        })
+      }
+
+      const result = await fastify.edamam.analyzeNutrition(ingredients)
+
+      if (!result.success) {
+        return reply.code(400).send({
+          success: false,
+          error: result.error,
+          message: 'Не вдалося проаналізувати інгредієнти'
+        })
+      }
+
+      return {
+        success: true,
+        nutrition: result.nutrition
+      }
+    } catch (error) {
+      fastify.log.error('Ingredients analysis error', { error: error.message })
+      return reply.code(500).send({
+        success: false,
+        error: 'Internal server error',
+        message: 'Помилка аналізу інгредієнтів'
+      })
+    }
+  })
 }

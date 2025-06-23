@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/Textarea'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { IngredientSearch } from '@/components/dishes/IngredientSearch'
 import { ImageUpload } from '@/components/dishes/ImageUpload'
+import { NutritionAnalysis } from '@/components/dishes/NutritionAnalysis'
 import { apiClient } from '@/lib/api'
 import { 
   ChefHat, 
@@ -22,7 +23,8 @@ import {
   Search,
   Clock,
   Users,
-  Camera
+  Camera,
+  Activity
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -64,6 +66,7 @@ export default function AddDishPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [showIngredientSearch, setShowIngredientSearch] = useState(false)
   const [mainImageUrl, setMainImageUrl] = useState('')
+  const [nutritionData, setNutritionData] = useState<any>(null)
   const router = useRouter()
 
   const {
@@ -96,6 +99,9 @@ export default function AddDishPage() {
     control,
     name: 'steps'
   })
+
+  const watchedIngredients = watch('ingredients')
+  const watchedServings = watch('servings')
 
   useEffect(() => {
     fetchCategories()
@@ -145,13 +151,18 @@ export default function AddDishPage() {
     setValue(`steps.${stepIndex}.image_url`, '')
   }
 
+  const handleNutritionCalculated = (nutrition: any) => {
+    setNutritionData(nutrition)
+  }
+
   const onSubmit = async (data: DishFormData) => {
     setIsLoading(true)
     try {
       const dishData = {
         ...data,
         category_ids: selectedCategories,
-        main_image_url: data.main_image_url || undefined
+        main_image_url: data.main_image_url || undefined,
+        nutrition: nutritionData // Include nutrition data if available
       }
 
       const response = await apiClient.post('/dishes', dishData)
@@ -194,7 +205,7 @@ export default function AddDishPage() {
                   Додати нову страву
                 </h1>
                 <p className="text-primary-100 mt-1">
-                  Створіть свій унікальний рецепт з фотографіями та автоматичним пошуком інгредієнтів
+                  Створіть свій унікальний рецепт з фотографіями, автоматичним пошуком інгредієнтів та аналізом калорій
                 </p>
               </div>
             </div>
@@ -436,6 +447,15 @@ export default function AddDishPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Nutrition Analysis */}
+        {watchedIngredients && watchedIngredients.length > 0 && (
+          <NutritionAnalysis
+            ingredients={watchedIngredients}
+            servings={watchedServings}
+            onNutritionCalculated={handleNutritionCalculated}
+          />
+        )}
 
         {/* Steps */}
         <Card>

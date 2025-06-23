@@ -23,27 +23,55 @@ export interface Dish {
     full_name?: string
     email: string
     profile_tag?: string
+    avatar_url?: string
+  }
+  
+  // Nutrition info
+  nutrition?: {
+    calories: number
+    caloriesPerServing: number
+    totalWeight: number
+    servings: number
+    macros: {
+      protein: { quantity: number; unit: string }
+      fat: { quantity: number; unit: string }
+      carbs: { quantity: number; unit: string }
+      fiber: { quantity: number; unit: string }
+      sugar: { quantity: number; unit: string }
+      sodium: { quantity: number; unit: string }
+    }
+    macrosPerServing?: {
+      protein: { quantity: number; unit: string }
+      fat: { quantity: number; unit: string }
+      carbs: { quantity: number; unit: string }
+      fiber: { quantity: number; unit: string }
+      sugar: { quantity: number; unit: string }
+      sodium: { quantity: number; unit: string }
+    }
+    dietLabels: string[]
+    healthLabels: string[]
+    cautions: string[]
   }
 }
 
 export interface DishIngredient {
-  id: string
-  dish_id: string
+  id?: string
+  dish_id?: string
   name: string
   amount: number
   unit: string
   edamam_food_id?: string
-  order_index: number
+  order_index?: number
 }
 
 export interface DishStep {
-  id: string
-  dish_id: string
-  step_number: number
+  id?: string
+  dish_id?: string
+  step_number?: number
   description: string
   image_url?: string
   duration_minutes?: number
-  created_at: string
+  created_at?: string
 }
 
 export interface DishCategory {
@@ -71,8 +99,10 @@ export interface CreateDishData {
   steps: {
     description: string
     duration_minutes?: number
+    image_url?: string
   }[]
   main_image_url?: string
+  nutrition?: any
 }
 
 export interface UpdateDishData extends Partial<CreateDishData> {}
@@ -127,4 +157,35 @@ export interface EdamamFoodDetailsResponse {
   calories?: number
   weight?: number
   error?: string
+}
+
+export interface NutritionAnalysisResponse {
+  success: boolean
+  nutrition?: {
+    calories: number
+    caloriesPerServing: number
+    totalWeight: number
+    servings: number
+    macros: {
+      protein: { quantity: number; unit: string }
+      fat: { quantity: number; unit: string }
+      carbs: { quantity: number; unit: string }
+      fiber: { quantity: number; unit: string }
+      sugar: { quantity: number; unit: string }
+      sodium: { quantity: number; unit: string }
+    }
+    macrosPerServing?: {
+      protein: { quantity: number; unit: string }
+      fat: { quantity: number; unit: string }
+      carbs: { quantity: number; unit: string }
+      fiber: { quantity: number; unit: string }
+      sugar: { quantity: number; unit: string }
+      sodium: { quantity: number; unit: string }
+    }
+    dietLabels: string[]
+    healthLabels: string[]
+    cautions: string[]
+  }
+  error?: string
+  message?: string
 }

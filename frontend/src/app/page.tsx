@@ -26,7 +26,10 @@ import {
   ArrowRight,
   LogIn,
   UserPlus,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Activity,
+  Zap,
+  X
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -75,6 +78,21 @@ interface Category {
   description?: string
 }
 
+interface NutritionData {
+  calories: number
+  caloriesPerServing: number
+  macros: {
+    protein: { quantity: number; unit: string }
+    fat: { quantity: number; unit: string }
+    carbs: { quantity: number; unit: string }
+  }
+  macrosPerServing?: {
+    protein: { quantity: number; unit: string }
+    fat: { quantity: number; unit: string }
+    carbs: { quantity: number; unit: string }
+  }
+}
+
 interface DishDetailsModalProps {
   dish: Dish | null
   isOpen: boolean
@@ -83,6 +101,8 @@ interface DishDetailsModalProps {
 
 function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
   const { isAuthenticated } = useAuthStore()
+  const [nutritionData, setNutritionData] = useState<NutritionData | null>(null)
+  const [isAnalyzingNutrition, setIsAnalyzingNutrition] = useState(false)
 
   if (!isOpen || !dish) return null
 
@@ -93,6 +113,33 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
     toast.error(`Щоб ${action}, потрібно зареєструватися або увійти в систему`, {
       duration: 5000,
     })
+  }
+
+  const analyzeNutrition = async () => {
+    if (!dish.ingredients || dish.ingredients.length === 0) {
+      toast.error('Немає інгредієнтів для аналізу')
+      return
+    }
+
+    setIsAnalyzingNutrition(true)
+    try {
+      const response = await apiClient.post('/edamam/analyze-nutrition', {
+        ingredients: dish.ingredients,
+        servings: dish.servings
+      })
+
+      if (response.success && response.nutrition) {
+        setNutritionData(response.nutrition)
+        toast.success('Поживну цінність розраховано!')
+      } else {
+        toast.error('Не вдалося розрахувати поживну цінність')
+      }
+    } catch (error) {
+      console.error('Nutrition analysis error:', error)
+      toast.error('Помилка аналізу поживності')
+    } finally {
+      setIsAnalyzingNutrition(false)
+    }
   }
 
   return (
@@ -115,7 +162,7 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
             onClick={onClose}
             className="absolute top-4 right-4 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full p-2 transition-all"
           >
-            <Eye className="w-5 h-5 text-gray-600" />
+            <X className="w-5 h-5 text-gray-600" />
           </button>
         </div>
 
@@ -187,15 +234,75 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
             </div>
           </div>
 
+          {/* Nutrition Analysis */}
+          {dish.ingredients && dish.ingredients.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Activity className="w-5 h-5 mr-2" />
+                    Поживна цінність
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={analyzeNutrition}
+                    disabled={isAnalyzingNutrition}
+                    leftIcon={isAnalyzingNutrition ? <LoadingSpinner size="sm" /> : <Zap className="w-4 h-4" />}
+                  >
+                    {isAnalyzingNutrition ? 'Аналізуємо...' : 'Розрахувати'}
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {nutritionData ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 text-center">
+                      <div className="text-xl font-bold text-primary-900">
+                        {nutritionData.caloriesPerServing}
+                      </div>
+                      <div className="text-xs text-primary-700">ккал/порція</div>
+                    </div>
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                      <div className="text-xl font-bold text-green-900">
+                        {nutritionData.macrosPerServing?.protein.quantity || nutritionData.macros.protein.quantity}
+                      </div>
+                      <div className="text-xs text-green-700">г білків</div>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                      <div className="text-xl font-bold text-blue-900">
+                        {nutritionData.macrosPerServing?.carbs.quantity || nutritionData.macros.carbs.quantity}
+                      </div>
+                      <div className="text-xs text-blue-700">г вуглеводів</div>
+                    </div>
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+                      <div className="text-xl font-bold text-yellow-900">
+                        {nutritionData.macrosPerServing?.fat.quantity || nutritionData.macros.fat.quantity}
+                      </div>
+                      <div className="text-xs text-yellow-700">г жирів</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <Activity className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-600 text-sm">
+                      Натисніть "Розрахувати", щоб дізнатися кал орійність та поживну цінність
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Ingredients */}
           {dish.ingredients && dish.ingredients.length > 0 && (
             <div>
               <h4 className="font-medium text-gray-900 mb-3">Інгредієнти</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {dish.ingredients.map((ingredient, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                    <span className="text-gray-900">{ingredient.name}</span>
-                    <span className="text-sm text-gray-500">
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span className="text-gray-900 font-medium">{ingredient.name}</span>
+                    <span className="text-sm text-gray-600 bg-white px-2 py-1 rounded">
                       {ingredient.amount} {ingredient.unit}
                     </span>
                   </div>
@@ -480,10 +587,12 @@ export default function HomePage() {
           <Card>
             <CardContent className="p-6 text-center">
               <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg mb-4">
-                <Grid3X3 className="w-6 h-6 text-blue-600" />
+                <Activity className="w-6 h-6 text-blue-600" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">{categories.length}</h3>
-              <p className="text-gray-600">Категорій страв</p>
+              <h3 className="text-2xl font-bold text-gray-900">
+                {dishes.filter(d => d.ingredients && d.ingredients.length > 0).length}
+              </h3>
+              <p className="text-gray-600">Страв з аналізом калорій</p>
             </CardContent>
           </Card>
         </div>
@@ -563,6 +672,7 @@ export default function HomePage() {
                 const cookingTime = getTotalCookingTime(dish)
                 const likesCount = dish.ratings?.filter(r => r.rating_type === 1).length || 0
                 const dishCategories = getDishCategories(dish)
+                const hasIngredients = dish.ingredients && dish.ingredients.length > 0
 
                 return (
                   <Card key={dish.id} className="hover:shadow-lg transition-all duration-200 overflow-hidden group cursor-pointer">
@@ -580,6 +690,16 @@ export default function HomePage() {
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <ChefHat className="w-12 h-12 text-gray-400" />
+                        </div>
+                      )}
+                      
+                      {/* Nutrition Badge */}
+                      {hasIngredients && (
+                        <div className="absolute top-2 left-2">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <Activity className="w-3 h-3 mr-1" />
+                            Аналіз калорій
+                          </span>
                         </div>
                       )}
                       

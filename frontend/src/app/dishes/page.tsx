@@ -24,7 +24,9 @@ import {
   X,
   LogIn,
   UserPlus,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Activity,
+  Zap
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -35,6 +37,21 @@ interface Category {
   description?: string
 }
 
+interface NutritionData {
+  calories: number
+  caloriesPerServing: number
+  macros: {
+    protein: { quantity: number; unit: string }
+    fat: { quantity: number; unit: string }
+    carbs: { quantity: number; unit: string }
+  }
+  macrosPerServing?: {
+    protein: { quantity: number; unit: string }
+    fat: { quantity: number; unit: string }
+    carbs: { quantity: number; unit: string }
+  }
+}
+
 interface DishDetailsModalProps {
   dish: Dish | null
   isOpen: boolean
@@ -43,6 +60,8 @@ interface DishDetailsModalProps {
 
 function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
   const { isAuthenticated } = useAuthStore()
+  const [nutritionData, setNutritionData] = useState<NutritionData | null>(null)
+  const [isAnalyzingNutrition, setIsAnalyzingNutrition] = useState(false)
 
   if (!isOpen || !dish) return null
 
@@ -53,6 +72,33 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
     toast.error(`Щоб ${action}, потрібно зареєструватися або увійти в систему`, {
       duration: 5000,
     })
+  }
+
+  const analyzeNutrition = async () => {
+    if (!dish.ingredients || dish.ingredients.length === 0) {
+      toast.error('Немає інгредієнтів для аналізу')
+      return
+    }
+
+    setIsAnalyzingNutrition(true)
+    try {
+      const response = await apiClient.post('/edamam/analyze-nutrition', {
+        ingredients: dish.ingredients,
+        servings: dish.servings
+      })
+
+      if (response.success && response.nutrition) {
+        setNutritionData(response.nutrition)
+        toast.success('Поживну цінність розраховано!')
+      } else {
+        toast.error('Не вдалося розрахувати поживну цінність')
+      }
+    } catch (error) {
+      console.error('Nutrition analysis error:', error)
+      toast.error('Помилка аналізу поживності')
+    } finally {
+      setIsAnalyzingNutrition(false)
+    }
   }
 
   const getDishCategories = (dish: Dish) => {
@@ -165,6 +211,66 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
               </p>
             </div>
           </div>
+
+          {/* Nutrition Analysis */}
+          {dish.ingredients && dish.ingredients.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Activity className="w-5 h-5 mr-2" />
+                    Поживна цінність
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={analyzeNutrition}
+                    disabled={isAnalyzingNutrition}
+                    leftIcon={isAnalyzingNutrition ? <LoadingSpinner size="sm" /> : <Zap className="w-4 h-4" />}
+                  >
+                    {isAnalyzingNutrition ? 'Аналізуємо...' : 'Розрахувати'}
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {nutritionData ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 text-center">
+                      <div className="text-xl font-bold text-primary-900">
+                        {nutritionData.caloriesPerServing}
+                      </div>
+                      <div className="text-xs text-primary-700">ккал/порція</div>
+                    </div>
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                      <div className="text-xl font-bold text-green-900">
+                        {nutritionData.macrosPerServing?.protein.quantity || nutritionData.macros.protein.quantity}
+                      </div>
+                      <div className="text-xs text-green-700">г білків</div>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                      <div className="text-xl font-bold text-blue-900">
+                        {nutritionData.macrosPerServing?.carbs.quantity || nutritionData.macros.carbs.quantity}
+                      </div>
+                      <div className="text-xs text-blue-700">г вуглеводів</div>
+                    </div>
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+                      <div className="text-xl font-bold text-yellow-900">
+                        {nutritionData.macrosPerServing?.fat.quantity || nutritionData.macros.fat.quantity}
+                      </div>
+                      <div className="text-xs text-yellow-700">г жирів</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <Activity className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-600 text-sm">
+                      Натисніть "Розрахувати", щоб дізнатися калорійність та поживну цінність
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Ingredients */}
           {dish.ingredients && dish.ingredients.length > 0 && (
@@ -430,7 +536,7 @@ export default function DishesPage() {
                 Страви
               </h1>
               <p className="text-primary-100 mt-1">
-                Відкрийте для себе дивовижні рецепти від нашої спільноти
+                Відкрийте для себе дивовижні рецепти з аналізом калорій від нашої спільноти
               </p>
             </div>
             <Link href="/dishes/add">
@@ -498,11 +604,13 @@ export default function DishesPage() {
           <CardContent className="p-6">
             <div className="flex items-center">
               <div className="p-2 bg-blue-100 rounded-lg">
-                <Grid3X3 className="w-6 h-6 text-blue-600" />
+                <Activity className="w-6 h-6 text-blue-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Категорій</p>
-                <p className="text-2xl font-bold text-gray-900">{categories.length}</p>
+                <p className="text-sm font-medium text-gray-600">З аналізом калорій</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {dishes.filter(d => d.ingredients && d.ingredients.length > 0).length}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -614,6 +722,7 @@ export default function DishesPage() {
             const cookingTime = getTotalCookingTime(dish)
             const likesCount = dish.ratings?.filter(r => r.rating_type === 1).length || 0
             const dishCategories = getDishCategories(dish)
+            const hasIngredients = dish.ingredients && dish.ingredients.length > 0
 
             return (
               <Card key={dish.id} className="hover:shadow-lg transition-shadow overflow-hidden group cursor-pointer">
@@ -631,6 +740,16 @@ export default function DishesPage() {
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <ChefHat className="w-12 h-12 text-gray-400" />
+                    </div>
+                  )}
+                  
+                  {/* Nutrition Badge */}
+                  {hasIngredients && (
+                    <div className="absolute top-2 left-2">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <Activity className="w-3 h-3 mr-1" />
+                        Аналіз калорій
+                      </span>
                     </div>
                   )}
                   
