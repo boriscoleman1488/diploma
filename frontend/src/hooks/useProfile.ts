@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Profile, UpdateProfileData, ChangePasswordData, ProfileStats } from '@/types/profile'
 import { apiClient } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
+import { t } from '@/lib/translations'
 import toast from 'react-hot-toast'
 
 export function useProfile() {
@@ -22,7 +23,8 @@ export function useProfile() {
       }
     } catch (error) {
       console.error('Failed to fetch profile:', error)
-      toast.error('Failed to load profile')
+      // Backend error will be displayed as-is
+      toast.error(error instanceof Error ? error.message : t('messages.failedToLoadProfile'))
     } finally {
       setIsLoading(false)
     }
@@ -47,12 +49,12 @@ export function useProfile() {
       const response = await apiClient.put('/users/profile', data)
       if (response.success && response.profile) {
         setProfile(response.profile)
-        toast.success('Profile updated successfully')
+        toast.success(t('messages.profileUpdated'))
         return { success: true }
       }
-      return { success: false, error: response.error || 'Update failed' }
+      return { success: false, error: response.error || t('messages.failedToUpdateProfile') }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Update failed'
+      const errorMessage = error instanceof Error ? error.message : t('messages.failedToUpdateProfile')
       toast.error(errorMessage)
       return { success: false, error: errorMessage }
     } finally {
@@ -65,7 +67,7 @@ export function useProfile() {
     try {
       const response = await apiClient.put('/users/password', data)
       if (response.success) {
-        toast.success('Password changed successfully')
+        toast.success(t('messages.passwordChanged'))
         return { success: true }
       }
       return { success: false, error: response.error || 'Password change failed' }
@@ -84,7 +86,7 @@ export function useProfile() {
       const response = await apiClient.uploadFile('/users/avatar', file)
       if (response.success && response.avatarUrl) {
         setProfile(prev => prev ? { ...prev, avatar_url: response.avatarUrl } : null)
-        toast.success('Avatar uploaded successfully')
+        toast.success(t('messages.avatarUploaded'))
         return { success: true, avatarUrl: response.avatarUrl }
       }
       return { success: false, error: response.error || 'Upload failed' }

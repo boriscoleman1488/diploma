@@ -8,10 +8,11 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
+import { t } from '@/lib/translations'
 
 const navigation = [
-  { name: 'Profile', href: '/profile', icon: User },
-  { name: 'Settings', href: '/profile/settings', icon: Settings },
+  { name: t('profile.profile'), href: '/profile', icon: User },
+  { name: t('navigation.settings'), href: '/profile/settings', icon: Settings },
 ]
 
 export function Navigation() {
@@ -34,7 +35,7 @@ export function Navigation() {
               <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">R</span>
               </div>
-              <span className="text-xl font-bold text-gray-900">Recipe App</span>
+              <span className="text-xl font-bold text-gray-900">Додаток Рецептів</span>
             </Link>
 
             {/* Desktop navigation */}
@@ -73,7 +74,7 @@ export function Navigation() {
                 />
                 <div className="text-sm">
                   <p className="font-medium text-gray-900">
-                    {user.fullName || 'User'}
+                    {user.fullName || 'Користувач'}
                   </p>
                   <p className="text-gray-500">{user.email}</p>
                 </div>
@@ -87,7 +88,7 @@ export function Navigation() {
               className="hidden md:flex"
               leftIcon={<LogOut className="w-4 h-4" />}
             >
-              Logout
+              {t('auth.logout')}
             </Button>
 
             {/* Mobile menu button */}
@@ -97,7 +98,7 @@ export function Navigation() {
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-expanded="false"
             >
-              <span className="sr-only">Open main menu</span>
+              <span className="sr-only">Відкрити головне меню</span>
               {isMobileMenuOpen ? (
                 <X className="block h-6 w-6" aria-hidden="true" />
               ) : (
@@ -147,7 +148,7 @@ export function Navigation() {
                 />
                 <div className="ml-3">
                   <div className="text-base font-medium text-gray-800">
-                    {user.fullName || 'User'}
+                    {user.fullName || 'Користувач'}
                   </div>
                   <div className="text-sm font-medium text-gray-500">
                     {user.email}
@@ -161,7 +162,7 @@ export function Navigation() {
                 >
                   <div className="flex items-center">
                     <LogOut className="w-4 h-4 mr-3" />
-                    Logout
+                    {t('auth.logout')}
                   </div>
                 </button>
               </div>

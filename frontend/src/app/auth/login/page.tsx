@@ -11,11 +11,12 @@ import { useAuthStore } from '@/store/authStore'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { t } from '@/lib/translations'
 import toast from 'react-hot-toast'
 
 const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string().email(t('messages.validEmailRequired')),
+  password: z.string().min(1, t('messages.passwordRequired')),
 })
 
 type LoginFormData = z.infer<typeof loginSchema>
@@ -37,10 +38,11 @@ export default function LoginPage() {
     const result = await login(data)
     
     if (result.success) {
-      toast.success('Welcome back!')
+      toast.success(t('messages.welcomeBack'))
       router.push('/profile')
     } else {
-      toast.error(result.error || 'Login failed')
+      // Backend error will be displayed as-is
+      toast.error(result.error || t('messages.loginFailed'))
     }
   }
 
@@ -52,30 +54,30 @@ export default function LoginPage() {
             <span className="text-white font-bold text-xl">R</span>
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Sign in to your account
+            {t('auth.signInToAccount')}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Or{' '}
+            {t('auth.dontHaveAccount')}{' '}
             <Link
               href="/auth/register"
               className="font-medium text-primary-600 hover:text-primary-500"
             >
-              create a new account
+              {t('auth.createAccount')}
             </Link>
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Login</CardTitle>
+            <CardTitle>{t('auth.login')}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <Input
                 {...register('email')}
                 type="email"
-                label="Email address"
-                placeholder="Enter your email"
+                label={t('auth.emailAddress')}
+                placeholder={t('auth.enterEmail')}
                 error={errors.email?.message}
                 leftIcon={<Mail className="w-4 h-4" />}
                 autoComplete="email"
@@ -84,8 +86,8 @@ export default function LoginPage() {
               <Input
                 {...register('password')}
                 type={showPassword ? 'text' : 'password'}
-                label="Password"
-                placeholder="Enter your password"
+                label={t('auth.password')}
+                placeholder={t('auth.enterPassword')}
                 error={errors.password?.message}
                 leftIcon={<Lock className="w-4 h-4" />}
                 rightIcon={
@@ -110,7 +112,7 @@ export default function LoginPage() {
                     href="/auth/forgot-password"
                     className="font-medium text-primary-600 hover:text-primary-500"
                   >
-                    Forgot your password?
+                    {t('auth.forgotPassword')}
                   </Link>
                 </div>
               </div>
@@ -121,7 +123,7 @@ export default function LoginPage() {
                 isLoading={isLoading}
                 disabled={isLoading}
               >
-                Sign in
+                {t('auth.signIn')}
               </Button>
             </form>
           </CardContent>

@@ -7,6 +7,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { formatDate, formatRelativeTime } from '@/lib/utils'
+import { t } from '@/lib/translations'
 import { 
   User, 
   Mail, 
@@ -29,7 +30,7 @@ export default function ProfilePage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <LoadingSpinner size="lg" />
-          <p className="mt-4 text-gray-600">Loading profile...</p>
+          <p className="mt-4 text-gray-600">{t('messages.loadingProfile')}</p>
         </div>
       </div>
     )
@@ -38,7 +39,7 @@ export default function ProfilePage() {
   if (!profile) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">Profile not found</p>
+        <p className="text-gray-600">{t('messages.profileNotFound')}</p>
       </div>
     )
   }
@@ -57,7 +58,7 @@ export default function ProfilePage() {
             />
             <div className="text-white">
               <h1 className="text-2xl font-bold">
-                {profile.full_name || 'User'}
+                {profile.full_name || t('common.unknown')}
               </h1>
               <p className="text-primary-100 mt-1">
                 @{profile.profile_tag || 'user'}
@@ -75,16 +76,16 @@ export default function ProfilePage() {
             <div className="flex items-center space-x-4 text-sm text-gray-600">
               <div className="flex items-center">
                 <Calendar className="w-4 h-4 mr-1" />
-                Joined {formatDate(profile.created_at)}
+                {t('profile.joined')} {formatDate(profile.created_at)}
               </div>
               <div className="flex items-center">
                 <Clock className="w-4 h-4 mr-1" />
-                Last updated {formatRelativeTime(profile.updated_at)}
+                {t('profile.lastUpdated')} {formatRelativeTime(profile.updated_at)}
               </div>
             </div>
             <Link href="/profile/settings">
               <Button variant="outline" size="sm" leftIcon={<Settings className="w-4 h-4" />}>
-                Edit Profile
+                {t('profile.editProfile')}
               </Button>
             </Link>
           </div>
@@ -101,7 +102,7 @@ export default function ProfilePage() {
                   <ChefHat className="w-6 h-6 text-primary-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Recipes Created</p>
+                  <p className="text-sm font-medium text-gray-600">{t('stats.recipesCreated')}</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.recipesCreated}</p>
                 </div>
               </div>
@@ -115,7 +116,7 @@ export default function ProfilePage() {
                   <Heart className="w-6 h-6 text-red-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Favorite Recipes</p>
+                  <p className="text-sm font-medium text-gray-600">{t('stats.favoriteRecipes')}</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.favoriteRecipes}</p>
                 </div>
               </div>
@@ -133,9 +134,9 @@ export default function ProfilePage() {
                   )}
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Email Status</p>
+                  <p className="text-sm font-medium text-gray-600">{t('profile.emailStatus')}</p>
                   <p className="text-sm font-semibold text-gray-900">
-                    {user?.emailConfirmed ? 'Verified' : 'Not Verified'}
+                    {user?.emailConfirmed ? t('profile.verified') : t('profile.notVerified')}
                   </p>
                 </div>
               </div>
@@ -149,11 +150,11 @@ export default function ProfilePage() {
                   <Clock className="w-6 h-6 text-blue-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Last Login</p>
+                  <p className="text-sm font-medium text-gray-600">{t('profile.lastLogin')}</p>
                   <p className="text-sm font-semibold text-gray-900">
                     {stats.lastLogin !== 'Unknown' 
                       ? formatRelativeTime(stats.lastLogin)
-                      : 'Unknown'
+                      : t('common.unknown')
                     }
                   </p>
                 </div>
@@ -169,29 +170,29 @@ export default function ProfilePage() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <User className="w-5 h-5 mr-2" />
-              Profile Information
+              {t('profile.profileInformation')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="space-y-4">
               <div>
-                <dt className="text-sm font-medium text-gray-500">Full Name</dt>
+                <dt className="text-sm font-medium text-gray-500">{t('profile.fullName')}</dt>
                 <dd className="mt-1 text-sm text-gray-900">
-                  {profile.full_name || 'Not provided'}
+                  {profile.full_name || t('common.notProvided')}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Profile Tag</dt>
+                <dt className="text-sm font-medium text-gray-500">{t('profile.profileTag')}</dt>
                 <dd className="mt-1 text-sm text-gray-900">
-                  @{profile.profile_tag || 'Not set'}
+                  @{profile.profile_tag || t('common.notSet')}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Email</dt>
+                <dt className="text-sm font-medium text-gray-500">{t('auth.email')}</dt>
                 <dd className="mt-1 text-sm text-gray-900">{profile.email}</dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Role</dt>
+                <dt className="text-sm font-medium text-gray-500">Роль</dt>
                 <dd className="mt-1">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     profile.role === 'admin' 
@@ -208,23 +209,23 @@ export default function ProfilePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle>{t('common.quickActions')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               <Link href="/profile/settings" className="block">
                 <Button variant="outline" className="w-full justify-start" leftIcon={<Settings className="w-4 h-4" />}>
-                  Edit Profile Settings
+                  {t('profile.profileSettings')}
                 </Button>
               </Link>
               <Link href="/profile/settings" className="block">
                 <Button variant="outline" className="w-full justify-start" leftIcon={<User className="w-4 h-4" />}>
-                  Change Password
+                  {t('profile.changePassword')}
                 </Button>
               </Link>
               {!user?.emailConfirmed && (
                 <Button variant="outline" className="w-full justify-start" leftIcon={<Mail className="w-4 h-4" />}>
-                  Verify Email
+                  {t('common.verifyEmail')}
                 </Button>
               )}
             </div>

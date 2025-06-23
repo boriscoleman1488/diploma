@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { AuthState, LoginCredentials, RegisterData, User, AuthSession } from '@/types/auth'
 import { apiClient } from '@/lib/api'
+import { t } from '@/lib/translations'
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -40,7 +41,7 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: false })
           return {
             success: false,
-            error: error instanceof Error ? error.message : 'Login failed',
+            error: error instanceof Error ? error.message : t('messages.loginFailed'),
           }
         }
       },
@@ -55,7 +56,7 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: false })
           return {
             success: false,
-            error: error instanceof Error ? error.message : 'Registration failed',
+            error: error instanceof Error ? error.message : t('messages.registrationFailed'),
           }
         }
       },

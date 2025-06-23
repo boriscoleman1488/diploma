@@ -7,22 +7,22 @@ import { Toaster } from 'react-hot-toast'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Recipe App - Manage Your Culinary Journey',
-  description: 'Create, share, and discover amazing recipes with our comprehensive recipe management platform.',
-  keywords: ['recipes', 'cooking', 'food', 'culinary', 'kitchen'],
-  authors: [{ name: 'Recipe App Team' }],
+  title: 'Додаток Рецептів - Керуйте Вашою Кулінарною Подорожжю',
+  description: 'Створюйте, діліться та відкривайте дивовижні рецепти з нашою комплексною платформою управління рецептами.',
+  keywords: ['рецепти', 'кулінарія', 'їжа', 'кухня', 'готування'],
+  authors: [{ name: 'Команда Додатку Рецептів' }],
   viewport: 'width=device-width, initial-scale=1',
   robots: 'index, follow',
   openGraph: {
-    title: 'Recipe App - Manage Your Culinary Journey',
-    description: 'Create, share, and discover amazing recipes with our comprehensive recipe management platform.',
+    title: 'Додаток Рецептів - Керуйте Вашою Кулінарною Подорожжю',
+    description: 'Створюйте, діліться та відкривайте дивовижні рецепти з нашою комплексною платформою управління рецептами.',
     type: 'website',
-    locale: 'en_US',
+    locale: 'uk_UA',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Recipe App - Manage Your Culinary Journey',
-    description: 'Create, share, and discover amazing recipes with our comprehensive recipe management platform.',
+    title: 'Додаток Рецептів - Керуйте Вашою Кулінарною Подорожжю',
+    description: 'Створюйте, діліться та відкривайте дивовижні рецепти з нашою комплексною платформою управління рецептами.',
   },
 }
 
@@ -32,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="uk" className="h-full">
       <body className={`${inter.className} h-full`}>
         <Providers>
           {children}

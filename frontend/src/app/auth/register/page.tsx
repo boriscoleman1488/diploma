@@ -11,15 +11,16 @@ import { useAuthStore } from '@/store/authStore'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { t } from '@/lib/translations'
 import toast from 'react-hot-toast'
 
 const registerSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  fullName: z.string().min(2, t('messages.fullNameRequired')),
+  email: z.string().email(t('messages.validEmailRequired')),
+  password: z.string().min(6, t('messages.passwordTooShort')),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: t('messages.passwordsDontMatch'),
   path: ["confirmPassword"],
 })
 
@@ -45,13 +46,14 @@ export default function RegisterPage() {
     
     if (result.success) {
       if (result.requiresEmailConfirmation) {
-        toast.success('Registration successful! Please check your email for verification.')
+        toast.success(t('messages.emailConfirmationSent'))
       } else {
-        toast.success('Registration successful! You can now log in.')
+        toast.success(t('messages.registrationSuccessful'))
       }
       router.push('/auth/login')
     } else {
-      toast.error(result.error || 'Registration failed')
+      // Backend error will be displayed as-is
+      toast.error(result.error || t('messages.registrationFailed'))
     }
   }
 
@@ -63,30 +65,30 @@ export default function RegisterPage() {
             <span className="text-white font-bold text-xl">R</span>
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Create your account
+            {t('auth.createYourAccount')}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Or{' '}
+            {t('auth.alreadyHaveAccount')}{' '}
             <Link
               href="/auth/login"
               className="font-medium text-primary-600 hover:text-primary-500"
             >
-              sign in to your existing account
+              {t('auth.orSignInExisting')}
             </Link>
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Register</CardTitle>
+            <CardTitle>{t('auth.register')}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <Input
                 {...register('fullName')}
                 type="text"
-                label="Full Name"
-                placeholder="Enter your full name"
+                label={t('auth.fullName')}
+                placeholder={t('auth.enterFullName')}
                 error={errors.fullName?.message}
                 leftIcon={<User className="w-4 h-4" />}
                 autoComplete="name"
@@ -95,8 +97,8 @@ export default function RegisterPage() {
               <Input
                 {...register('email')}
                 type="email"
-                label="Email address"
-                placeholder="Enter your email"
+                label={t('auth.emailAddress')}
+                placeholder={t('auth.enterEmail')}
                 error={errors.email?.message}
                 leftIcon={<Mail className="w-4 h-4" />}
                 autoComplete="email"
@@ -105,8 +107,8 @@ export default function RegisterPage() {
               <Input
                 {...register('password')}
                 type={showPassword ? 'text' : 'password'}
-                label="Password"
-                placeholder="Enter your password"
+                label={t('auth.password')}
+                placeholder={t('auth.enterPassword')}
                 error={errors.password?.message}
                 leftIcon={<Lock className="w-4 h-4" />}
                 rightIcon={
@@ -128,8 +130,8 @@ export default function RegisterPage() {
               <Input
                 {...register('confirmPassword')}
                 type={showConfirmPassword ? 'text' : 'password'}
-                label="Confirm Password"
-                placeholder="Confirm your password"
+                label={t('auth.confirmPassword')}
+                placeholder={t('auth.confirmYourPassword')}
                 error={errors.confirmPassword?.message}
                 leftIcon={<Lock className="w-4 h-4" />}
                 rightIcon={
@@ -154,7 +156,7 @@ export default function RegisterPage() {
                 isLoading={isLoading}
                 disabled={isLoading}
               >
-                Create account
+                {t('auth.createAccount')}
               </Button>
             </form>
           </CardContent>
