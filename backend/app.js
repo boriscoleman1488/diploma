@@ -351,6 +351,6 @@ const start = async () => {
     console.error('Помилка запуску сервера:', err)
     process.exit(1)
   }
-};
+}
 
-start();
+start()
