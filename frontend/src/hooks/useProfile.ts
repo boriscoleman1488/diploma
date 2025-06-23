@@ -66,7 +66,7 @@ export function useProfile() {
     try {
       const response = await apiClient.put('/users/password', data)
       if (response.success) {
-        toast.success('Пароль змінено успішно')
+        toast.success('Пароль змінено успішно!')
         return { success: true }
       }
       return { success: false, error: response.error || 'Не вдалося змінити пароль' }
@@ -83,8 +83,13 @@ export function useProfile() {
     setIsUpdating(true)
     try {
       const response = await apiClient.uploadFile('/users/avatar', file)
-      if (response.success && response.avatarUrl) {
-        setProfile(prev => prev ? { ...prev, avatar_url: response.avatarUrl } : null)
+      if (response.success) {
+        // Update profile with new avatar URL
+        if (response.profile) {
+          setProfile(response.profile)
+        } else if (response.avatarUrl) {
+          setProfile(prev => prev ? { ...prev, avatar_url: response.avatarUrl } : null)
+        }
         toast.success('Аватар завантажено успішно')
         return { success: true, avatarUrl: response.avatarUrl }
       }

@@ -317,7 +317,7 @@ export class UserService {
                     userId, 
                     filename 
                 })
-                return this._handleError(uploadError, this.ERRORS.UPLOAD_FAILED)
+                return this._handleError(uploadError, 'Не вдалося завантажити файл')
             }
 
             // Get public URL
@@ -328,7 +328,7 @@ export class UserService {
             if (!urlData.publicUrl) {
                 return this._handleError(
                     new Error('Failed to get public URL'),
-                    this.ERRORS.UPLOAD_FAILED
+                    'Не вдалося отримати посилання на файл'
                 )
             }
 
@@ -350,7 +350,7 @@ export class UserService {
                     .remove([filePath])
                     .catch(() => {}) // Ignore cleanup errors
 
-                return this._handleError(updateError, 'Failed to update profile with avatar')
+                return this._handleError(updateError, 'Не вдалося оновити профіль з аватаром')
             }
 
             this.logger.info('Avatar uploaded successfully', { 
@@ -362,10 +362,10 @@ export class UserService {
             return this._handleSuccess({
                 avatarUrl: urlData.publicUrl,
                 profile: profile
-            }, 'Avatar uploaded successfully')
+            }, 'Аватар завантажено успішно')
             
         } catch (error) {
-            return this._handleError(error, this.ERRORS.INTERNAL_ERROR, { userId })
+            return this._handleError(error, 'Не вдалося завантажити аватар', { userId })
         }
     }
 

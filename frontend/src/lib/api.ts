@@ -131,6 +131,7 @@ class ApiClient {
       if (this.session?.access_token) {
         headers.Authorization = `Bearer ${this.session.access_token}`
       }
+      // Don't set Content-Type for FormData - browser will set it with boundary
 
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         method: 'POST',
