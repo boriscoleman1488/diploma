@@ -177,12 +177,50 @@ fastify.get('/', async (request, reply) => {
   }
 })
 
+// Health check endpoint з перевіркою S3
+fastify.get('/health', async (request, reply) => {
+  const health = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    services: {
+      database: 'unknown',
+      s3: 'unknown'
+    }
+  }
+
+  try {
+    // Перевіряємо підключення до бази даних
+    const { data, error } = await supabaseClient
+      .from('profiles')
+      .select('id')
+      .limit(1)
+    
+    health.services.database = error ? 'unhealthy' : 'healthy'
+  } catch (error) {
+    health.services.database = 'unhealthy'
+  }
+
+  try {
+    // Перевіряємо підключення до S3
+    const s3Test = await s3Service.testConnection()
+    health.services.s3 = s3Test.success ? 'healthy' : 'unhealthy'
+  } catch (error) {
+    health.services.s3 = 'unhealthy'
+  }
+
+  const isHealthy = Object.values(health.services).every(status => status === 'healthy')
+  health.status = isHealthy ? 'healthy' : 'degraded'
+
+  return health
+})
+
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {
   reply.code(404).send({
     message: `Route ${request.method} ${request.url} not found`,
     availableRoutes: [
       'GET /',
+      'GET /health',
       'POST /api/auth/register',
       'POST /api/auth/login',
       'GET /api/categories',
@@ -206,6 +244,18 @@ const start = async () => {
       host: '0.0.0.0'
     })
     console.log(`🚀 Сервер запущено на http://localhost:${config.port}`)
+    
+    // Тестуємо S3 підключення при запуску
+    if (s3Service.isConfigured) {
+      const s3Test = await s3Service.testConnection()
+      if (s3Test.success) {
+        console.log('✅ Supabase S3 Connection успішно налаштовано')
+      } else {
+        console.log('⚠️ Supabase S3 Connection недоступно:', s3Test.error)
+      }
+    } else {
+      console.log('ℹ️ S3 Service не налаштовано - використовується Supabase Storage')
+    }
   } catch (err) {
     console.error('Помилка запуску сервера:', err)
     process.exit(1)

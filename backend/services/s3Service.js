@@ -7,16 +7,24 @@ export class S3Service {
         this.isConfigured = this._checkConfiguration()
         
         if (this.isConfigured) {
+            // Налаштування для Supabase S3 Connection
             this.s3 = new AWS.S3({
                 accessKeyId: process.env.AWS_ACCESS_KEY_ID,
                 secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
                 region: process.env.AWS_REGION,
                 endpoint: process.env.AWS_S3_ENDPOINT,
-                s3ForcePathStyle: true, // Потрібно для деяких S3-сумісних сервісів
+                s3ForcePathStyle: true, // Обов'язково для Supabase S3
+                signatureVersion: 'v4'
             })
             
-            this.bucket = process.env.AWS_S3_BUCKET
+            this.bucket = process.env.AWS_S3_BUCKET || 'avatars'
             this.cdnUrl = process.env.CDN_URL
+            
+            this.logger.info('S3 Service configured for Supabase', {
+                endpoint: process.env.AWS_S3_ENDPOINT,
+                region: process.env.AWS_REGION,
+                bucket: this.bucket
+            })
         }
     }
 
@@ -25,7 +33,7 @@ export class S3Service {
             'AWS_ACCESS_KEY_ID',
             'AWS_SECRET_ACCESS_KEY',
             'AWS_REGION',
-            'AWS_S3_BUCKET'
+            'AWS_S3_ENDPOINT'
         ]
 
         const missing = requiredEnvVars.filter(envVar => !process.env[envVar])
@@ -68,15 +76,18 @@ export class S3Service {
     }
 
     _getPublicUrl(key) {
+        // Для Supabase S3 Connection використовуємо стандартний Supabase Storage URL
+        const supabaseUrl = process.env.SUPABASE_URL
+        if (supabaseUrl) {
+            return `${supabaseUrl}/storage/v1/object/public/${this.bucket}/${key}`
+        }
+        
+        // Fallback до CDN або S3 endpoint
         if (this.cdnUrl) {
             return `${this.cdnUrl}/${key}`
         }
         
-        if (process.env.AWS_S3_ENDPOINT) {
-            return `${process.env.AWS_S3_ENDPOINT}/${this.bucket}/${key}`
-        }
-        
-        return `https://${this.bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`
+        return `${process.env.AWS_S3_ENDPOINT}/${this.bucket}/${key}`
     }
 
     async uploadAvatar(userId, fileBuffer, mimeType, originalName) {
@@ -87,11 +98,12 @@ export class S3Service {
         try {
             const fileName = this._generateFileName(userId, originalName, mimeType)
             
-            this.logger.info('Starting S3 avatar upload', {
+            this.logger.info('Starting Supabase S3 avatar upload', {
                 userId,
                 fileName,
                 fileSize: fileBuffer.length,
-                mimeType
+                mimeType,
+                endpoint: process.env.AWS_S3_ENDPOINT
             })
 
             const uploadParams = {
@@ -99,11 +111,12 @@ export class S3Service {
                 Key: fileName,
                 Body: fileBuffer,
                 ContentType: mimeType,
-                ACL: 'public-read', // Робимо файл публічно доступним
+                ACL: 'public-read',
                 CacheControl: 'max-age=31536000', // Кешування на рік
                 Metadata: {
                     'user-id': userId,
-                    'upload-timestamp': Date.now().toString()
+                    'upload-timestamp': Date.now().toString(),
+                    'original-name': originalName || 'unknown'
                 }
             }
 
@@ -111,28 +124,32 @@ export class S3Service {
             
             const publicUrl = this._getPublicUrl(fileName)
             
-            this.logger.info('S3 avatar upload successful', {
+            this.logger.info('Supabase S3 avatar upload successful', {
                 userId,
                 fileName,
                 location: result.Location,
-                publicUrl
+                publicUrl,
+                etag: result.ETag
             })
 
             return {
                 success: true,
                 url: publicUrl,
                 key: fileName,
-                location: result.Location
+                location: result.Location,
+                etag: result.ETag
             }
 
         } catch (error) {
-            this.logger.error('S3 avatar upload failed', {
+            this.logger.error('Supabase S3 avatar upload failed', {
                 error: error.message,
+                code: error.code,
+                statusCode: error.statusCode,
                 userId,
                 stack: error.stack
             })
 
-            throw new Error(`Failed to upload avatar to S3: ${error.message}`)
+            throw new Error(`Failed to upload avatar to Supabase S3: ${error.message}`)
         }
     }
 
@@ -142,7 +159,7 @@ export class S3Service {
         }
 
         try {
-            this.logger.info('Deleting avatar from S3', { key })
+            this.logger.info('Deleting avatar from Supabase S3', { key })
 
             const deleteParams = {
                 Bucket: this.bucket,
@@ -151,18 +168,19 @@ export class S3Service {
 
             await this.s3.deleteObject(deleteParams).promise()
             
-            this.logger.info('S3 avatar deletion successful', { key })
+            this.logger.info('Supabase S3 avatar deletion successful', { key })
 
             return { success: true }
 
         } catch (error) {
-            this.logger.error('S3 avatar deletion failed', {
+            this.logger.error('Supabase S3 avatar deletion failed', {
                 error: error.message,
+                code: error.code,
                 key,
                 stack: error.stack
             })
 
-            throw new Error(`Failed to delete avatar from S3: ${error.message}`)
+            throw new Error(`Failed to delete avatar from Supabase S3: ${error.message}`)
         }
     }
 
@@ -174,10 +192,16 @@ export class S3Service {
         try {
             const listParams = {
                 Bucket: this.bucket,
-                Prefix: `avatars/${userId}/`
+                Prefix: `avatars/${userId}/`,
+                MaxKeys: 100
             }
 
             const result = await this.s3.listObjectsV2(listParams).promise()
+            
+            this.logger.info('Listed user avatars from Supabase S3', {
+                userId,
+                count: result.Contents?.length || 0
+            })
             
             return {
                 success: true,
@@ -185,13 +209,14 @@ export class S3Service {
             }
 
         } catch (error) {
-            this.logger.error('S3 list avatars failed', {
+            this.logger.error('Supabase S3 list avatars failed', {
                 error: error.message,
+                code: error.code,
                 userId,
                 stack: error.stack
             })
 
-            throw new Error(`Failed to list avatars from S3: ${error.message}`)
+            throw new Error(`Failed to list avatars from Supabase S3: ${error.message}`)
         }
     }
 
@@ -219,6 +244,13 @@ export class S3Service {
                 return { success: true, deleted: 0 }
             }
 
+            this.logger.info('Starting cleanup of old avatars', {
+                userId,
+                totalFiles: sortedFiles.length,
+                filesToDelete: filesToDelete.length,
+                keepLatest
+            })
+
             const deletePromises = filesToDelete.map(file => 
                 this.deleteAvatar(file.Key).catch(error => {
                     this.logger.warn('Failed to delete old avatar', { 
@@ -231,7 +263,7 @@ export class S3Service {
 
             await Promise.all(deletePromises)
 
-            this.logger.info('Cleaned up old avatars', {
+            this.logger.info('Cleaned up old avatars from Supabase S3', {
                 userId,
                 deletedCount: filesToDelete.length,
                 keptCount: keepLatest
@@ -252,6 +284,44 @@ export class S3Service {
             return { 
                 success: false, 
                 error: error.message 
+            }
+        }
+    }
+
+    // Метод для перевірки з'єднання з S3
+    async testConnection() {
+        if (!this.isConfigured) {
+            return { success: false, error: 'S3 service not configured' }
+        }
+
+        try {
+            // Спробуємо отримати список об'єктів в bucket
+            const listParams = {
+                Bucket: this.bucket,
+                MaxKeys: 1
+            }
+
+            await this.s3.listObjectsV2(listParams).promise()
+            
+            this.logger.info('Supabase S3 connection test successful', {
+                endpoint: process.env.AWS_S3_ENDPOINT,
+                bucket: this.bucket
+            })
+
+            return { success: true }
+
+        } catch (error) {
+            this.logger.error('Supabase S3 connection test failed', {
+                error: error.message,
+                code: error.code,
+                endpoint: process.env.AWS_S3_ENDPOINT,
+                bucket: this.bucket
+            })
+
+            return { 
+                success: false, 
+                error: error.message,
+                code: error.code 
             }
         }
     }
