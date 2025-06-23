@@ -30,16 +30,6 @@ import ratingAdminRoutes from './routes/ratings/admin.js'
 import collectionRoutes from './routes/collections/index.js'
 import collectionAdminRoutes from './routes/collections/admin.js'
 
-// Додайте це в початок файлу
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error)
-  // Не завершуйте процес для production
-})
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason)
-})
-
 dotenv.config()
 
 // Simplified logger configuration without pino-pretty
