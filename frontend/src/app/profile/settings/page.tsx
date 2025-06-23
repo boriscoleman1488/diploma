@@ -121,6 +121,13 @@ export default function SettingsPage() {
     }
   }
 
+  const triggerFileInput = () => {
+    const fileInput = document.getElementById('avatar-upload') as HTMLInputElement
+    if (fileInput) {
+      fileInput.click()
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -165,26 +172,25 @@ export default function SettingsPage() {
               size="xl"
             />
             <div>
-              <label htmlFor="avatar-upload" className="cursor-pointer">
-                <input
-                  id="avatar-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarUpload}
-                  className="hidden"
-                  disabled={isUploadingAvatar}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  leftIcon={isUploadingAvatar ? <LoadingSpinner size="sm" /> : <Upload className="w-4 h-4" />}
-                  disabled={isUploadingAvatar}
-                >
-                  {isUploadingAvatar ? 'Завантаження...' : 'Змінити аватар'}
-                </Button>
-              </label>
+              <input
+                id="avatar-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+                disabled={isUploadingAvatar}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={triggerFileInput}
+                leftIcon={isUploadingAvatar ? <LoadingSpinner size="sm" /> : <Upload className="w-4 h-4" />}
+                disabled={isUploadingAvatar}
+              >
+                {isUploadingAvatar ? 'Завантаження...' : 'Змінити аватар'}
+              </Button>
               <p className="mt-2 text-sm text-gray-500">
-                JPG, PNG або WebP. Максимальний розмір 2МБ.
+                JPG, PNG або WebP. Максимальний розмір 5МБ.
               </p>
             </div>
           </div>
