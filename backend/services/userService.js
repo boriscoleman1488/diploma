@@ -298,9 +298,16 @@ export class UserService {
             this._validateUserId(userId)
             this._validateImageFile(fileBuffer, mimetype)
 
-            // Generate unique filename with user ID prefix
+            // Generate unique filename with user ID prefix (required by RLS policy)
             const fileExtension = mimetype.split('/')[1]
             const uniqueFilename = `${userId}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
+
+            this.logger.info('Starting avatar upload', { 
+                userId, 
+                filename: uniqueFilename,
+                fileSize: fileBuffer.length,
+                mimetype 
+            })
 
             // Upload to Supabase Storage
             const { data: uploadData, error: uploadError } = await this.supabase.storage
@@ -313,11 +320,18 @@ export class UserService {
             if (uploadError) {
                 this.logger.error('Avatar upload failed', { 
                     error: uploadError.message, 
+                    code: uploadError.statusCode,
                     userId, 
                     filename: uniqueFilename 
                 })
                 return this._handleError(uploadError, 'Не вдалося завантажити файл')
             }
+
+            this.logger.info('Avatar uploaded to storage successfully', { 
+                userId, 
+                filename: uniqueFilename,
+                path: uploadData.path 
+            })
 
             // Get public URL
             const { data: urlData } = this.supabase.storage
@@ -331,6 +345,11 @@ export class UserService {
                 )
             }
 
+            this.logger.info('Got public URL for avatar', { 
+                userId, 
+                publicUrl: urlData.publicUrl 
+            })
+
             // Update user profile with new avatar URL
             const { data: profile, error: updateError } = await this.supabase
                 .from('profiles')
@@ -343,6 +362,12 @@ export class UserService {
                 .single()
 
             if (updateError) {
+                this.logger.error('Failed to update profile with avatar URL', { 
+                    error: updateError.message, 
+                    userId,
+                    publicUrl: urlData.publicUrl 
+                })
+                
                 // Try to clean up uploaded file
                 await this.supabase.storage
                     .from('avatars')
@@ -364,6 +389,11 @@ export class UserService {
             }, 'Аватар завантажено успішно')
             
         } catch (error) {
+            this.logger.error('Avatar upload error', { 
+                error: error.message, 
+                userId,
+                stack: error.stack 
+            })
             return this._handleError(error, 'Не вдалося завантажити аватар', { userId })
         }
     }
