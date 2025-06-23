@@ -15,8 +15,6 @@ import { CommentService } from './services/commentService.js'
 import { RatingService } from './services/ratingService.js'
 import { CollectionService } from './services/collectionService.js'
 import { EmailService } from './services/emailService.js'
-import { S3Service } from './services/s3Service.js'
-
 
 import authRoutes from './routes/auth.js'
 
@@ -112,10 +110,9 @@ fastify.decorate('supabaseAdmin', supabaseAdmin)
 fastify.decorate('supabaseJwtSecret', config.supabaseJwtSecret)
 
 const emailService = new EmailService(fastify.log)
-const s3Service = new S3Service(fastify.log)
 const authService = new AuthService(supabaseClient, fastify.log, emailService)
 const categoryService = new CategoryService(supabaseClient, fastify.log)
-const userService = new UserService(supabaseClient, fastify.log, emailService, s3Service)
+const userService = new UserService(supabaseClient, fastify.log, emailService)
 const dishService = new DishService(supabaseClient, fastify.log)
 const commentService = new CommentService(supabaseClient, fastify.log)
 const ratingService = new RatingService(supabaseClient, fastify.log)
@@ -126,7 +123,6 @@ const edamamService = new EdamamService(
 )
 
 fastify.decorate('emailService', emailService)
-fastify.decorate('s3Service', s3Service)
 fastify.decorate('authService', authService)
 fastify.decorate('categoryService', categoryService)
 fastify.decorate('userService', userService)
@@ -135,7 +131,6 @@ fastify.decorate('edamam', edamamService)
 fastify.decorate('commentService', commentService)
 fastify.decorate('ratingService', ratingService)
 fastify.decorate('collectionService', collectionService)
-
 
 await fastify.register(authRoutes, { prefix: '/api/auth' })
 
@@ -147,8 +142,6 @@ await fastify.register(commentRoutes, { prefix: '/api/comments' })
 await fastify.register(ratingRoutes, { prefix: '/api/ratings' })
 await fastify.register(collectionRoutes, { prefix: '/api/collections' })
 
-
-
 // Admin routes
 await fastify.register(userAdminRoutes, { prefix: '/api/admin/users' })
 await fastify.register(categoryAdminRoutes, { prefix: '/api/admin/categories' })
@@ -156,7 +149,6 @@ await fastify.register(dishAdminRoutes, { prefix: '/api/admin/dishes' })
 await fastify.register(commentAdminRoutes, { prefix: '/api/admin/comments' })
 await fastify.register(ratingAdminRoutes, { prefix: '/api/admin/ratings' })
 await fastify.register(collectionAdminRoutes, { prefix: '/api/admin/collections' })
-
 
 // Root endpoint
 fastify.get('/', async (request, reply) => {
@@ -177,14 +169,14 @@ fastify.get('/', async (request, reply) => {
   }
 })
 
-// Health check endpoint з перевіркою S3
+// Health check endpoint
 fastify.get('/health', async (request, reply) => {
   const health = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     services: {
       database: 'unknown',
-      s3: 'unknown'
+      storage: 'unknown'
     }
   }
 
@@ -201,11 +193,11 @@ fastify.get('/health', async (request, reply) => {
   }
 
   try {
-    // Перевіряємо підключення до S3
-    const s3Test = await s3Service.testConnection()
-    health.services.s3 = s3Test.success ? 'healthy' : 'unhealthy'
+    // Перевіряємо підключення до Supabase Storage
+    const { data: buckets, error } = await supabaseClient.storage.listBuckets()
+    health.services.storage = error ? 'unhealthy' : 'healthy'
   } catch (error) {
-    health.services.s3 = 'unhealthy'
+    health.services.storage = 'unhealthy'
   }
 
   const isHealthy = Object.values(health.services).every(status => status === 'healthy')
@@ -245,16 +237,22 @@ const start = async () => {
     })
     console.log(`🚀 Сервер запущено на http://localhost:${config.port}`)
     
-    // Тестуємо S3 підключення при запуску
-    if (s3Service.isConfigured) {
-      const s3Test = await s3Service.testConnection()
-      if (s3Test.success) {
-        console.log('✅ Supabase S3 Connection успішно налаштовано')
+    // Тестуємо Supabase Storage при запуску
+    try {
+      const { data: buckets, error } = await supabaseClient.storage.listBuckets()
+      if (!error && buckets) {
+        console.log('✅ Supabase Storage підключено успішно')
+        const avatarBucket = buckets.find(bucket => bucket.id === 'avatars')
+        if (avatarBucket) {
+          console.log('✅ Bucket "avatars" знайдено')
+        } else {
+          console.log('⚠️ Bucket "avatars" не знайдено')
+        }
       } else {
-        console.log('⚠️ Supabase S3 Connection недоступно:', s3Test.error)
+        console.log('⚠️ Supabase Storage недоступно:', error?.message)
       }
-    } else {
-      console.log('ℹ️ S3 Service не налаштовано - використовується Supabase Storage')
+    } catch (storageError) {
+      console.log('⚠️ Помилка підключення до Supabase Storage:', storageError.message)
     }
   } catch (err) {
     console.error('Помилка запуску сервера:', err)
