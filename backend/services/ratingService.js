@@ -260,30 +260,6 @@ export class RatingService {
     }
   }
 
-  async getUserRating(dishId, userId) {
-    try {
-      this._validateIds(dishId, userId)
-
-      const { data, error } = await this.supabase
-        .from('dish_ratings')
-        .select('rating_type')
-        .eq('user_id', userId)
-        .eq('dish_id', dishId)
-        .eq('rating_type', this.RATING_VALUES.LIKE)
-        .single()
-
-      if (error && error.code !== 'PGRST116') {
-        return this._handleError(error, 'Unable to get user rating', { dishId, userId })
-      }
-
-      const rating = data ? data.rating_type : null
-      return this._handleSuccess({ rating })
-
-    } catch (error) {
-      return this._handleError(error, this.ERRORS.INTERNAL_ERROR, { dishId, userId })
-    }
-  }
-
   async removeRating(dishId, userId) {
     try {
       this._validateIds(dishId, userId)
@@ -485,20 +461,9 @@ export class RatingService {
     try {
       this._validateIds(null, userId)
 
-      const { data: rating, error: ratingError } = await this.supabase
+      const { data: ratings, error } = await this.supabase
         .from('dish_ratings')
-        .upsert(
-          {
-            dish_id: dishId,
-            user_id: userId,
-            rating_type: this.RATING_VALUES.LIKE
-          },
-          {
-            onConflict: 'dish_id,user_id'
-          }
-        )
-        .select()
-        .single()
+        .select('rating_type')
         .eq('user_id', userId)
 
       if (error) {
