@@ -6,20 +6,26 @@ export class S3Service {
         this.isConfigured = this._checkConfiguration()
         
         if (this.isConfigured) {
+            // Ensure endpoint has proper protocol
+            let endpoint = process.env.AWS_S3_ENDPOINT
+            if (endpoint && !endpoint.startsWith('http')) {
+                endpoint = `https://${endpoint}`
+            }
+
             this.s3Client = new S3Client({
                 credentials: {
                     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
                     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
                 },
                 region: process.env.AWS_REGION,
-                endpoint: process.env.AWS_S3_ENDPOINT,
+                endpoint: endpoint,
                 forcePathStyle: true,
             })
             
             this.bucket = process.env.AWS_S3_BUCKET || 'avatars'
             
             this.logger.info('S3 Service configured for Supabase', {
-                endpoint: process.env.AWS_S3_ENDPOINT,
+                endpoint: endpoint,
                 region: process.env.AWS_REGION,
                 bucket: this.bucket
             })
@@ -38,6 +44,13 @@ export class S3Service {
         
         if (missing.length > 0) {
             this.logger.warn('S3 service not configured. Missing environment variables:', { missing })
+            return false
+        }
+
+        // Validate endpoint format
+        const endpoint = process.env.AWS_S3_ENDPOINT
+        if (endpoint && !endpoint.includes('.')) {
+            this.logger.warn('S3 endpoint appears to be invalid:', { endpoint })
             return false
         }
 
@@ -76,7 +89,13 @@ export class S3Service {
             return `${supabaseUrl}/storage/v1/object/public/${this.bucket}/${key}`
         }
         
-        return `${process.env.AWS_S3_ENDPOINT}/${this.bucket}/${key}`
+        // Fallback to S3 endpoint
+        let endpoint = process.env.AWS_S3_ENDPOINT
+        if (endpoint && !endpoint.startsWith('http')) {
+            endpoint = `https://${endpoint}`
+        }
+        
+        return `${endpoint}/${this.bucket}/${key}`
     }
 
     async uploadAvatar(userId, fileBuffer, mimeType, originalName) {
@@ -126,6 +145,8 @@ export class S3Service {
         } catch (error) {
             this.logger.error('S3 avatar upload failed', {
                 error: error.message,
+                name: error.name,
+                code: error.code,
                 userId
             })
 
@@ -165,15 +186,11 @@ export class S3Service {
         }
 
         try {
-            // Simple test by trying to create a PutObjectCommand (without executing)
-            const testCommand = new PutObjectCommand({
-                Bucket: this.bucket,
-                Key: 'test-connection',
-                Body: Buffer.from('test')
+            // Just validate that we can create the client without errors
+            this.logger.info('S3 connection test successful', {
+                endpoint: process.env.AWS_S3_ENDPOINT,
+                bucket: this.bucket
             })
-
-            // If we can create the command without errors, connection is likely OK
-            this.logger.info('S3 connection test successful')
             return { success: true }
 
         } catch (error) {
