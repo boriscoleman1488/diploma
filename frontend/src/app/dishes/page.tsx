@@ -78,7 +78,9 @@ export default function DishesPage() {
     // Filter by category
     if (selectedCategory) {
       filtered = filtered.filter(dish =>
-        dish.categories?.some(cat => cat.dish_categories.id === selectedCategory)
+        dish.categories?.some(cat => 
+          cat?.dish_categories?.id === selectedCategory
+        )
       )
     }
 
@@ -103,9 +105,14 @@ export default function DishesPage() {
   }
 
   const getTotalCookingTime = (dish: Dish) => {
-    if (!dish.steps) return null
+    if (!dish.steps || !Array.isArray(dish.steps)) return null
     const total = dish.steps.reduce((sum, step) => sum + (step.duration_minutes || 0), 0)
     return total > 0 ? total : null
+  }
+
+  const getDishCategories = (dish: Dish) => {
+    if (!dish.categories || !Array.isArray(dish.categories)) return []
+    return dish.categories.filter(cat => cat?.dish_categories?.name)
   }
 
   return (
@@ -262,6 +269,7 @@ export default function DishesPage() {
           {filteredDishes.map((dish) => {
             const cookingTime = getTotalCookingTime(dish)
             const likesCount = dish.ratings?.filter(r => r.rating_type === 1).length || 0
+            const dishCategories = getDishCategories(dish)
 
             return (
               <Card key={dish.id} className="hover:shadow-lg transition-shadow overflow-hidden">
@@ -293,9 +301,9 @@ export default function DishesPage() {
                   </p>
 
                   {/* Categories */}
-                  {dish.categories && dish.categories.length > 0 && (
+                  {dishCategories.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-4">
-                      {dish.categories.slice(0, 3).map((cat, index) => (
+                      {dishCategories.slice(0, 3).map((cat, index) => (
                         <span
                           key={index}
                           className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
@@ -303,9 +311,9 @@ export default function DishesPage() {
                           {cat.dish_categories.name}
                         </span>
                       ))}
-                      {dish.categories.length > 3 && (
+                      {dishCategories.length > 3 && (
                         <span className="text-xs text-gray-500">
-                          +{dish.categories.length - 3} ще
+                          +{dishCategories.length - 3} ще
                         </span>
                       )}
                     </div>
