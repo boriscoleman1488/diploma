@@ -1,0 +1,322 @@
+export class CategoryService {
+    constructor(supabase, logger) {
+        this.supabase = supabase
+        this.logger = logger
+    }
+
+    static ERRORS = {
+        CATEGORY_NOT_FOUND: 'Category not found',
+        CATEGORY_EXISTS: 'Category already exists',
+        CATEGORY_IN_USE: 'Category is in use',
+        INTERNAL_ERROR: 'Internal server error',
+        FETCH_ERROR: 'Unable to fetch category',
+        CREATE_ERROR: 'Unable to create category',
+        UPDATE_ERROR: 'Unable to update category',
+        DELETE_ERROR: 'Unable to delete category',
+        SEARCH_ERROR: 'Unable to search categories'
+    }
+
+    static MESSAGES = {
+        CATEGORY_NOT_FOUND: 'The specified category does not exist',
+        CATEGORY_EXISTS: 'A category with this name already exists',
+        CATEGORY_IN_USE: 'Cannot delete category that is used by dishes',
+        CATEGORY_CREATED: 'Category created successfully',
+        CATEGORY_UPDATED: 'Category updated successfully',
+        CATEGORY_DELETED: 'Category deleted successfully'
+    }
+
+    _handleError(operation, error, customMessage = null) {
+        this.logger.error(`${operation} error`, { error: error.message })
+        return {
+            success: false,
+            error: customMessage || CategoryService.ERRORS.INTERNAL_ERROR,
+            message: error.message || customMessage || 'An unexpected error occurred'
+        }
+    }
+
+    _handleSuccess(data = {}, message = null) {
+        return {
+            success: true,
+            ...data,
+            ...(message && { message })
+        }
+    }
+
+    async _checkCategoryExists(categoryId) {
+        const { data: category, error } = await this.supabase
+            .from('dish_categories')
+            .select('*')
+            .eq('id', categoryId)
+            .single()
+
+        if (error && error.code === 'PGRST116') {
+            return { exists: false, category: null }
+        }
+
+        if (error) {
+            throw error
+        }
+
+        return { exists: true, category }
+    }
+
+    async _checkCategoryNameExists(name, excludeId = null) {
+        let query = this.supabase
+            .from('dish_categories')
+            .select('id')
+            .eq('name', name)
+
+        if (excludeId) {
+            query = query.neq('id', excludeId)
+        }
+
+        const { data, error } = await query.limit(1)
+
+        if (error) {
+            throw error
+        }
+
+        return data && data.length > 0
+    }
+
+    async _checkCategoryInUse(categoryId) {
+        const { data: relations, error } = await this.supabase
+            .from('dish_category_relations')
+            .select('dish_id')
+            .eq('category_id', categoryId)
+            .limit(1)
+
+        if (error) {
+            throw error
+        }
+
+        return relations && relations.length > 0
+    }
+
+    async getAllCategories() {
+        try {
+            const { data: categories, error } = await this.supabase
+                .from('dish_categories')
+                .select('*')
+                .order('name')
+
+            if (error) {
+                return this._handleError('Categories fetch', error, CategoryService.ERRORS.FETCH_ERROR)
+            }
+
+            return this._handleSuccess({ categories: categories || [] })
+        } catch (error) {
+            return this._handleError('Categories fetch', error)
+        }
+    }
+
+    async createCategory(name, description) {
+        try {
+            const nameExists = await this._checkCategoryNameExists(name)
+            if (nameExists) {
+                return {
+                    success: false,
+                    error: CategoryService.ERRORS.CATEGORY_EXISTS,
+                    message: CategoryService.MESSAGES.CATEGORY_EXISTS
+                }
+            }
+
+            const { data: category, error } = await this.supabase
+                .from('dish_categories')
+                .insert([{ name, description }])
+                .select()
+                .single()
+
+            if (error) {
+                return this._handleError('Category creation', error, CategoryService.ERRORS.CREATE_ERROR)
+            }
+
+            this.logger.info('Category created', { categoryId: category.id, name })
+            return this._handleSuccess({ category }, CategoryService.MESSAGES.CATEGORY_CREATED)
+        } catch (error) {
+            return this._handleError('Category creation', error)
+        }
+    }
+
+    async updateCategory(categoryId, name, description) {
+        try {
+            const { exists } = await this._checkCategoryExists(categoryId)
+            if (!exists) {
+                return {
+                    success: false,
+                    error: CategoryService.ERRORS.CATEGORY_NOT_FOUND,
+                    message: CategoryService.MESSAGES.CATEGORY_NOT_FOUND
+                }
+            }
+
+            const nameExists = await this._checkCategoryNameExists(name, categoryId)
+            if (nameExists) {
+                return {
+                    success: false,
+                    error: CategoryService.ERRORS.CATEGORY_EXISTS,
+                    message: CategoryService.MESSAGES.CATEGORY_EXISTS
+                }
+            }
+
+            const { data: category, error } = await this.supabase
+                .from('dish_categories')
+                .update({ name, description })
+                .eq('id', categoryId)
+                .select()
+                .single()
+
+            if (error) {
+                return this._handleError('Category update', error, CategoryService.ERRORS.UPDATE_ERROR)
+            }
+
+            this.logger.info('Category updated', { categoryId, name })
+            return this._handleSuccess({ category }, CategoryService.MESSAGES.CATEGORY_UPDATED)
+        } catch (error) {
+            return this._handleError('Category update', error)
+        }
+    }
+
+    async deleteCategory(categoryId) {
+        try {
+            const { exists } = await this._checkCategoryExists(categoryId)
+            if (!exists) {
+                return {
+                    success: false,
+                    error: CategoryService.ERRORS.CATEGORY_NOT_FOUND,
+                    message: CategoryService.MESSAGES.CATEGORY_NOT_FOUND
+                }
+            }
+
+            const inUse = await this._checkCategoryInUse(categoryId)
+            if (inUse) {
+                return {
+                    success: false,
+                    error: CategoryService.ERRORS.CATEGORY_IN_USE,
+                    message: CategoryService.MESSAGES.CATEGORY_IN_USE
+                }
+            }
+
+            const { error } = await this.supabase
+                .from('dish_categories')
+                .delete()
+                .eq('id', categoryId)
+
+            if (error) {
+                return this._handleError('Category deletion', error, CategoryService.ERRORS.DELETE_ERROR)
+            }
+
+            this.logger.info('Category deleted', { categoryId })
+            return this._handleSuccess({}, CategoryService.MESSAGES.CATEGORY_DELETED)
+        } catch (error) {
+            return this._handleError('Category deletion', error)
+        }
+    }
+
+    async getCategoryById(categoryId) {
+        try {
+            const { exists, category } = await this._checkCategoryExists(categoryId)
+            if (!exists) {
+                return {
+                    success: false,
+                    error: CategoryService.ERRORS.CATEGORY_NOT_FOUND,
+                    message: CategoryService.MESSAGES.CATEGORY_NOT_FOUND
+                }
+            }
+
+            return this._handleSuccess({ category })
+        } catch (error) {
+            return this._handleError('Category fetch', error)
+        }
+    }
+
+    async searchCategories(query) {
+        try {
+            const { data: categories, error } = await this.supabase
+                .from('dish_categories')
+                .select('*')
+                .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
+                .order('name')
+
+            if (error) {
+                return this._handleError('Category search', error, CategoryService.ERRORS.SEARCH_ERROR)
+            }
+
+            return this._handleSuccess({ categories: categories || [] })
+        } catch (error) {
+            return this._handleError('Category search', error)
+        }
+    }
+
+    async getAllCategoriesForAdmin() {
+        try {
+            const { data: categories, error } = await this.supabase
+                .from('dish_categories')
+                .select(`
+                    *,
+                    dish_category_relations!inner(count)
+                `)
+                .order('name')
+
+            if (error) {
+                return this._handleError('Admin categories fetch', error, CategoryService.ERRORS.FETCH_ERROR)
+            }
+
+            const categoriesWithCount = categories?.map(category => ({
+                ...category,
+                dishes_count: category.dish_category_relations?.[0]?.count || 0
+            })) || []
+
+            categoriesWithCount.forEach(category => {
+                delete category.dish_category_relations
+            })
+
+            return this._handleSuccess({ categories: categoriesWithCount })
+        } catch (error) {
+            return this._handleError('Admin categories fetch', error)
+        }
+    }
+
+    async getCategoryDetails(categoryId) {
+        try {
+            const { data: category, error } = await this.supabase
+                .from('dish_categories')
+                .select(`
+                    *,
+                    dish_category_relations(
+                        dish_id,
+                        dishes(
+                            id,
+                            name,
+                            description,
+                            image_url
+                        )
+                    )
+                `)
+                .eq('id', categoryId)
+                .single()
+
+            if (error) {
+                if (error.code === 'PGRST116') {
+                    return {
+                        success: false,
+                        error: CategoryService.ERRORS.CATEGORY_NOT_FOUND,
+                        message: CategoryService.MESSAGES.CATEGORY_NOT_FOUND
+                    }
+                }
+                return this._handleError('Category details fetch', error, CategoryService.ERRORS.FETCH_ERROR)
+            }
+
+            const categoryDetails = {
+                ...category,
+                dishes: category.dish_category_relations?.map(rel => rel.dishes) || [],
+                dishes_count: category.dish_category_relations?.length || 0
+            }
+
+            delete categoryDetails.dish_category_relations
+
+            return this._handleSuccess({ category: categoryDetails })
+        } catch (error) {
+            return this._handleError('Category details fetch', error)
+        }
+    }
+}

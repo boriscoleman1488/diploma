@@ -1,0 +1,203 @@
+import Fastify from 'fastify'
+import fastifyHelmet from '@fastify/helmet'
+import fastifyCors from '@fastify/cors'
+import fastifyRateLimit from '@fastify/rate-limit'
+import { createClient } from '@supabase/supabase-js'
+import dotenv from 'dotenv'
+
+import { EdamamService } from './services/edamamService.js'
+import { AuthService } from './services/authService.js'
+import { CategoryService } from './services/categoryService.js'
+import { UserService } from './services/userService.js'
+import { DishService } from './services/dishService.js'
+import { CommentService } from './services/commentService.js'
+import { RatingService } from './services/ratingService.js'
+import { CollectionService } from './services/collectionService.js'
+
+
+import authRoutes from './routes/auth.js'
+
+import userRoutes from './routes/users/index.js'
+import userAdminRoutes from './routes/users/admin.js'
+import categoryRoutes from './routes/categories/index.js'
+import categoryAdminRoutes from './routes/categories/admin.js'
+import dishRoutes from './routes/dishes/index.js'
+import dishAdminRoutes from './routes/dishes/admin.js'
+import commentRoutes from './routes/comments/index.js'
+import commentAdminRoutes from './routes/comments/admin.js'
+import ratingRoutes from './routes/ratings/index.js'
+import ratingAdminRoutes from './routes/ratings/admin.js'
+import collectionRoutes from './routes/collections/index.js'
+import collectionAdminRoutes from './routes/collections/admin.js'
+
+// Додайте це в початок файлу
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error)
+  // Не завершуйте процес для production
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason)
+})
+
+dotenv.config()
+
+const fastify = Fastify({
+  logger: {
+    level: process.env.LOG_LEVEL || 'info',
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        translateTime: 'HH:MM:ss Z',
+        ignore: 'pid,hostname',
+        messageFormat: '{msg}'
+      }
+    }
+  }
+})
+
+const config = {
+  supabaseUrl: process.env.SUPABASE_URL,
+  supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+  supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY,
+  supabaseJwtSecret: process.env.SUPABASE_JWT_SECRET,
+  port: process.env.PORT || 3000
+}
+
+if (!config.supabaseUrl || !config.supabaseAnonKey || !config.supabaseJwtSecret) {
+  fastify.log.error('Missing required Supabase configuration')
+  process.exit(1)
+}
+
+await fastify.register(fastifyHelmet, {
+  contentSecurityPolicy: false
+})
+
+await fastify.register(fastifyCors, {
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+})
+
+// Додайте хук для логування CORS запитів
+fastify.addHook('onRequest', async (request, reply) => {
+  if (request.method === 'OPTIONS') {
+    fastify.log.info(`CORS preflight request: ${request.method} ${request.url} from ${request.headers.origin}`)
+  }
+})
+
+await fastify.register(fastifyRateLimit, {
+  max: 100,
+  timeWindow: '1 minute'
+})
+
+const supabaseClient = createClient(config.supabaseUrl, config.supabaseAnonKey)
+const supabaseAdmin = createClient(config.supabaseUrl, config.supabaseServiceKey)
+
+fastify.decorate('supabase', supabaseClient)
+fastify.decorate('supabaseAdmin', supabaseAdmin)
+fastify.decorate('supabaseJwtSecret', config.supabaseJwtSecret)
+
+const authService = new AuthService(supabaseClient, fastify.log)
+const categoryService = new CategoryService(supabaseClient, fastify.log)
+const userService = new UserService(supabaseClient, fastify.log)
+const dishService = new DishService(supabaseClient, fastify.log)
+const commentService = new CommentService(supabaseClient, fastify.log)
+const ratingService = new RatingService(supabaseClient, fastify.log)
+const collectionService = new CollectionService(supabaseClient, fastify.log)
+const edamamService = new EdamamService(
+  process.env.EDAMAM_APP_ID,
+  process.env.EDAMAM_APP_KEY
+)
+
+fastify.decorate('authService', authService)
+fastify.decorate('categoryService', categoryService)
+fastify.decorate('userService', userService)
+fastify.decorate('dishService', dishService)
+fastify.decorate('edamam', edamamService)
+fastify.decorate('commentService', commentService)
+fastify.decorate('ratingService', ratingService)
+fastify.decorate('collectionService', collectionService)
+
+
+await fastify.register(authRoutes, { prefix: '/api/auth' })
+
+// User routes
+await fastify.register(userRoutes, { prefix: '/api/users' })
+await fastify.register(categoryRoutes, { prefix: '/api/categories' })
+await fastify.register(dishRoutes, { prefix: '/api/dishes' })
+await fastify.register(commentRoutes, { prefix: '/api/comments' })
+await fastify.register(ratingRoutes, { prefix: '/api/ratings' })
+await fastify.register(collectionRoutes, { prefix: '/api/collections' })
+
+
+
+// Admin routes
+await fastify.register(userAdminRoutes, { prefix: '/api/admin/users' })
+await fastify.register(categoryAdminRoutes, { prefix: '/api/admin/categories' })
+await fastify.register(dishAdminRoutes, { prefix: '/api/admin/dishes' })
+await fastify.register(commentAdminRoutes, { prefix: '/api/admin/comments' })
+await fastify.register(ratingAdminRoutes, { prefix: '/api/admin/ratings' })
+await fastify.register(collectionAdminRoutes, { prefix: '/api/admin/collections' })
+
+
+// Root endpoint
+fastify.get('/', async (request, reply) => {
+  return {
+    message: 'Recipe API Server',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      auth: '/api/auth',
+      categories: '/api/categories',
+      dishes: '/api/dishes',
+      users: '/api/users',
+      admin: '/api/admin',
+      comments: '/api/comments',
+      ratings: '/api/ratings',
+      collections: '/api/collections'
+    }
+  }
+})
+
+// 404 handler
+fastify.setNotFoundHandler((request, reply) => {
+  reply.code(404).send({
+    message: `Route ${request.method} ${request.url} not found`,
+    availableRoutes: [
+      'GET /',
+      'POST /api/auth/register',
+      'POST /api/auth/login',
+      'GET /api/categories',
+      'POST /api/categories',
+      'GET /api/dishes',
+      'POST /api/dishes',
+      'GET /api/users/profile',
+      'GET /api/admin/users',
+      'POST /api/comments/:dishId',
+      'GET /api/comments/:dishId',
+      'GET /api/ratings/:dishId',
+      'GET /api/collections'
+    ]
+  })
+})
+
+const start = async () => {
+  try {
+    await fastify.listen({
+      port: config.port,
+      host: '0.0.0.0'
+    })
+    fastify.log.info(`🚀 Сервер запущено на http://localhost:${config.port}`)
+  } catch (err) {
+    fastify.log.error(err)
+    process.exit(1)
+  }
+}
+
+start()
+
