@@ -71,6 +71,9 @@ export default function CategoriesPage() {
   const isShowingSearchResults = searchQuery.trim() && searchResults.length > 0
   const totalDishes = categories.reduce((sum, cat) => sum + (cat.dishes_count || 0), 0)
 
+  // Pre-render the search icon to avoid complex inline JSX
+  const searchIcon = isSearching ? <LoadingSpinner size="sm" /> : <Search className="w-4 h-4" />
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Header with Enhanced Design */}
@@ -81,7 +84,7 @@ export default function CategoriesPage() {
         
         {/* Animated background pattern */}
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.1\"%3E%3Ccircle cx=\"30\" cy=\"30\" r=\"2\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]"></div>
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.1"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]"></div>
         </div>
         
         {/* Floating elements */}
@@ -162,15 +165,12 @@ export default function CategoriesPage() {
               <div className="flex flex-col lg:flex-row items-center justify-between space-y-4 lg:space-y-0 lg:space-x-6">
                 <div className="flex-1 w-full lg:w-auto">
                   <div className="relative">
-                    <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
-                      {isSearching ? <LoadingSpinner size="sm" /> : <Search className="w-5 h-5" />}
-                    </div>
-                    <input
-                      type="text"
+                    <Input
                       placeholder="Пошук категорій за назвою або описом..."
                       value={searchQuery}
                       onChange={(e) => handleSearch(e.target.value)}
-                      className="w-full pl-12 pr-4 py-4 text-lg border-2 border-gray-200 focus:border-orange-500 rounded-xl shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500 transition-colors"
+                      leftIcon={searchIcon}
+                      className="text-lg py-4 pl-12 pr-4 border-2 border-gray-200 focus:border-orange-500 rounded-xl shadow-sm"
                     />
                   </div>
                 </div>
