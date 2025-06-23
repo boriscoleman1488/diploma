@@ -126,7 +126,8 @@ export default async function userAdminRoutes(fastify, options) {
                 })
             }
 
-            const result = await fastify.userService.deleteUserByAdmin(userId)
+            // Pass the admin client to the service
+            const result = await fastify.userService.deleteUserByAdmin(userId, fastify.supabaseAdmin)
 
             if (!result.success) {
                 return reply.code(400).send({

@@ -427,7 +427,7 @@ export class UserService {
         }
     }
 
-    async deleteUserByAdmin(userId) {
+    async deleteUserByAdmin(userId, supabaseAdmin) {
         try {
             this._validateUserId(userId)
             
@@ -447,15 +447,17 @@ export class UserService {
             }
 
             // Delete from auth.users table using admin client
-            const { error: authError } = await this.supabase.auth.admin.deleteUser(userId)
+            if (supabaseAdmin) {
+                const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
-            if (authError) {
-                this.logger.error('Failed to delete user from auth', { 
-                    error: authError.message, 
-                    userId,
-                    userEmail: existingUser.email 
-                })
-                return this._handleError(authError, 'Unable to delete user account', { userId })
+                if (authError) {
+                    this.logger.error('Failed to delete user from auth', { 
+                        error: authError.message, 
+                        userId,
+                        userEmail: existingUser.email 
+                    })
+                    return this._handleError(authError, 'Unable to delete user account', { userId })
+                }
             }
 
             // The profile should be automatically deleted due to foreign key constraint
