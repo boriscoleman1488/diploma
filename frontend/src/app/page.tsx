@@ -23,7 +23,10 @@ import {
   Star,
   TrendingUp,
   Calendar,
-  ArrowRight
+  ArrowRight,
+  LogIn,
+  UserPlus,
+  Image as ImageIcon
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -62,6 +65,7 @@ interface Dish {
   steps?: Array<{
     description: string
     duration_minutes?: number
+    image_url?: string
   }>
 }
 
@@ -78,10 +82,18 @@ interface DishDetailsModalProps {
 }
 
 function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
+  const { isAuthenticated } = useAuthStore()
+
   if (!isOpen || !dish) return null
 
   const likesCount = dish.ratings?.filter(r => r.rating_type === 1).length || 0
   const totalCookingTime = dish.steps?.reduce((total, step) => total + (step.duration_minutes || 0), 0) || 0
+
+  const handleAuthAction = (action: string) => {
+    toast.error(`Щоб ${action}, потрібно зареєструватися або увійти в систему`, {
+      duration: 5000,
+    })
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -196,16 +208,28 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
           {dish.steps && dish.steps.length > 0 && (
             <div>
               <h4 className="font-medium text-gray-900 mb-3">Кроки приготування</h4>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {dish.steps.map((step, index) => (
                   <div key={index} className="flex space-x-4">
                     <div className="flex-shrink-0 w-8 h-8 bg-primary-100 text-primary-800 rounded-full flex items-center justify-center text-sm font-medium">
                       {index + 1}
                     </div>
                     <div className="flex-1">
-                      <p className="text-gray-900">{step.description}</p>
+                      <p className="text-gray-900 mb-3">{step.description}</p>
+                      
+                      {/* Step Image */}
+                      {step.image_url && (
+                        <div className="mb-3">
+                          <img
+                            src={step.image_url}
+                            alt={`Крок ${index + 1}`}
+                            className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
+                          />
+                        </div>
+                      )}
+                      
                       {step.duration_minutes && step.duration_minutes > 0 && (
-                        <p className="text-sm text-gray-500 mt-1 flex items-center">
+                        <p className="text-sm text-gray-500 flex items-center">
                           <Clock className="w-3 h-3 mr-1" />
                           {step.duration_minutes} хвилин
                         </p>
@@ -217,12 +241,54 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
             </div>
           )}
 
+          {/* Auth Required Message */}
+          {!isAuthenticated && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0">
+                  <LogIn className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <h5 className="text-sm font-medium text-blue-800 mb-1">
+                    Приєднайтеся до нашої спільноти!
+                  </h5>
+                  <p className="text-sm text-blue-700 mb-3">
+                    Щоб ставити лайки стравам та залишати коментарі, потрібно зареєструватися або увійти в систему.
+                  </p>
+                  <div className="flex space-x-3">
+                    <Link href="/auth/login">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        leftIcon={<LogIn className="w-4 h-4" />}
+                        className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                      >
+                        Увійти
+                      </Button>
+                    </Link>
+                    <Link href="/auth/register">
+                      <Button
+                        size="sm"
+                        leftIcon={<UserPlus className="w-4 h-4" />}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        Зареєструватися
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex space-x-3 pt-4 border-t border-gray-200">
             <Button
               variant="outline"
               leftIcon={<Heart className="w-4 h-4" />}
               className="flex-1"
+              onClick={() => isAuthenticated ? null : handleAuthAction('поставити лайк')}
+              disabled={!isAuthenticated}
             >
               Подобається ({likesCount})
             </Button>
@@ -230,6 +296,8 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
               variant="outline"
               leftIcon={<MessageCircle className="w-4 h-4" />}
               className="flex-1"
+              onClick={() => isAuthenticated ? null : handleAuthAction('залишити коментар')}
+              disabled={!isAuthenticated}
             >
               Коментарі ({dish.comments_count || 0})
             </Button>
