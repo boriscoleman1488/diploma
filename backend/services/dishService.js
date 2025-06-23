@@ -724,12 +724,12 @@ export class DishService {
                 .from('dishes')
                 .select(`
                 *,
-                profiles:user_id(username, email, created_at),
+                profiles:user_id(full_name, email, profile_tag, created_at),
                 dish_category_relations(
                     dish_categories(id, name)
                 ),
-                dish_ratings(rating, profiles(username)),
-                dish_comments(comment, created_at, profiles(username))
+                dish_ratings(rating_type, profiles(full_name, profile_tag)),
+                dish_comments(content, created_at, profiles(full_name, profile_tag))
             `)
                 .eq('id', dishId)
                 .single()
