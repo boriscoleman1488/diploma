@@ -29,6 +29,7 @@ export default function LoginPage() {
     register,
     handleSubmit,
     formState: { errors },
+    getValues,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   })
@@ -40,8 +41,19 @@ export default function LoginPage() {
       toast.success('З поверненням!')
       router.push('/profile')
     } else {
-      // Backend error will be displayed as-is
-      toast.error(result.error || 'Помилка входу')
+      // Show specific error message for email confirmation
+      if (result.error === 'Email not confirmed' || result.message?.includes('підтвердіть')) {
+        toast.error(result.message || 'Будь ласка, підтвердіть свою електронну пошту перед входом')
+        // Show additional help
+        setTimeout(() => {
+          toast('Не отримали лист? Перевірте папку "Спам" або надішліть повторно', {
+            icon: '📧',
+            duration: 5000
+          })
+        }, 1000)
+      } else {
+        toast.error(result.message || result.error || 'Помилка входу')
+      }
     }
   }
 
@@ -114,6 +126,14 @@ export default function LoginPage() {
                     Забули пароль?
                   </Link>
                 </div>
+                <div className="text-sm">
+                  <Link
+                    href="/auth/resend-confirmation"
+                    className="font-medium text-primary-600 hover:text-primary-500"
+                  >
+                    Повторити підтвердження
+                  </Link>
+                </div>
               </div>
 
               <Button
@@ -125,6 +145,19 @@ export default function LoginPage() {
                 Увійти
               </Button>
             </form>
+
+            {/* Email confirmation help */}
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>💡 Проблеми з входом?</strong>
+              </p>
+              <ul className="text-sm text-blue-700 mt-2 space-y-1">
+                <li>• Переконайтеся, що ви підтвердили електронну пошту</li>
+                <li>• Перевірте папку "Спам" для листа підтвердження</li>
+                <li>• Переконайтеся, що пароль введено правильно</li>
+                <li>• <Link href="/auth/resend-confirmation" className="underline">Надіслати лист підтвердження повторно</Link></li>
+              </ul>
+            </div>
           </CardContent>
         </Card>
       </div>

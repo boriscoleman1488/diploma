@@ -9,7 +9,10 @@ export class AuthService {
         'invalid email': 'Неправильний формат електронної пошти',
         'Invalid login credentials': 'Неправильна електронна пошта або пароль',
         'Email not confirmed': 'Будь ласка, підтвердіть свою електронну пошту перед входом',
-        'signups not allowed': 'Реєстрація нових користувачів наразі відключена'
+        'signups not allowed': 'Реєстрація нових користувачів наразі відключена',
+        'User from sub claim in JWT does not exist': 'Користувач не існує. Будь ласка, зареєструйтеся знову',
+        'JWT expired': 'Сесія закінчилася. Будь ласка, увійдіть знову',
+        'Invalid JWT': 'Недійсний токен. Будь ласка, увійдіть знову'
     }
 
     constructor(supabase, logger, emailService = null) {
@@ -25,13 +28,21 @@ export class AuthService {
             ...context
         })
 
-        const errorMessage = Object.entries(AuthService.ERROR_MESSAGES)
-            .find(([key]) => error.message.includes(key))?.[1] || error.message
+        // Check for specific error messages and translate them
+        let errorMessage = error.message
+
+        // Find matching error message and translate it
+        const translatedError = Object.entries(AuthService.ERROR_MESSAGES)
+            .find(([key]) => error.message.includes(key))
+
+        if (translatedError) {
+            errorMessage = translatedError[1]
+        }
 
         return {
             success: false,
             error: errorMessage,
-            message: error.message
+            message: errorMessage
         }
     }
 
@@ -102,7 +113,7 @@ export class AuthService {
                 return {
                     success: false,
                     error: 'Registration failed',
-                    message: 'No user data returned after successful registration'
+                    message: 'Реєстрація не вдалася. Спробуйте ще раз.'
                 }
             }
 
@@ -187,7 +198,7 @@ export class AuthService {
                 return {
                     success: false,
                     error: 'Profile creation failed',
-                    message: profileError.message
+                    message: 'Не вдалося створити профіль користувача'
                 }
             }
 
@@ -223,12 +234,21 @@ export class AuthService {
                 return {
                     success: false,
                     error: 'Authentication failed',
-                    message: 'No user or session data returned'
+                    message: 'Помилка автентифікації. Спробуйте ще раз.'
+                }
+            }
+
+            // Check if email is confirmed
+            if (!data.user.email_confirmed_at) {
+                return {
+                    success: false,
+                    error: 'Email not confirmed',
+                    message: 'Будь ласка, підтвердіть свою електронну пошту перед входом. Перевірте вашу поштову скриньку.'
                 }
             }
 
             const responseData = {
-                message: 'Login successful',
+                message: 'Вхід успішний',
                 user: {
                     id: data.user.id,
                     email: data.user.email,
@@ -264,7 +284,7 @@ export class AuthService {
                 return this._handleError('Logout', error)
             }
 
-            return this._handleSuccess('Logout', { message: 'Logged out successfully' })
+            return this._handleSuccess('Logout', { message: 'Вихід успішний' })
 
         } catch (error) {
             return this._handleError('Logout', error)
@@ -285,7 +305,7 @@ export class AuthService {
                 return {
                     success: false,
                     error: 'Token refresh failed',
-                    message: 'No session data returned'
+                    message: 'Не вдалося оновити сесію'
                 }
             }
 
@@ -317,7 +337,7 @@ export class AuthService {
             }
 
             return this._handleSuccess('Password reset',
-                { message: 'Password reset email sent successfully' },
+                { message: 'Лист для скидання пароля надіслано успішно' },
                 { email }
             )
 
@@ -341,7 +361,7 @@ export class AuthService {
             }
 
             return this._handleSuccess('Confirmation resend',
-                { message: 'Confirmation email sent. Please check your inbox.' },
+                { message: 'Лист підтвердження надіслано. Будь ласка, перевірте вашу поштову скриньку.' },
                 { email }
             )
 
@@ -362,7 +382,7 @@ export class AuthService {
                 return {
                     success: false,
                     error: 'Invalid token',
-                    message: 'No user found for this token'
+                    message: 'Недійсний токен'
                 }
             }
 
