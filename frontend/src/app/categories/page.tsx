@@ -14,7 +14,6 @@ import {
   Plus, 
   Grid3X3, 
   List,
-  Filter,
   ChefHat,
   TrendingUp,
   Users,
