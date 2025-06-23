@@ -66,6 +66,9 @@ export default function CategoriesPage() {
   const isShowingSearchResults = searchQuery.trim() && searchResults.length > 0
   const totalDishes = categories.reduce((sum, cat) => sum + (cat.dishes_count || 0), 0)
 
+  // Pre-render the search icon to avoid complex inline JSX
+  const searchIcon = isSearching ? <LoadingSpinner size="sm" /> : <Search className="w-4 h-4" />
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Header */}
@@ -136,7 +139,7 @@ export default function CategoriesPage() {
                     placeholder="Пошук категорій за назвою або описом..."
                     value={searchQuery}
                     onChange={(e) => handleSearch(e.target.value)}
-                    leftIcon={isSearching ? <LoadingSpinner size="sm" /> : <Search className="w-4 h-4" />}
+                    leftIcon={searchIcon}
                     className="text-lg py-3"
                   />
                 </div>
