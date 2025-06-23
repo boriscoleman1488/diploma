@@ -10,7 +10,6 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { UserDetailsModal } from '@/components/admin/UserDetailsModal'
 import { UserRoleSelect } from '@/components/admin/UserRoleSelect'
 import { formatDate, formatRelativeTime, debounce } from '@/lib/utils'
-import { t } from '@/lib/translations'
 import { 
   Users, 
   Search, 
@@ -75,7 +74,7 @@ export default function AdminUsersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            {t('admin.userManagement')}
+            Управління користувачами
           </h1>
           <p className="mt-1 text-sm text-gray-600">
             Керуйте користувачами та їх правами доступу
@@ -204,7 +203,7 @@ export default function AdminUsersPage() {
                             />
                             <div className="ml-3">
                               <div className="text-sm font-medium text-gray-900 flex items-center">
-                                {user.full_name || t('common.unknown')}
+                                {user.full_name || 'Невідомо'}
                                 {isCurrentUser && (
                                   <Crown className="w-4 h-4 ml-2 text-yellow-500" title="Ваш акаунт" />
                                 )}

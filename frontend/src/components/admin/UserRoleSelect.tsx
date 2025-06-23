@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
-import { t } from '@/lib/translations'
 import { Shield, User, Lock } from 'lucide-react'
 
 interface UserRoleSelectProps {

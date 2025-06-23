@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Avatar'
 import { UserRoleSelect } from './UserRoleSelect'
 import { formatDate, formatRelativeTime } from '@/lib/utils'
-import { t } from '@/lib/translations'
 import { 
   X, 
   Mail, 
@@ -46,7 +45,7 @@ export function UserDetailsModal({
       return
     }
 
-    if (window.confirm(t('messages.confirmDeleteUser'))) {
+    if (window.confirm('Ви впевнені, що хочете видалити цього користувача? Ця дія незворотна.')) {
       const result = await onDelete(user.id)
       if (result.success) {
         onClose()
@@ -59,7 +58,7 @@ export function UserDetailsModal({
       <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">
-            {t('admin.userDetails')}
+            Деталі користувача
           </h2>
           <Button
             variant="outline"
@@ -67,7 +66,7 @@ export function UserDetailsModal({
             onClick={onClose}
             leftIcon={<X className="w-4 h-4" />}
           >
-            {t('common.close')}
+            Закрити
           </Button>
         </div>
 
@@ -98,7 +97,7 @@ export function UserDetailsModal({
             />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
-                {user.full_name || t('common.unknown')}
+                {user.full_name || 'Невідомо'}
                 {isCurrentUser && (
                   <span className="ml-2 text-sm text-blue-600 font-normal">(Ви)</span>
                 )}
@@ -111,7 +110,7 @@ export function UserDetailsModal({
           {/* User Information */}
           <Card>
             <CardHeader>
-              <CardTitle>{t('profile.profileInformation')}</CardTitle>
+              <CardTitle>Інформація профілю</CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="space-y-4">
@@ -120,7 +119,7 @@ export function UserDetailsModal({
                   <dd className="mt-1 text-sm text-gray-900 font-mono">{user.id}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">{t('auth.email')}</dt>
+                  <dt className="text-sm font-medium text-gray-500">Електронна пошта</dt>
                   <dd className="mt-1 text-sm text-gray-900 flex items-center">
                     <Mail className="w-4 h-4 mr-2" />
                     {user.email}
@@ -132,15 +131,15 @@ export function UserDetailsModal({
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">{t('profile.fullName')}</dt>
+                  <dt className="text-sm font-medium text-gray-500">Повне ім'я</dt>
                   <dd className="mt-1 text-sm text-gray-900">
-                    {user.full_name || t('common.notProvided')}
+                    {user.full_name || 'Не вказано'}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">{t('profile.profileTag')}</dt>
+                  <dt className="text-sm font-medium text-gray-500">Тег профілю</dt>
                   <dd className="mt-1 text-sm text-gray-900">
-                    @{user.profile_tag || t('common.notSet')}
+                    @{user.profile_tag || 'Не встановлено'}
                   </dd>
                 </div>
                 <div>
@@ -203,7 +202,7 @@ export function UserDetailsModal({
           {/* Actions */}
           <Card>
             <CardHeader>
-              <CardTitle>{t('common.actions')}</CardTitle>
+              <CardTitle>Дії</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -227,7 +226,7 @@ export function UserDetailsModal({
                     disabled={isUpdating || isCurrentUser}
                     leftIcon={<Trash2 className="w-4 h-4" />}
                   >
-                    {t('admin.deleteUser')}
+                    Видалити користувача
                   </Button>
                   <p className="mt-2 text-sm text-gray-500">
                     {isCurrentUser 
