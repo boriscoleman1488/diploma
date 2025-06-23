@@ -14,15 +14,11 @@ import {
   Plus, 
   Grid3X3, 
   List,
+  Filter,
   ChefHat,
   TrendingUp,
   Users,
-  Sparkles,
-  BookOpen,
-  Star,
-  Filter,
-  SortAsc,
-  BarChart3
+  Sparkles
 } from 'lucide-react'
 
 export default function CategoriesPage() {
@@ -71,199 +67,131 @@ export default function CategoriesPage() {
   const isShowingSearchResults = searchQuery.trim() && searchResults.length > 0
   const totalDishes = categories.reduce((sum, cat) => sum + (cat.dishes_count || 0), 0)
 
-  // Pre-render the search icon to avoid complex inline JSX
-  const searchIcon = isSearching ? <LoadingSpinner size="sm" /> : <Search className="w-4 h-4" />
-
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Header with Enhanced Design */}
-      <div className="relative overflow-hidden">
-        {/* Background with multiple gradients */}
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-400 via-red-500 to-pink-500"></div>
-        <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/20 via-purple-600/20 to-pink-600/20"></div>
+      {/* Hero Header */}
+      <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-orange-600 relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
         
-        {/* Animated background pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.1"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]"></div>
-        </div>
-        
-        {/* Floating elements */}
-        <div className="absolute top-20 left-10 w-20 h-20 bg-white/10 rounded-full blur-xl animate-pulse"></div>
-        <div className="absolute top-40 right-20 w-32 h-32 bg-yellow-300/20 rounded-full blur-2xl animate-pulse delay-1000"></div>
-        <div className="absolute bottom-20 left-1/4 w-16 h-16 bg-pink-300/20 rounded-full blur-xl animate-pulse delay-500"></div>
-        
-        <div className="relative max-w-7xl mx-auto py-20 px-4 sm:px-6 lg:px-8">
+        <div className="relative max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            {/* Main Icon with Animation */}
-            <div className="flex justify-center mb-8">
-              <div className="relative">
-                <div className="absolute inset-0 bg-white/30 rounded-3xl blur-xl animate-pulse"></div>
-                <div className="relative p-6 bg-white/20 backdrop-blur-sm rounded-3xl border border-white/30">
-                  <ChefHat className="w-16 h-16 text-white drop-shadow-lg" />
-                </div>
+            {/* Icon */}
+            <div className="flex justify-center mb-6">
+              <div className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl">
+                <ChefHat className="w-12 h-12 text-white" />
               </div>
             </div>
             
-            {/* Title with Enhanced Typography */}
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight">
+            {/* Title */}
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
               Категорії рецептів
-              <div className="inline-block ml-4 animate-bounce">
-                <Sparkles className="w-12 h-12 text-yellow-300 drop-shadow-lg" />
-              </div>
+              <Sparkles className="inline-block w-8 h-8 ml-2 text-yellow-300" />
             </h1>
             
-            {/* Subtitle with Better Spacing */}
-            <p className="text-xl md:text-2xl text-white/90 mb-12 max-w-3xl mx-auto leading-relaxed">
-              Відкрийте світ кулінарних можливостей через наші ретельно організовані категорії рецептів
+            {/* Subtitle */}
+            <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+              Знайдіть ідеальні рецепти за категоріями або створіть власну колекцію кулінарних шедеврів
             </p>
             
-            {/* Enhanced Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 max-w-4xl mx-auto">
-              <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 border border-white/30">
-                <div className="flex items-center justify-center mb-3">
-                  <Grid3X3 className="w-8 h-8 text-white mr-3" />
-                  <div className="text-4xl font-bold text-white">{categories.length}</div>
-                </div>
-                <div className="text-white/80 text-lg font-medium">Категорій</div>
+            {/* Stats */}
+            <div className="flex flex-wrap justify-center gap-8 mb-8">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-white">{categories.length}</div>
+                <div className="text-white/80 text-sm">Категорій</div>
               </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 border border-white/30">
-                <div className="flex items-center justify-center mb-3">
-                  <BookOpen className="w-8 h-8 text-white mr-3" />
-                  <div className="text-4xl font-bold text-white">{totalDishes}</div>
-                </div>
-                <div className="text-white/80 text-lg font-medium">Рецептів</div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-white">{totalDishes}</div>
+                <div className="text-white/80 text-sm">Рецептів</div>
               </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 border border-white/30">
-                <div className="flex items-center justify-center mb-3">
-                  <BarChart3 className="w-8 h-8 text-white mr-3" />
-                  <div className="text-4xl font-bold text-white">
-                    {categories.length > 0 ? Math.round(totalDishes / categories.length) : 0}
-                  </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-white">
+                  {categories.length > 0 ? Math.round(totalDishes / categories.length) : 0}
                 </div>
-                <div className="text-white/80 text-lg font-medium">Середньо на категорію</div>
+                <div className="text-white/80 text-sm">Середньо на категорію</div>
               </div>
             </div>
             
-            {/* CTA Button with Enhanced Design */}
+            {/* CTA Button */}
             <Button
               onClick={() => setShowCreateModal(true)}
               size="lg"
-              className="bg-white text-orange-600 hover:bg-gray-50 shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 px-8 py-4 text-lg font-semibold"
-              leftIcon={<Plus className="w-6 h-6" />}
+              className="bg-white text-primary-600 hover:bg-gray-50 shadow-lg"
+              leftIcon={<Plus className="w-5 h-5" />}
             >
-              Створити нову категорію
+              Створити категорію
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="space-y-8">
-          {/* Enhanced Search and Filters */}
-          <Card className="shadow-xl border-0 bg-gradient-to-r from-white to-gray-50">
-            <CardContent className="p-8">
-              <div className="flex flex-col lg:flex-row items-center justify-between space-y-4 lg:space-y-0 lg:space-x-6">
-                <div className="flex-1 w-full lg:w-auto">
-                  <div className="relative">
-                    <Input
-                      placeholder="Пошук категорій за назвою або описом..."
-                      value={searchQuery}
-                      onChange={(e) => handleSearch(e.target.value)}
-                      leftIcon={searchIcon}
-                      className="text-lg py-4 pl-12 pr-4 border-2 border-gray-200 focus:border-orange-500 rounded-xl shadow-sm"
-                    />
-                  </div>
+          {/* Search and Filters */}
+          <Card className="shadow-lg border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between space-x-4">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Пошук категорій за назвою або описом..."
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    leftIcon={isSearching ? <LoadingSpinner size="sm" /> : <Search className="w-4 h-4" />}
+                    className="text-lg py-3"
+                  />
                 </div>
-                
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center bg-gray-100 rounded-xl p-1">
-                    <Button
-                      variant={viewMode === 'grid' ? 'primary' : 'outline'}
-                      size="sm"
-                      onClick={() => setViewMode('grid')}
-                      leftIcon={<Grid3X3 className="w-4 h-4" />}
-                      className="rounded-lg"
-                    >
-                      Сітка
-                    </Button>
-                    <Button
-                      variant={viewMode === 'list' ? 'primary' : 'outline'}
-                      size="sm"
-                      onClick={() => setViewMode('list')}
-                      leftIcon={<List className="w-4 h-4" />}
-                      className="rounded-lg"
-                    >
-                      Список
-                    </Button>
-                  </div>
-                  
+                <div className="flex items-center space-x-2">
                   <Button
-                    variant="outline"
+                    variant={viewMode === 'grid' ? 'primary' : 'outline'}
                     size="sm"
-                    leftIcon={<Filter className="w-4 h-4" />}
-                    className="rounded-xl"
+                    onClick={() => setViewMode('grid')}
+                    leftIcon={<Grid3X3 className="w-4 h-4" />}
                   >
-                    Фільтри
+                    Сітка
                   </Button>
-                  
                   <Button
-                    variant="outline"
+                    variant={viewMode === 'list' ? 'primary' : 'outline'}
                     size="sm"
-                    leftIcon={<SortAsc className="w-4 h-4" />}
-                    className="rounded-xl"
+                    onClick={() => setViewMode('list')}
+                    leftIcon={<List className="w-4 h-4" />}
                   >
-                    Сортування
+                    Список
                   </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Search Results Info with Enhanced Design */}
+          {/* Search Results Info */}
           {isShowingSearchResults && (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-100 border-2 border-blue-200 rounded-2xl p-6 shadow-lg">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
               <div className="flex items-center">
-                <div className="p-2 bg-blue-500 rounded-xl mr-4">
-                  <Search className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-blue-900">
-                    Результати пошуку
-                  </h3>
-                  <p className="text-blue-700">
-                    Знайдено {searchResults.length} категорій за запитом "{searchQuery}"
-                  </p>
-                </div>
+                <Search className="w-5 h-5 text-blue-600 mr-2" />
+                <p className="text-blue-800 font-medium">
+                  Знайдено {searchResults.length} категорій за запитом "{searchQuery}"
+                </p>
               </div>
             </div>
           )}
 
-          {/* Categories Grid/List with Enhanced Loading */}
+          {/* Categories Grid/List */}
           {isLoading ? (
-            <div className="flex items-center justify-center py-20">
+            <div className="flex items-center justify-center py-16">
               <div className="text-center">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-orange-200 rounded-full blur-xl animate-pulse"></div>
-                  <div className="relative p-6 bg-white rounded-full shadow-xl">
-                    <LoadingSpinner size="lg" />
-                  </div>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mt-6 mb-2">Завантаження категорій</h3>
-                <p className="text-gray-600 text-lg">Підготовуємо для вас найкращі категорії...</p>
+                <LoadingSpinner size="lg" />
+                <p className="mt-4 text-gray-600 text-lg">Завантаження категорій...</p>
               </div>
             </div>
           ) : displayCategories.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="relative mb-8">
-                <div className="text-9xl mb-4 animate-bounce">📂</div>
-                <div className="absolute inset-0 bg-orange-200 rounded-full blur-3xl opacity-30 animate-pulse"></div>
-              </div>
-              <h3 className="text-3xl font-bold text-gray-900 mb-4">
+            <div className="text-center py-16">
+              <div className="text-8xl mb-6">📂</div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">
                 {searchQuery.trim() ? 'Категорії не знайдено' : 'Немає категорій'}
               </h3>
-              <p className="text-gray-600 mb-10 text-xl max-w-2xl mx-auto leading-relaxed">
+              <p className="text-gray-600 mb-8 text-lg max-w-md mx-auto">
                 {searchQuery.trim() 
-                  ? `Спробуйте інший пошуковий запит або створіть нову категорію "${searchQuery}"`
+                  ? `Спробуйте інший пошуковий запит або створіть нову категорію`
                   : 'Створіть першу категорію для організації рецептів та почніть свою кулінарну подорож'
                 }
               </p>
@@ -271,8 +199,7 @@ export default function CategoriesPage() {
                 <Button
                   onClick={() => setShowCreateModal(true)}
                   size="lg"
-                  leftIcon={<Plus className="w-6 h-6" />}
-                  className="px-8 py-4 text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+                  leftIcon={<Plus className="w-5 h-5" />}
                 >
                   Створити першу категорію
                 </Button>
@@ -281,8 +208,8 @@ export default function CategoriesPage() {
           ) : (
             <div className={
               viewMode === 'grid' 
-                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8'
-                : 'space-y-6'
+                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
+                : 'space-y-4'
             }>
               {displayCategories.map((category) => (
                 <CategoryCard
@@ -294,47 +221,34 @@ export default function CategoriesPage() {
             </div>
           )}
 
-          {/* Enhanced Stats Section */}
+          {/* Stats Section */}
           {!searchQuery.trim() && categories.length > 0 && (
-            <Card className="shadow-2xl border-0 bg-gradient-to-br from-gray-50 via-white to-gray-50 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-pink-500/5"></div>
-              <CardHeader className="relative">
-                <CardTitle className="flex items-center text-2xl font-bold">
-                  <div className="p-3 bg-gradient-to-r from-orange-500 to-pink-500 rounded-xl mr-4">
-                    <TrendingUp className="w-8 h-8 text-white" />
-                  </div>
+            <Card className="shadow-lg border-0 bg-gradient-to-r from-gray-50 to-gray-100">
+              <CardHeader>
+                <CardTitle className="flex items-center text-xl">
+                  <TrendingUp className="w-6 h-6 mr-3 text-primary-600" />
                   Статистика категорій
-                  <Star className="w-6 h-6 ml-3 text-yellow-500" />
                 </CardTitle>
               </CardHeader>
-              <CardContent className="relative">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div className="text-center p-8 bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-                    <div className="p-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl w-fit mx-auto mb-4">
-                      <Grid3X3 className="w-10 h-10 text-white" />
-                    </div>
-                    <div className="text-4xl font-bold text-blue-600 mb-2">
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="text-center p-6 bg-white rounded-xl shadow-sm">
+                    <div className="text-3xl font-bold text-primary-600 mb-2">
                       {categories.length}
                     </div>
-                    <div className="text-gray-600 font-semibold text-lg">Всього категорій</div>
+                    <div className="text-gray-600 font-medium">Всього категорій</div>
                   </div>
-                  <div className="text-center p-8 bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-                    <div className="p-4 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl w-fit mx-auto mb-4">
-                      <BookOpen className="w-10 h-10 text-white" />
-                    </div>
-                    <div className="text-4xl font-bold text-green-600 mb-2">
+                  <div className="text-center p-6 bg-white rounded-xl shadow-sm">
+                    <div className="text-3xl font-bold text-green-600 mb-2">
                       {totalDishes}
                     </div>
-                    <div className="text-gray-600 font-semibold text-lg">Всього рецептів</div>
+                    <div className="text-gray-600 font-medium">Всього рецептів</div>
                   </div>
-                  <div className="text-center p-8 bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-                    <div className="p-4 bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl w-fit mx-auto mb-4">
-                      <BarChart3 className="w-10 h-10 text-white" />
-                    </div>
-                    <div className="text-4xl font-bold text-purple-600 mb-2">
+                  <div className="text-center p-6 bg-white rounded-xl shadow-sm">
+                    <div className="text-3xl font-bold text-blue-600 mb-2">
                       {Math.round(categories.reduce((sum, cat) => sum + (cat.dishes_count || 0), 0) / categories.length) || 0}
                     </div>
-                    <div className="text-gray-600 font-semibold text-lg">Середньо на категорію</div>
+                    <div className="text-gray-600 font-medium">Середньо на категорію</div>
                   </div>
                 </div>
               </CardContent>

@@ -1,4 +1,4 @@
-import React, { ButtonHTMLAttributes, forwardRef } from 'react'
+import { ButtonHTMLAttributes, forwardRef } from 'react'
 import { cn } from '@/lib/utils'
 import { LoadingSpinner } from './LoadingSpinner'
 
@@ -6,9 +6,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'danger'
   size?: 'sm' | 'md' | 'lg'
   isLoading?: boolean
-  leftIcon?: React.ElementType
-  rightIcon?: React.ElementType
-  asChild?: boolean
+  leftIcon?: React.ReactNode
+  rightIcon?: React.ReactNode
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -18,11 +17,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       variant = 'primary',
       size = 'md',
       isLoading = false,
-      leftIcon: LeftIcon,
-      rightIcon: RightIcon,
+      leftIcon,
+      rightIcon,
       children,
       disabled,
-      asChild,
       ...props
     },
     ref
@@ -42,19 +40,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       lg: 'px-6 py-3 text-base',
     }
 
-    const iconSizeClasses = {
-      sm: 'w-3 h-3',
-      md: 'w-4 h-4',
-      lg: 'w-5 h-5',
-    }
-
-    const iconSizeClass = iconSizeClasses[size]
-
-    // If asChild is true, render children directly without button wrapper
-    if (asChild) {
-      return <>{children}</>
-    }
-
     return (
       <button
         ref={ref}
@@ -69,14 +54,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {isLoading ? (
           <LoadingSpinner size="sm" className="mr-2" />
-        ) : LeftIcon ? (
-          <LeftIcon className={cn(iconSizeClass, 'mr-2')} />
+        ) : leftIcon ? (
+          <span className="mr-2">{leftIcon}</span>
         ) : null}
         
         {children}
         
-        {RightIcon && !isLoading && (
-          <RightIcon className={cn(iconSizeClass, 'ml-2')} />
+        {rightIcon && !isLoading && (
+          <span className="ml-2">{rightIcon}</span>
         )}
       </button>
     )

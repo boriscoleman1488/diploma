@@ -47,7 +47,7 @@ export default async function userRoutes(fastify, options) {
     fastify.get('/profile/:userId', {
         handler: async (request, reply) => {
             const { userId } = request.params
-            const result = await fastify.userService.getPublicProfile(userId)
+            const result = await userService.getPublicProfile(userId)
 
             if (!result.success) {
                 return reply.code(404).send({
@@ -66,7 +66,7 @@ export default async function userRoutes(fastify, options) {
     fastify.get('/stats', {
         preHandler: [authenticateUser],
         handler: async (request, reply) => {
-            const result = await fastify.userService.getUserStats(request.user)
+            const result = await userService.getUserStats(request.user)
 
             if (!result.success) {
                 return reply.code(400).send({
@@ -132,7 +132,7 @@ export default async function userRoutes(fastify, options) {
                 })
             }
 
-            const result = await fastify.userService.uploadAvatar(
+            const result = await userService.uploadAvatar(
                 request.user.id,
                 request.file.buffer,
                 request.file.mimetype
@@ -152,7 +152,7 @@ export default async function userRoutes(fastify, options) {
     fastify.get('/search/:tag', {
         handler: async (request, reply) => {
             const { tag } = request.params
-            const result = await fastify.userService.getUserByTag(tag)
+            const result = await userService.getUserByTag(tag)
 
             if (!result.success) {
                 return reply.code(404).send({

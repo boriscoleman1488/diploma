@@ -169,7 +169,7 @@ export default function SettingsPage() {
               <label htmlFor="avatar-upload" className="cursor-pointer">
                 <Button
                   variant="outline"
-                  leftIcon={isUploadingAvatar ? LoadingSpinner : Upload}
+                  leftIcon={isUploadingAvatar ? <LoadingSpinner size="sm" /> : <Upload className="w-4 h-4" />}
                   disabled={isUploadingAvatar}
                   asChild
                 >
@@ -233,7 +233,7 @@ export default function SettingsPage() {
               type="submit"
               isLoading={isUpdating}
               disabled={isUpdating}
-              leftIcon={Save}
+              leftIcon={<Save className="w-4 h-4" />}
             >
               Зберегти зміни
             </Button>
@@ -321,7 +321,7 @@ export default function SettingsPage() {
               type="submit"
               isLoading={isUpdating}
               disabled={isUpdating}
-              leftIcon={Save}
+              leftIcon={<Save className="w-4 h-4" />}
             >
               Змінити пароль
             </Button>

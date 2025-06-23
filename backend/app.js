@@ -30,14 +30,33 @@ import ratingAdminRoutes from './routes/ratings/admin.js'
 import collectionRoutes from './routes/collections/index.js'
 import collectionAdminRoutes from './routes/collections/admin.js'
 
+// Додайте це в початок файлу
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error)
+  // Не завершуйте процес для production
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason)
+})
+
 dotenv.config()
 
-// Simplified logger configuration without pino-pretty
+// Правильна конфігурація логера для нових версій Pino
 const fastify = Fastify({
   logger: process.env.NODE_ENV === 'production' 
     ? true 
     : {
-        level: process.env.LOG_LEVEL || 'info'
+        level: process.env.LOG_LEVEL || 'info',
+        transport: {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'HH:MM:ss Z',
+            ignore: 'pid,hostname',
+            messageFormat: '{msg}'
+          }
+        }
       }
 })
 
