@@ -305,11 +305,11 @@ export class UserService {
                 filename,
                 fileSize: fileBuffer.length,
                 mimetype,
-                s3Configured: !!this.s3Service
+                s3Configured: !!this.s3Service?.isConfigured
             })
 
             // Якщо S3 налаштовано, використовуємо його
-            if (this.s3Service) {
+            if (this.s3Service?.isConfigured) {
                 try {
                     const uploadResult = await this.s3Service.uploadAvatar(
                         userId, 
@@ -372,14 +372,13 @@ export class UserService {
                     }, 'Аватар завантажено успішно')
 
                 } catch (s3Error) {
-                    this.logger.error('S3 avatar upload failed', {
+                    this.logger.error('S3 avatar upload failed, falling back to Supabase', {
                         error: s3Error.message,
                         userId,
                         stack: s3Error.stack
                     })
                     
                     // Fallback to Supabase storage if S3 fails
-                    this.logger.info('Falling back to Supabase storage', { userId })
                 }
             }
 

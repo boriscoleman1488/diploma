@@ -122,6 +122,7 @@ export default async function userRoutes(fastify, options) {
                 contentType: request.headers['content-type']
             })
 
+            // Отримуємо файл з multipart запиту
             const data = await request.file()
 
             if (!data) {
@@ -178,6 +179,7 @@ export default async function userRoutes(fastify, options) {
                 })
             }
 
+            // Викликаємо сервіс для завантаження аватара
             const result = await fastify.userService.uploadAvatar(
                 request.user.id,
                 buffer,
