@@ -15,6 +15,7 @@ import { CommentService } from './services/commentService.js'
 import { RatingService } from './services/ratingService.js'
 import { CollectionService } from './services/collectionService.js'
 import { EmailService } from './services/emailService.js'
+import { S3Service } from './services/s3Service.js'
 
 
 import authRoutes from './routes/auth.js'
@@ -111,9 +112,10 @@ fastify.decorate('supabaseAdmin', supabaseAdmin)
 fastify.decorate('supabaseJwtSecret', config.supabaseJwtSecret)
 
 const emailService = new EmailService(fastify.log)
+const s3Service = new S3Service(fastify.log)
 const authService = new AuthService(supabaseClient, fastify.log, emailService)
 const categoryService = new CategoryService(supabaseClient, fastify.log)
-const userService = new UserService(supabaseClient, fastify.log, emailService)
+const userService = new UserService(supabaseClient, fastify.log, emailService, s3Service)
 const dishService = new DishService(supabaseClient, fastify.log)
 const commentService = new CommentService(supabaseClient, fastify.log)
 const ratingService = new RatingService(supabaseClient, fastify.log)
@@ -124,6 +126,7 @@ const edamamService = new EdamamService(
 )
 
 fastify.decorate('emailService', emailService)
+fastify.decorate('s3Service', s3Service)
 fastify.decorate('authService', authService)
 fastify.decorate('categoryService', categoryService)
 fastify.decorate('userService', userService)
