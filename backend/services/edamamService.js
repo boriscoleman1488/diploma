@@ -115,19 +115,55 @@ export class EdamamService {
     }
   }
 
+  // Helper function to normalize ingredient names to English
+  normalizeIngredientName(name) {
+    // Common Ukrainian to English food translations
+    const translations = {
+      'яблуко': 'apple',
+      'рис': 'rice',
+      'курка': 'chicken',
+      'куряче філе': 'chicken breast',
+      'помідор': 'tomato',
+      'цибуля': 'onion',
+      'часник': 'garlic',
+      'картопля': 'potato',
+      'морква': 'carrot',
+      'капуста': 'cabbage',
+      'огірок': 'cucumber',
+      'перець': 'pepper',
+      'молоко': 'milk',
+      'яйце': 'egg',
+      'хліб': 'bread',
+      'масло': 'butter',
+      'олія': 'oil',
+      'сіль': 'salt',
+      'цукор': 'sugar',
+      'борошно': 'flour',
+      'м\'ясо': 'meat',
+      'риба': 'fish',
+      'сир': 'cheese'
+    }
+    
+    const lowerName = name.toLowerCase().trim()
+    return translations[lowerName] || name
+  }
+
   // Helper function to normalize ingredient strings
   normalizeIngredientString(ingredient) {
     const { name, amount, unit } = ingredient
     
+    // Normalize ingredient name to English
+    const normalizedName = this.normalizeIngredientName(name)
+    
     // Convert units to more standard forms that Edamam recognizes
     const unitMapping = {
-      'г': 'gram',
-      'кг': 'kilogram', 
-      'мл': 'milliliter',
-      'л': 'liter',
+      'г': 'g',
+      'кг': 'kg', 
+      'мл': 'ml',
+      'л': 'l',
       'шт': 'piece',
-      'ст.л.': 'tablespoon',
-      'ч.л.': 'teaspoon',
+      'ст.л.': 'tbsp',
+      'ч.л.': 'tsp',
       'склянка': 'cup',
       'пучок': 'bunch'
     }
@@ -135,7 +171,20 @@ export class EdamamService {
     const normalizedUnit = unitMapping[unit] || unit
     
     // Format: "amount unit ingredient_name"
-    const ingredientString = `${amount} ${normalizedUnit} ${name}`
+    // Use more standard format that Edamam expects
+    let ingredientString
+    
+    if (normalizedUnit === 'piece' || normalizedUnit === 'шт') {
+      // For pieces, use format like "1 large apple" or "2 medium tomatoes"
+      const pieceAmount = Math.round(amount)
+      if (pieceAmount === 1) {
+        ingredientString = `1 medium ${normalizedName}`
+      } else {
+        ingredientString = `${pieceAmount} medium ${normalizedName}s`
+      }
+    } else {
+      ingredientString = `${amount}${normalizedUnit} ${normalizedName}`
+    }
     
     console.log(`Normalized ingredient: "${name}" ${amount} ${unit} -> "${ingredientString}"`)
     
@@ -305,7 +354,7 @@ export class EdamamService {
             ingredients: edamamIngredients,
             response: data
           })
-          throw new Error('Не вдалося розпізнати деякі інгредієнти. Спробуйте використати більш конкретні назви або стандартні одиниці виміру')
+          throw new Error(`Не вдалося розпізнати інгредієнти. Спробуйте використати англійські назви (наприклад: "apple", "rice") та стандартні одиниці виміру (g, kg, ml, l)`)
         }
         if (response.status === 403) {
           throw new Error('Доступ заборонено. Перевірте ваші API credentials та ліміти')
@@ -325,10 +374,17 @@ export class EdamamService {
 
   // Common method to process nutrition response from either API
   processNutritionResponse(data) {
+    console.log('Processing nutrition response:', {
+      hasCalories: !!data.calories,
+      hasTotalNutrients: !!data.totalNutrients,
+      calories: data.calories,
+      totalNutrientsKeys: data.totalNutrients ? Object.keys(data.totalNutrients) : []
+    })
+
     // Check if we got valid nutrition data
-    if (!data.calories && !data.totalNutrients) {
+    if (!data.calories && (!data.totalNutrients || Object.keys(data.totalNutrients).length === 0)) {
       console.warn('No nutrition data returned:', data)
-      throw new Error('API повернув порожні дані. Можливо, інгредієнти не розпізнано')
+      throw new Error('API повернув порожні дані. Можливо, інгредієнти не розпізнано. Спробуйте використати англійські назви інгредієнтів (наприклад: "apple" замість "яблуко", "rice" замість "рис")')
     }
 
     // Extract key nutritional information
@@ -460,3 +516,4 @@ export class EdamamService {
     }
   }
 }
+</parameter>
