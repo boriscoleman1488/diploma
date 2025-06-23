@@ -20,7 +20,8 @@ import {
   Sparkles,
   TrendingUp,
   Star,
-  BookOpen
+  BookOpen,
+  Plus
 } from 'lucide-react'
 
 export default function CategoryDetailsPage() {
