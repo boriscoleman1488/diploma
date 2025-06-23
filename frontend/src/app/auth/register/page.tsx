@@ -45,13 +45,12 @@ export default function RegisterPage() {
     
     if (result.success) {
       if (result.requiresEmailConfirmation) {
-        toast.success('Реєстрація успішна! Будь ласка, перевірте вашу електронну пошту для підтвердження.')
+        toast.success('Реєстрація успішна! Вам надіслано вітальний лист на електронну пошту.')
       } else {
         toast.success('Реєстрація успішна! Тепер ви можете увійти.')
       }
       router.push('/auth/login')
     } else {
-      // Backend error will be displayed as-is
       toast.error(result.error || 'Помилка реєстрації')
     }
   }
@@ -160,6 +159,12 @@ export default function RegisterPage() {
             </form>
           </CardContent>
         </Card>
+
+        <div className="text-center">
+          <p className="text-sm text-gray-600">
+            Після реєстрації ви отримаєте вітальний лист на вашу електронну пошту.
+          </p>
+        </div>
       </div>
     </div>
   )

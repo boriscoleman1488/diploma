@@ -83,7 +83,6 @@ export default function SettingsPage() {
   const onProfileSubmit = async (data: ProfileFormData) => {
     const result = await updateProfile(data)
     if (!result.success) {
-      // Backend error will be displayed as-is
       toast.error(result.error || 'Не вдалося оновити профіль')
     }
   }
@@ -93,6 +92,7 @@ export default function SettingsPage() {
     const result = await changePassword(passwordData)
     if (result.success) {
       passwordForm.reset()
+      toast.success('Пароль змінено успішно! Вам надіслано повідомлення на електронну пошту.')
     }
   }
 
@@ -110,7 +110,6 @@ export default function SettingsPage() {
       const compressedFile = await compressImage(file)
       const result = await uploadAvatar(compressedFile)
       if (!result.success) {
-        // Backend error will be displayed as-is
         toast.error(result.error || 'Не вдалося завантажити аватар')
       }
     } catch (error) {
@@ -316,6 +315,12 @@ export default function SettingsPage() {
                 </button>
               }
             />
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                <strong>Примітка:</strong> Після зміни пароля ви отримаєте повідомлення на вашу електронну пошту для підтвердження.
+              </p>
+            </div>
 
             <Button
               type="submit"

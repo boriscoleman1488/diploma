@@ -13,9 +13,10 @@ export class AuthService {
         'signups not allowed': 'Реєстрація нових користувачів наразі відключена'
     }
 
-    constructor(supabase, logger) {
+    constructor(supabase, logger, emailService = null) {
         this.supabase = supabase
         this.logger = logger
+        this.emailService = emailService
     }
 
     _handleError(operation, error, context = {}) {
@@ -109,10 +110,22 @@ export class AuthService {
                 return profileResult
             }
 
+            // Send welcome email
+            if (this.emailService) {
+                try {
+                    await this.emailService.sendWelcomeEmail(email, fullName)
+                } catch (emailError) {
+                    this.logger.warn('Failed to send welcome email', { 
+                        error: emailError.message, 
+                        email 
+                    })
+                }
+            }
+
             const responseData = {
                 message: data.user.email_confirmed_at
-                    ? 'Registration successful. You can now log in.'
-                    : 'Registration successful. Please check your email for verification.',
+                    ? 'Реєстрація успішна. Тепер ви можете увійти.'
+                    : 'Реєстрація успішна. Будь ласка, перевірте вашу електронну пошту для підтвердження.',
                 user: {
                     id: data.user.id,
                     email: data.user.email,
@@ -310,7 +323,7 @@ export class AuthService {
                 type: 'signup',
                 email,
                 options: {
-                    emailRedirectTo: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/callback`
+                    emailRedirectTo: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback`
                 }
             })
 

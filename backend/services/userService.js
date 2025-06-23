@@ -1,7 +1,8 @@
 export class UserService {
-    constructor(supabase, logger) {
+    constructor(supabase, logger, emailService = null) {
         this.supabase = supabase
         this.logger = logger
+        this.emailService = emailService
         
         this.USER_ROLES = {
             USER: 'user',
@@ -259,6 +260,28 @@ export class UserService {
 
             if (updateError) {
                 return this._handleError(updateError, 'Unable to update password', { email })
+            }
+
+            // Send password change notification email
+            if (this.emailService) {
+                try {
+                    // Get user profile for full name
+                    const { data: profile } = await this.supabase
+                        .from('profiles')
+                        .select('full_name')
+                        .eq('email', email)
+                        .single()
+
+                    await this.emailService.sendPasswordChangeNotification(
+                        email, 
+                        profile?.full_name
+                    )
+                } catch (emailError) {
+                    this.logger.warn('Failed to send password change notification', { 
+                        error: emailError.message, 
+                        email 
+                    })
+                }
             }
 
             this.logger.info('Password updated successfully', { email })
