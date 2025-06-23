@@ -90,13 +90,14 @@ export class UserService {
                 .from('profiles')
                 .select('*')
                 .eq('id', userId)
-                .single()
+                .maybeSingle()
 
             if (error) {
-                if (error.code === 'PGRST116') {
-                    return this._handleError(new Error('Profile not found'), this.ERRORS.PROFILE_NOT_FOUND, { userId })
-                }
                 return this._handleError(error, 'Unable to fetch profile', { userId })
+            }
+
+            if (!profile) {
+                return this._handleError(new Error('Profile not found'), this.ERRORS.PROFILE_NOT_FOUND, { userId })
             }
 
             this.logger.info('Profile fetched successfully', { userId })
@@ -135,10 +136,18 @@ export class UserService {
                 })
                 .eq('id', userId)
                 .select()
-                .single()
+                .maybeSingle()
 
             if (error) {
                 return this._handleError(error, 'Unable to update profile', { userId })
+            }
+
+            if (!data) {
+                return this._handleError(
+                    new Error('Profile not found or no changes made'),
+                    this.ERRORS.PROFILE_NOT_FOUND,
+                    { userId }
+                )
             }
 
             this.logger.info('Profile updated successfully', { userId })
@@ -159,17 +168,18 @@ export class UserService {
                 .from('profiles')
                 .select('id, email, full_name, profile_tag, avatar_url, created_at')
                 .eq('profile_tag', profileTag)
-                .single()
+                .maybeSingle()
 
             if (error) {
-                if (error.code === 'PGRST116') {
-                    return this._handleError(
-                        new Error('No user found with this profile tag'),
-                        'User not found',
-                        { profileTag }
-                    )
-                }
                 return this._handleError(error, 'Unable to search user', { profileTag })
+            }
+
+            if (!profile) {
+                return this._handleError(
+                    new Error('No user found with this profile tag'),
+                    'User not found',
+                    { profileTag }
+                )
             }
 
             return this._handleSuccess({ profile })
@@ -187,17 +197,18 @@ export class UserService {
                 .from('profiles')
                 .select('id, full_name, bio, avatar_url, created_at')
                 .eq('id', userId)
-                .single()
+                .maybeSingle()
 
             if (error) {
-                if (error.code === 'PGRST116') {
-                    return this._handleError(
-                        new Error('The requested user profile does not exist'),
-                        'User not found',
-                        { userId }
-                    )
-                }
                 return this._handleError(error, 'Unable to fetch profile', { userId })
+            }
+
+            if (!profile) {
+                return this._handleError(
+                    new Error('The requested user profile does not exist'),
+                    'User not found',
+                    { userId }
+                )
             }
 
             this.logger.info('Public profile fetched', { userId })
@@ -370,13 +381,14 @@ export class UserService {
                 .from('profiles')
                 .select('*')
                 .eq('id', userId)
-                .single()
+                .maybeSingle()
 
             if (error) {
-                if (error.code === 'PGRST116') {
-                    return this._handleError(new Error('User not found'), 'User not found', { userId })
-                }
                 return this._handleError(error, 'Unable to fetch user details', { userId })
+            }
+
+            if (!user) {
+                return this._handleError(new Error('User not found'), 'User not found', { userId })
             }
 
             return this._handleSuccess({ user })
@@ -413,10 +425,18 @@ export class UserService {
                 .update({ role, updated_at: new Date().toISOString() })
                 .eq('id', userId)
                 .select()
-                .single()
+                .maybeSingle()
 
             if (error) {
                 return this._handleError(error, 'Unable to update user role', { userId, role })
+            }
+
+            if (!data) {
+                return this._handleError(
+                    new Error('No user found or no changes made'),
+                    'User not found',
+                    { userId }
+                )
             }
 
             this.logger.info('User role updated successfully', { userId, role })
