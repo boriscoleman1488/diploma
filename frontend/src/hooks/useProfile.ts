@@ -19,6 +19,21 @@ export function useProfile() {
       const response = await apiClient.get('/users/profile')
       if (response.success && response.profile) {
         setProfile(response.profile)
+        
+        // Update user metadata in auth store with profile data
+        const { useAuthStore } = await import('@/store/authStore')
+        const currentUser = useAuthStore.getState().user
+        if (currentUser) {
+          useAuthStore.getState().setUser({
+            ...currentUser,
+            fullName: response.profile.full_name,
+            metadata: {
+              ...currentUser.metadata,
+              avatar_url: response.profile.avatar_url,
+              profile_tag: response.profile.profile_tag
+            }
+          })
+        }
       }
     } catch (error) {
       console.error('Failed to fetch profile:', error)
@@ -69,6 +84,22 @@ export function useProfile() {
       const response = await apiClient.put('/users/profile', data)
       if (response.success && response.profile) {
         setProfile(response.profile)
+        
+        // Update user metadata in auth store
+        const { useAuthStore } = await import('@/store/authStore')
+        const currentUser = useAuthStore.getState().user
+        if (currentUser) {
+          useAuthStore.getState().setUser({
+            ...currentUser,
+            fullName: response.profile.full_name,
+            metadata: {
+              ...currentUser.metadata,
+              avatar_url: response.profile.avatar_url,
+              profile_tag: response.profile.profile_tag
+            }
+          })
+        }
+        
         toast.success('Профіль оновлено успішно')
         return { success: true }
       }
@@ -108,8 +139,38 @@ export function useProfile() {
         // Update profile with new avatar URL
         if (response.profile) {
           setProfile(response.profile)
+          
+          // Update user metadata in auth store
+          const { useAuthStore } = await import('@/store/authStore')
+          const currentUser = useAuthStore.getState().user
+          if (currentUser) {
+            useAuthStore.getState().setUser({
+              ...currentUser,
+              metadata: {
+                ...currentUser.metadata,
+                avatar_url: response.profile.avatar_url
+              }
+            })
+          }
         } else if (response.avatarUrl) {
-          setProfile(prev => prev ? { ...prev, avatar_url: response.avatarUrl } : null)
+          setProfile(prev => {
+            if (!prev) return null
+            
+            // Update user metadata in auth store
+            const { useAuthStore } = await import('@/store/authStore')
+            const currentUser = useAuthStore.getState().user
+            if (currentUser) {
+              useAuthStore.getState().setUser({
+                ...currentUser,
+                metadata: {
+                  ...currentUser.metadata,
+                  avatar_url: response.avatarUrl
+                }
+              })
+            }
+            
+            return { ...prev, avatar_url: response.avatarUrl }
+          })
         }
         toast.success('Аватар завантажено успішно')
         return { success: true, avatarUrl: response.avatarUrl }

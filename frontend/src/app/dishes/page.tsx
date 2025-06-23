@@ -406,7 +406,18 @@ export default function DishesPage() {
   const fetchDishes = async () => {
     setIsLoading(true)
     try {
-      const response = await apiClient.get('/dishes')
+      let url = '/dishes'
+      const params = new URLSearchParams()
+      
+      if (selectedCategory) {
+        params.append('category_id', selectedCategory)
+      }
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`
+      }
+
+      const response = await apiClient.get(url)
       if (response.success && response.dishes) {
         setDishes(response.dishes)
         setFilteredDishes(response.dishes)
@@ -419,7 +430,7 @@ export default function DishesPage() {
     }
   }
 
-  const fetchCategories = async () => {
+  const fetchCategories =  async () => {
     try {
       const response = await apiClient.get('/categories')
       if (response.success && response.categories) {
@@ -444,9 +455,12 @@ export default function DishesPage() {
   }
 
   useEffect(() => {
-    fetchDishes()
     fetchCategories()
   }, [])
+
+  useEffect(() => {
+    fetchDishes()
+  }, [selectedCategory])
 
   useEffect(() => {
     let filtered = dishes
@@ -459,29 +473,8 @@ export default function DishesPage() {
       )
     }
 
-    // Filter by category
-    if (selectedCategory) {
-      filtered = filtered.filter(dish => {
-        if (!dish.categories || !Array.isArray(dish.categories)) {
-          return false
-        }
-        
-        return dish.categories.some(categoryRelation => {
-          if (categoryRelation && typeof categoryRelation === 'object') {
-            if (categoryRelation.dish_categories) {
-              return categoryRelation.dish_categories.id === selectedCategory
-            }
-            if (categoryRelation.id) {
-              return categoryRelation.id === selectedCategory
-            }
-          }
-          return false
-        })
-      })
-    }
-
     setFilteredDishes(filtered)
-  }, [searchQuery, selectedCategory, dishes])
+  }, [searchQuery, dishes])
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -833,6 +826,7 @@ export default function DishesPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <Avatar
+                        src={dish.profiles?.avatar_url}
                         name={dish.profiles?.full_name || dish.profiles?.email}
                         size="sm"
                       />

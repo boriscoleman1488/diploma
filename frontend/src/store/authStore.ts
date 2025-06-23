@@ -33,6 +33,27 @@ export const useAuthStore = create<AuthState>()(
               isLoading: false 
             })
             apiClient.setSession(response.session)
+            
+            // Fetch user profile to get avatar and other details
+            try {
+              const profileResponse = await apiClient.get('/users/profile')
+              if (profileResponse.success && profileResponse.profile) {
+                set(state => ({
+                  user: state.user ? {
+                    ...state.user,
+                    fullName: profileResponse.profile.full_name,
+                    metadata: {
+                      ...state.user.metadata,
+                      avatar_url: profileResponse.profile.avatar_url,
+                      profile_tag: profileResponse.profile.profile_tag
+                    }
+                  } : null
+                }))
+              }
+            } catch (profileError) {
+              console.error('Failed to fetch profile after login:', profileError)
+            }
+            
             return response
           }
           
@@ -141,6 +162,27 @@ export const useAuthStore = create<AuthState>()(
               user: response.user, 
               isAuthenticated: true 
             })
+            
+            // Fetch user profile to get avatar and other details
+            try {
+              const profileResponse = await apiClient.get('/users/profile')
+              if (profileResponse.success && profileResponse.profile) {
+                set(state => ({
+                  user: state.user ? {
+                    ...state.user,
+                    fullName: profileResponse.profile.full_name,
+                    metadata: {
+                      ...state.user.metadata,
+                      avatar_url: profileResponse.profile.avatar_url,
+                      profile_tag: profileResponse.profile.profile_tag
+                    }
+                  } : null
+                }))
+              }
+            } catch (profileError) {
+              console.error('Failed to fetch profile after token verification:', profileError)
+            }
+            
             return true
           }
           

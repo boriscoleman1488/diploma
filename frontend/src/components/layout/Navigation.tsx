@@ -21,8 +21,30 @@ export function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isCheckingAdmin, setIsCheckingAdmin] = useState(false)
+  const [userProfile, setUserProfile] = useState<any>(null)
   const pathname = usePathname()
   const { user, logout, isAuthenticated, verifyToken } = useAuthStore()
+
+  // Fetch user profile to get avatar
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!isAuthenticated || !user) {
+        setUserProfile(null)
+        return
+      }
+
+      try {
+        const response = await apiClient.get('/users/profile')
+        if (response.success && response.profile) {
+          setUserProfile(response.profile)
+        }
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error)
+      }
+    }
+
+    fetchUserProfile()
+  }, [user, isAuthenticated])
 
   // Check if user is admin
   useEffect(() => {
@@ -127,13 +149,13 @@ export function Navigation() {
             {user && (
               <div className="hidden md:flex items-center space-x-3">
                 <Avatar
-                  src={user.metadata?.avatar_url}
-                  name={user.fullName || user.email}
+                  src={userProfile?.avatar_url}
+                  name={userProfile?.full_name || user.fullName || user.email}
                   size="sm"
                 />
                 <div className="text-sm">
                   <p className="font-medium text-gray-900">
-                    {user.fullName || 'Користувач'}
+                    {userProfile?.full_name || user.fullName || 'Користувач'}
                   </p>
                   <p className="text-gray-500">{user.email}</p>
                 </div>
@@ -203,13 +225,13 @@ export function Navigation() {
             <div className="pt-4 pb-3 border-t border-gray-200">
               <div className="flex items-center px-4">
                 <Avatar
-                  src={user.metadata?.avatar_url}
-                  name={user.fullName || user.email}
+                  src={userProfile?.avatar_url}
+                  name={userProfile?.full_name || user.fullName || user.email}
                   size="md"
                 />
                 <div className="ml-3">
                   <div className="text-base font-medium text-gray-800">
-                    {user.fullName || 'Користувач'}
+                    {userProfile?.full_name || user.fullName || 'Користувач'}
                   </div>
                   <div className="text-sm font-medium text-gray-500">
                     {user.email}

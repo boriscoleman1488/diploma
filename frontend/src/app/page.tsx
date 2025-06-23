@@ -286,7 +286,7 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
                   <div className="text-center py-4">
                     <Activity className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                     <p className="text-gray-600 text-sm">
-                      Натисніть "Розрахувати", щоб дізнатися кал орійність та поживну цінність
+                      Натисніть "Розрахувати", щоб дізнатися калорійність та поживну цінність
                     </p>
                   </div>
                 )}
@@ -429,7 +429,18 @@ export default function HomePage() {
   const fetchDishes = async () => {
     setIsLoading(true)
     try {
-      const response = await apiClient.get('/dishes')
+      let url = '/dishes'
+      const params = new URLSearchParams()
+      
+      if (selectedCategory) {
+        params.append('category_id', selectedCategory)
+      }
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`
+      }
+
+      const response = await apiClient.get(url)
       if (response.success && response.dishes) {
         // Фільтруємо тільки схвалені страви
         const approvedDishes = response.dishes.filter((dish: Dish) => dish.status === 'approved')
@@ -469,9 +480,12 @@ export default function HomePage() {
   }
 
   useEffect(() => {
-    fetchDishes()
     fetchCategories()
   }, [])
+
+  useEffect(() => {
+    fetchDishes()
+  }, [selectedCategory])
 
   useEffect(() => {
     let filtered = dishes
@@ -485,17 +499,8 @@ export default function HomePage() {
       )
     }
 
-    // Filter by category
-    if (selectedCategory) {
-      filtered = filtered.filter(dish =>
-        dish.categories?.some(cat => 
-          cat?.dish_categories?.id === selectedCategory
-        )
-      )
-    }
-
     setFilteredDishes(filtered)
-  }, [searchQuery, selectedCategory, dishes])
+  }, [searchQuery, dishes])
 
   const getTotalCookingTime = (dish: Dish) => {
     if (!dish.steps || !Array.isArray(dish.steps)) return null
