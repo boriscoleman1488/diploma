@@ -142,7 +142,31 @@ export class EdamamService {
     return ingredientString
   }
 
-  // Nutrition Analysis API methods
+  // Helper function to get measure URI based on unit
+  getMeasureURI(unit) {
+    const measureMapping = {
+      'г': 'http://www.edamam.com/ontologies/edamam.owl#Measure_gram',
+      'gram': 'http://www.edamam.com/ontologies/edamam.owl#Measure_gram',
+      'кг': 'http://www.edamam.com/ontologies/edamam.owl#Measure_kilogram',
+      'kilogram': 'http://www.edamam.com/ontologies/edamam.owl#Measure_kilogram',
+      'мл': 'http://www.edamam.com/ontologies/edamam.owl#Measure_milliliter',
+      'milliliter': 'http://www.edamam.com/ontologies/edamam.owl#Measure_milliliter',
+      'л': 'http://www.edamam.com/ontologies/edamam.owl#Measure_liter',
+      'liter': 'http://www.edamam.com/ontologies/edamam.owl#Measure_liter',
+      'шт': 'http://www.edamam.com/ontologies/edamam.owl#Measure_unit',
+      'piece': 'http://www.edamam.com/ontologies/edamam.owl#Measure_unit',
+      'ст.л.': 'http://www.edamam.com/ontologies/edamam.owl#Measure_tablespoon',
+      'tablespoon': 'http://www.edamam.com/ontologies/edamam.owl#Measure_tablespoon',
+      'ч.л.': 'http://www.edamam.com/ontologies/edamam.owl#Measure_teaspoon',
+      'teaspoon': 'http://www.edamam.com/ontologies/edamam.owl#Measure_teaspoon',
+      'склянка': 'http://www.edamam.com/ontologies/edamam.owl#Measure_cup',
+      'cup': 'http://www.edamam.com/ontologies/edamam.owl#Measure_cup'
+    }
+    
+    return measureMapping[unit] || 'http://www.edamam.com/ontologies/edamam.owl#Measure_gram'
+  }
+
+  // Nutrition Analysis API methods with structured data support
   async analyzeNutrition(ingredients) {
     console.log('analyzeNutrition called with:', { 
       ingredientsCount: ingredients?.length,
@@ -168,12 +192,82 @@ export class EdamamService {
         throw new Error('Ingredients array is required')
       }
 
+      // Check if all ingredients have edamam_food_id for structured analysis
+      const allHaveFoodId = ingredients.every(ingredient => ingredient.edamam_food_id)
+      
+      let requestBody
+      
+      if (allHaveFoodId) {
+        console.log('Using structured ingredient data (Food Database API)')
+        
+        // Use structured ingredient data for better accuracy
+        const structuredIngredients = ingredients.map(ingredient => ({
+          quantity: parseFloat(ingredient.amount),
+          measureURI: this.getMeasureURI(ingredient.unit),
+          foodId: ingredient.edamam_food_id
+        }))
+
+        console.log('Structured ingredients:', structuredIngredients)
+
+        // Use Food Database nutrients endpoint for structured data
+        const url = `${this.foodDatabaseUrl}/nutrients?app_id=${this.foodAppId}&app_key=${this.foodAppKey}`
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            ingredients: structuredIngredients
+          })
+        })
+
+        console.log('Food Database API response status:', response.status)
+
+        const data = await response.json()
+        console.log('Food Database API response data:', JSON.stringify(data, null, 2))
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error('Неправильні credentials для Edamam Food Database API')
+          }
+          if (response.status === 422) {
+            console.error('Unprocessable structured ingredients:', {
+              ingredients: structuredIngredients,
+              response: data
+            })
+            // Fall back to text-based analysis
+            return this.analyzeNutritionWithText(ingredients)
+          }
+          throw new Error(`Edamam Food Database API error (${response.status}): ${data.message || 'Unknown error'}`)
+        }
+
+        // Process structured response
+        return this.processNutritionResponse(data)
+        
+      } else {
+        console.log('Using text-based ingredient parsing (some ingredients missing edamam_food_id)')
+        return this.analyzeNutritionWithText(ingredients)
+      }
+
+    } catch (error) {
+      console.error('Nutrition analysis error:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  // Fallback method for text-based nutrition analysis
+  async analyzeNutritionWithText(ingredients) {
+    try {
       // Convert ingredients to Edamam format with better normalization
       const edamamIngredients = ingredients.map(ingredient => {
         return this.normalizeIngredientString(ingredient)
       })
 
-      console.log('Sending request to Edamam Nutrition API:', {
+      console.log('Sending request to Edamam Nutrition Analysis API:', {
         url: this.nutritionAnalysisUrl,
         ingredients: edamamIngredients,
         originalIngredients: ingredients
@@ -196,10 +290,10 @@ export class EdamamService {
         body: JSON.stringify(requestBody)
       })
 
-      console.log('Edamam API response status:', response.status)
+      console.log('Edamam Nutrition Analysis API response status:', response.status)
 
       const data = await response.json()
-      console.log('Edamam API response data:', JSON.stringify(data, null, 2))
+      console.log('Edamam Nutrition Analysis API response data:', JSON.stringify(data, null, 2))
 
       if (!response.ok) {
         // Handle specific Edamam API errors
@@ -222,73 +316,74 @@ export class EdamamService {
         throw new Error(`Edamam Nutrition Analysis API error (${response.status}): ${data.message || data.error || 'Unknown error'}`)
       }
 
-      // Check if we got valid nutrition data
-      if (!data.calories && !data.totalNutrients) {
-        console.warn('No nutrition data returned:', data)
-        throw new Error('API повернув порожні дані. Можливо, інгредієнти не розпізнано')
-      }
-
-      // Extract key nutritional information
-      const nutrition = {
-        calories: Math.round(data.calories || 0),
-        totalWeight: Math.round(data.totalWeight || 0),
-        servings: data.yield || 1,
-        caloriesPerServing: Math.round((data.calories || 0) / (data.yield || 1)),
-        totalNutrients: data.totalNutrients || {},
-        totalDaily: data.totalDaily || {},
-        dietLabels: data.dietLabels || [],
-        healthLabels: data.healthLabels || [],
-        cautions: data.cautions || [],
-        ingredients: data.ingredients || []
-      }
-
-      // Extract main macronutrients with better error handling
-      const macros = {
-        protein: {
-          quantity: Math.round((nutrition.totalNutrients.PROCNT?.quantity || 0) * 10) / 10,
-          unit: nutrition.totalNutrients.PROCNT?.unit || 'g'
-        },
-        fat: {
-          quantity: Math.round((nutrition.totalNutrients.FAT?.quantity || 0) * 10) / 10,
-          unit: nutrition.totalNutrients.FAT?.unit || 'g'
-        },
-        carbs: {
-          quantity: Math.round((nutrition.totalNutrients.CHOCDF?.quantity || 0) * 10) / 10,
-          unit: nutrition.totalNutrients.CHOCDF?.unit || 'g'
-        },
-        fiber: {
-          quantity: Math.round((nutrition.totalNutrients.FIBTG?.quantity || 0) * 10) / 10,
-          unit: nutrition.totalNutrients.FIBTG?.unit || 'g'
-        },
-        sugar: {
-          quantity: Math.round((nutrition.totalNutrients.SUGAR?.quantity || 0) * 10) / 10,
-          unit: nutrition.totalNutrients.SUGAR?.unit || 'g'
-        },
-        sodium: {
-          quantity: Math.round((nutrition.totalNutrients.NA?.quantity || 0) * 10) / 10,
-          unit: nutrition.totalNutrients.NA?.unit || 'mg'
-        }
-      }
-
-      console.log('Processed nutrition data:', {
-        calories: nutrition.calories,
-        macros: macros,
-        totalNutrients: Object.keys(nutrition.totalNutrients)
-      })
-
-      return {
-        success: true,
-        nutrition: {
-          ...nutrition,
-          macros
-        }
-      }
+      return this.processNutritionResponse(data)
 
     } catch (error) {
-      console.error('Nutrition analysis error:', error)
-      return {
-        success: false,
-        error: error.message
+      throw error
+    }
+  }
+
+  // Common method to process nutrition response from either API
+  processNutritionResponse(data) {
+    // Check if we got valid nutrition data
+    if (!data.calories && !data.totalNutrients) {
+      console.warn('No nutrition data returned:', data)
+      throw new Error('API повернув порожні дані. Можливо, інгредієнти не розпізнано')
+    }
+
+    // Extract key nutritional information
+    const nutrition = {
+      calories: Math.round(data.calories || 0),
+      totalWeight: Math.round(data.totalWeight || 0),
+      servings: data.yield || 1,
+      caloriesPerServing: Math.round((data.calories || 0) / (data.yield || 1)),
+      totalNutrients: data.totalNutrients || {},
+      totalDaily: data.totalDaily || {},
+      dietLabels: data.dietLabels || [],
+      healthLabels: data.healthLabels || [],
+      cautions: data.cautions || [],
+      ingredients: data.ingredients || []
+    }
+
+    // Extract main macronutrients with better error handling
+    const macros = {
+      protein: {
+        quantity: Math.round((nutrition.totalNutrients.PROCNT?.quantity || 0) * 10) / 10,
+        unit: nutrition.totalNutrients.PROCNT?.unit || 'g'
+      },
+      fat: {
+        quantity: Math.round((nutrition.totalNutrients.FAT?.quantity || 0) * 10) / 10,
+        unit: nutrition.totalNutrients.FAT?.unit || 'g'
+      },
+      carbs: {
+        quantity: Math.round((nutrition.totalNutrients.CHOCDF?.quantity || 0) * 10) / 10,
+        unit: nutrition.totalNutrients.CHOCDF?.unit || 'g'
+      },
+      fiber: {
+        quantity: Math.round((nutrition.totalNutrients.FIBTG?.quantity || 0) * 10) / 10,
+        unit: nutrition.totalNutrients.FIBTG?.unit || 'g'
+      },
+      sugar: {
+        quantity: Math.round((nutrition.totalNutrients.SUGAR?.quantity || 0) * 10) / 10,
+        unit: nutrition.totalNutrients.SUGAR?.unit || 'g'
+      },
+      sodium: {
+        quantity: Math.round((nutrition.totalNutrients.NA?.quantity || 0) * 10) / 10,
+        unit: nutrition.totalNutrients.NA?.unit || 'mg'
+      }
+    }
+
+    console.log('Processed nutrition data:', {
+      calories: nutrition.calories,
+      macros: macros,
+      totalNutrients: Object.keys(nutrition.totalNutrients)
+    })
+
+    return {
+      success: true,
+      nutrition: {
+        ...nutrition,
+        macros
       }
     }
   }

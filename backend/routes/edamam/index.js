@@ -115,7 +115,8 @@ export default async function edamamRoutes(fastify, options) {
               properties: {
                 name: { type: 'string', minLength: 1 },
                 amount: { type: 'number', minimum: 0 },
-                unit: { type: 'string', minLength: 1 }
+                unit: { type: 'string', minLength: 1 },
+                edamam_food_id: { type: 'string' }
               }
             }
           },
@@ -178,7 +179,8 @@ export default async function edamamRoutes(fastify, options) {
               properties: {
                 name: { type: 'string', minLength: 1 },
                 amount: { type: 'number', minimum: 0 },
-                unit: { type: 'string', minLength: 1 }
+                unit: { type: 'string', minLength: 1 },
+                edamam_food_id: { type: 'string' }
               }
             }
           }
