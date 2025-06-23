@@ -70,6 +70,15 @@ export const translations = {
     dashboard: 'Панель управління',
   },
 
+  // Admin
+  admin: {
+    userManagement: 'Управління користувачами',
+    userDetails: 'Деталі користувача',
+    deleteUser: 'Видалити користувача',
+    adminPanel: 'Панель адміністратора',
+    systemStats: 'Статистика системи',
+  },
+
   // Common
   common: {
     loading: 'Завантаження...',
@@ -149,6 +158,13 @@ export const translations = {
     validEmailRequired: 'Будь ласка, введіть дійсну адресу електронної пошти',
     profileTagTooShort: 'Тег профілю повинен містити принаймні 3 символи',
     profileTagInvalid: 'Тег профілю повинен починатися з літери і містити лише літери, цифри та підкреслення',
+    failedToLoadUsers: 'Не вдалося завантажити користувачів',
+    failedToLoadUserDetails: 'Не вдалося завантажити деталі користувача',
+    userRoleUpdated: 'Роль користувача оновлено успішно',
+    failedToUpdateUserRole: 'Не вдалося оновити роль користувача',
+    userDeleted: 'Користувача видалено успішно',
+    failedToDeleteUser: 'Не вдалося видалити користувача',
+    confirmDeleteUser: 'Ви впевнені, що хочете видалити цього користувача? Ця дія незворотна.',
   },
 
   // Errors (these will be overridden by backend errors when available)

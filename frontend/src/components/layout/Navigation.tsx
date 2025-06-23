@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { User, Settings, LogOut, Menu, X } from 'lucide-react'
-import { useState } from 'react'
+import { User, Settings, LogOut, Menu, X, Shield } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { t } from '@/lib/translations'
+import { apiClient } from '@/lib/api'
 
 const navigation = [
   { name: t('profile.profile'), href: '/profile', icon: User },
@@ -17,13 +18,37 @@ const navigation = [
 
 export function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
   const pathname = usePathname()
   const { user, logout } = useAuthStore()
+
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      try {
+        const response = await apiClient.get('/users/profile')
+        if (response.success && response.profile) {
+          setIsAdmin(response.profile.role === 'admin')
+        }
+      } catch (error) {
+        console.error('Failed to check admin role:', error)
+      }
+    }
+
+    if (user) {
+      checkAdminRole()
+    }
+  }, [user])
 
   const handleLogout = async () => {
     await logout()
     setIsMobileMenuOpen(false)
   }
+
+  // Add admin navigation if user is admin
+  const allNavigation = isAdmin 
+    ? [...navigation, { name: 'Адміністрування', href: '/admin/users', icon: Shield }]
+    : navigation
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
@@ -40,7 +65,7 @@ export function Navigation() {
 
             {/* Desktop navigation */}
             <div className="hidden md:ml-10 md:flex md:space-x-8">
-              {navigation.map((item) => {
+              {allNavigation.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href
                 
@@ -113,7 +138,7 @@ export function Navigation() {
       {isMobileMenuOpen && (
         <div className="md:hidden">
           <div className="pt-2 pb-3 space-y-1">
-            {navigation.map((item) => {
+            {allNavigation.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href
               
