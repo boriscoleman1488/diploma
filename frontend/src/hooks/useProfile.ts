@@ -9,7 +9,7 @@ export function useProfile() {
   const [stats, setStats] = useState<ProfileStats | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
-  const { user, isAuthenticated } = useAuthStore()
+  const { user, isAuthenticated, verifyToken } = useAuthStore()
 
   const fetchProfile = async () => {
     if (!isAuthenticated) return
@@ -22,7 +22,24 @@ export function useProfile() {
       }
     } catch (error) {
       console.error('Failed to fetch profile:', error)
-      toast.error(error instanceof Error ? error.message : 'Не вдалося завантажити профіль')
+      
+      // If it's an auth error, try to refresh token
+      if (error instanceof Error && error.message.includes('увійдіть в систему')) {
+        const refreshed = await verifyToken()
+        if (refreshed) {
+          // Retry fetching profile after successful token refresh
+          try {
+            const response = await apiClient.get('/users/profile')
+            if (response.success && response.profile) {
+              setProfile(response.profile)
+            }
+          } catch (retryError) {
+            toast.error('Не вдалося завантажити профіль')
+          }
+        }
+      } else {
+        toast.error(error instanceof Error ? error.message : 'Не вдалося завантажити профіль')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -39,6 +56,10 @@ export function useProfile() {
     } catch (error) {
       console.error('Failed to fetch stats:', error)
       // Don't show error toast for stats as it's not critical
+      // But try to refresh token if needed
+      if (error instanceof Error && error.message.includes('увійдіть в систему')) {
+        verifyToken()
+      }
     }
   }
 
@@ -120,6 +141,10 @@ export function useProfile() {
     if (isAuthenticated) {
       fetchProfile()
       fetchStats()
+    } else {
+      // Clear profile data when not authenticated
+      setProfile(null)
+      setStats(null)
     }
   }, [isAuthenticated])
 

@@ -15,18 +15,24 @@ const navigation = [
   { name: 'Категорії', href: '/categories', icon: Grid3X3 },
   { name: 'Страви', href: '/dishes', icon: ChefHat },
   { name: 'Налаштування', href: '/profile/settings', icon: Settings },
-
 ]
 
 export function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(false)
   const pathname = usePathname()
-  const { user, logout } = useAuthStore()
+  const { user, logout, isAuthenticated, verifyToken } = useAuthStore()
 
   // Check if user is admin
   useEffect(() => {
     const checkAdminRole = async () => {
+      if (!isAuthenticated || !user) {
+        setIsAdmin(false)
+        return
+      }
+
+      setIsCheckingAdmin(true)
       try {
         const response = await apiClient.get('/users/profile')
         if (response.success && response.profile) {
@@ -34,13 +40,34 @@ export function Navigation() {
         }
       } catch (error) {
         console.error('Failed to check admin role:', error)
+        
+        // If it's an auth error, try to refresh token
+        if (error instanceof Error && error.message.includes('увійдіть в систему')) {
+          const refreshed = await verifyToken()
+          if (refreshed) {
+            // Retry after token refresh
+            try {
+              const response = await apiClient.get('/users/profile')
+              if (response.success && response.profile) {
+                setIsAdmin(response.profile.role === 'admin')
+              }
+            } catch (retryError) {
+              console.error('Retry failed:', retryError)
+              setIsAdmin(false)
+            }
+          } else {
+            setIsAdmin(false)
+          }
+        } else {
+          setIsAdmin(false)
+        }
+      } finally {
+        setIsCheckingAdmin(false)
       }
     }
 
-    if (user) {
-      checkAdminRole()
-    }
-  }, [user])
+    checkAdminRole()
+  }, [user, isAuthenticated, verifyToken])
 
   const handleLogout = async () => {
     await logout()
@@ -85,6 +112,9 @@ export function Navigation() {
                   >
                     <Icon className="w-4 h-4 mr-2" />
                     {item.name}
+                    {item.name === 'Адміністрування' && isCheckingAdmin && (
+                      <span className="ml-2 text-xs text-gray-400">...</span>
+                    )}
                   </Link>
                 )
               })}

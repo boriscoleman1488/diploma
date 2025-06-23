@@ -5,6 +5,8 @@ const API_BASE_URL = '/api'
 class ApiClient {
   private baseURL: string
   private session: AuthSession | null = null
+  private isRefreshing = false
+  private refreshPromise: Promise<boolean> | null = null
 
   constructor(baseURL: string) {
     this.baseURL = baseURL
@@ -28,21 +30,102 @@ class ApiClient {
     return headers
   }
 
+  private async refreshTokenIfNeeded(): Promise<boolean> {
+    if (!this.session?.refresh_token) {
+      return false
+    }
+
+    // Check if token is expired or will expire soon (within 5 minutes)
+    const now = Date.now() / 1000
+    const expiresAt = this.session.expires_at
+    const fiveMinutes = 5 * 60
+
+    if (!expiresAt || (expiresAt - now) >= fiveMinutes) {
+      return true // Token is still valid
+    }
+
+    // If already refreshing, wait for the existing refresh
+    if (this.isRefreshing && this.refreshPromise) {
+      return await this.refreshPromise
+    }
+
+    // Start refresh process
+    this.isRefreshing = true
+    this.refreshPromise = this.performTokenRefresh()
+
+    try {
+      const result = await this.refreshPromise
+      return result
+    } finally {
+      this.isRefreshing = false
+      this.refreshPromise = null
+    }
+  }
+
+  private async performTokenRefresh(): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.baseURL}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          refresh_token: this.session?.refresh_token
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Token refresh failed')
+      }
+
+      const data = await response.json()
+      
+      if (data.success && data.session) {
+        this.session = data.session
+        
+        // Update the auth store
+        const { useAuthStore } = await import('@/store/authStore')
+        useAuthStore.getState().setSession(data.session)
+        
+        return true
+      }
+      
+      throw new Error('Invalid refresh response')
+    } catch (error) {
+      console.error('Token refresh error:', error)
+      
+      // Refresh failed, logout user
+      const { useAuthStore } = await import('@/store/authStore')
+      useAuthStore.getState().logout()
+      
+      return false
+    }
+  }
+
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
+      // Handle 401 errors specially
+      if (response.status === 401) {
+        // Try to refresh token
+        const refreshed = await this.refreshTokenIfNeeded()
+        if (!refreshed) {
+          throw new Error('Будь ласка, увійдіть в систему знову')
+        }
+        // If refresh succeeded, the original request should be retried by the caller
+        throw new Error('TOKEN_REFRESHED')
+      }
+
       const errorData = await response.json().catch(() => ({
         error: 'Помилка мережі',
         message: `HTTP ${response.status}: ${response.statusText}`,
       }))
       
-      // Use backend error message if available, otherwise use fallback
       const errorMessage = errorData.message || errorData.error || 'Невідома помилка'
       throw new Error(errorMessage)
     }
 
     const data = await response.json()
     
-    // If the response contains an error (even with 200 status), throw it
     if (!data.success && data.error) {
       throw new Error(data.message || data.error)
     }
@@ -50,102 +133,87 @@ class ApiClient {
     return data
   }
 
-  async get<T>(endpoint: string): Promise<T> {
+  private async makeRequest<T>(
+    endpoint: string, 
+    options: RequestInit,
+    retryCount = 0
+  ): Promise<T> {
     try {
-      const response = await fetch(`${this.baseURL}${endpoint}`, {
-        method: 'GET',
-        headers: this.getAuthHeaders(false), // Don't include Content-Type for GET
-      })
+      // Refresh token if needed before making the request
+      await this.refreshTokenIfNeeded()
 
-      return this.handleResponse<T>(response)
+      const response = await fetch(`${this.baseURL}${endpoint}`, options)
+      return await this.handleResponse<T>(response)
     } catch (error) {
+      // If token was refreshed, retry the request once
+      if (error instanceof Error && error.message === 'TOKEN_REFRESHED' && retryCount === 0) {
+        const newOptions = {
+          ...options,
+          headers: {
+            ...options.headers,
+            ...this.getAuthHeaders(!!options.body)
+          }
+        }
+        return this.makeRequest<T>(endpoint, newOptions, retryCount + 1)
+      }
+      
       if (error instanceof Error) {
         throw error
       }
       throw new Error('Помилка мережі')
     }
+  }
+
+  async get<T>(endpoint: string): Promise<T> {
+    return this.makeRequest<T>(endpoint, {
+      method: 'GET',
+      headers: this.getAuthHeaders(false),
+    })
   }
 
   async post<T>(endpoint: string, data?: any): Promise<T> {
-    try {
-      const headers = this.getAuthHeaders(!!data) // Only include Content-Type if there's data
-      const body = data ? JSON.stringify(data) : undefined
+    const headers = this.getAuthHeaders(!!data)
+    const body = data ? JSON.stringify(data) : undefined
 
-      const response = await fetch(`${this.baseURL}${endpoint}`, {
-        method: 'POST',
-        headers,
-        body,
-      })
-
-      return this.handleResponse<T>(response)
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error
-      }
-      throw new Error('Помилка мережі')
-    }
+    return this.makeRequest<T>(endpoint, {
+      method: 'POST',
+      headers,
+      body,
+    })
   }
 
   async put<T>(endpoint: string, data?: any): Promise<T> {
-    try {
-      const headers = this.getAuthHeaders(!!data) // Only include Content-Type if there's data
-      const body = data ? JSON.stringify(data) : undefined
+    const headers = this.getAuthHeaders(!!data)
+    const body = data ? JSON.stringify(data) : undefined
 
-      const response = await fetch(`${this.baseURL}${endpoint}`, {
-        method: 'PUT',
-        headers,
-        body,
-      })
-
-      return this.handleResponse<T>(response)
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error
-      }
-      throw new Error('Помилка мережі')
-    }
+    return this.makeRequest<T>(endpoint, {
+      method: 'PUT',
+      headers,
+      body,
+    })
   }
 
   async delete<T>(endpoint: string): Promise<T> {
-    try {
-      const response = await fetch(`${this.baseURL}${endpoint}`, {
-        method: 'DELETE',
-        headers: this.getAuthHeaders(false), // Don't include Content-Type for DELETE without body
-      })
-
-      return this.handleResponse<T>(response)
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error
-      }
-      throw new Error('Помилка мережі')
-    }
+    return this.makeRequest<T>(endpoint, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(false),
+    })
   }
 
   async uploadFile<T>(endpoint: string, file: File): Promise<T> {
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const headers: HeadersInit = {}
-      if (this.session?.access_token) {
-        headers.Authorization = `Bearer ${this.session.access_token}`
-      }
-      // Don't set Content-Type for FormData - browser will set it with boundary
-
-      const response = await fetch(`${this.baseURL}${endpoint}`, {
-        method: 'POST',
-        headers,
-        body: formData,
-      })
-
-      return this.handleResponse<T>(response)
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error
-      }
-      throw new Error('Помилка мережі')
+    const headers: HeadersInit = {}
+    if (this.session?.access_token) {
+      headers.Authorization = `Bearer ${this.session.access_token}`
     }
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    return this.makeRequest<T>(endpoint, {
+      method: 'POST',
+      headers,
+      body: formData,
+    })
   }
 }
 
