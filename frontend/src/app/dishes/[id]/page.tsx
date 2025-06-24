@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Avatar'
@@ -43,9 +43,8 @@ interface NutritionData {
   }
 }
 
-export default function DishDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params)
-  const id = resolvedParams.id
+export default function DishDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const [dish, setDish] = useState<Dish | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [nutritionData, setNutritionData] = useState<NutritionData | null>(null)
