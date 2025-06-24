@@ -312,6 +312,44 @@ async function ensureAvatarsBucket() {
   }
 }
 
+// Function to ensure dish-images bucket exists
+async function ensureDishImagesBucket() {
+  try {
+    const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets()
+    
+    if (listError) {
+      console.log('⚠️ Не вдалося перевірити buckets:', listError.message)
+      return false
+    }
+
+    const dishImagesBucket = buckets.find(bucket => bucket.id === 'dish-images')
+    
+    if (!dishImagesBucket) {
+      console.log('📦 Створюємо bucket "dish-images"...')
+      
+      const { data: newBucket, error: createError } = await supabaseAdmin.storage.createBucket('dish-images', {
+        public: true,
+        fileSizeLimit: 10485760, // 10MB
+        allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+      })
+      
+      if (createError) {
+        console.log('❌ Помилка створення bucket "dish-images":', createError.message)
+        return false
+      }
+      
+      console.log('✅ Bucket "dish-images" створено успішно')
+      return true
+    } else {
+      console.log('✅ Bucket "dish-images" вже існує')
+      return true
+    }
+  } catch (error) {
+    console.log('❌ Помилка при роботі з bucket:', error.message)
+    return false
+  }
+}
+
 const start = async () => {
   try {
     await fastify.listen({
@@ -328,6 +366,9 @@ const start = async () => {
         
         // Перевіряємо та створюємо bucket "avatars" якщо потрібно
         await ensureAvatarsBucket()
+        
+        // Перевіряємо та створюємо bucket "dish-images" якщо потрібно
+        await ensureDishImagesBucket()
       } else {
         console.log('⚠️ Supabase Storage недоступно:', error?.message)
       }
