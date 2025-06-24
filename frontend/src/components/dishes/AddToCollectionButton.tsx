@@ -7,6 +7,7 @@ import { apiClient } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import { BookOpen, Plus, Check, X } from 'lucide-react'
 import toast from 'react-hot-toast'
+import Link from 'next/link'
 
 interface Collection {
   id: string
@@ -178,5 +179,3 @@ export function AddToCollectionButton({ dishId, className = '' }: AddToCollectio
     </div>
   )
 }
-
-import Link from 'next/link'
