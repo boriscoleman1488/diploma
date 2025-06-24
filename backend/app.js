@@ -15,9 +15,11 @@ import { CommentService } from './services/commentService.js'
 import { RatingService } from './services/ratingService.js'
 import { CollectionService } from './services/collectionService.js'
 import { EmailService } from './services/emailService.js'
+import { AiService } from './services/aiService.js'
 
 import authRoutes from './routes/auth.js'
 import edamamRoutes from './routes/edamam/index.js'
+import aiRoutes from './routes/ai/index.js'
 
 import userRoutes from './routes/users/index.js'
 import userAdminRoutes from './routes/users/admin.js'
@@ -49,7 +51,8 @@ console.log('Environment variables check:', {
   EDAMAM_APP_FOOD_ID: process.env.EDAMAM_APP_FOOD_ID ? `${process.env.EDAMAM_APP_FOOD_ID.substring(0, 4)}...` : 'missing',
   EDAMAM_APP_FOOD_KEY: process.env.EDAMAM_APP_FOOD_KEY ? `${process.env.EDAMAM_APP_FOOD_KEY.substring(0, 4)}...` : 'missing',
   EDAMAM_APP_NUTRITION_ID: process.env.EDAMAM_APP_NUTRITION_ID ? `${process.env.EDAMAM_APP_NUTRITION_ID.substring(0, 4)}...` : 'missing',
-  EDAMAM_APP_NUTRITION_KEY: process.env.EDAMAM_APP_NUTRITION_KEY ? `${process.env.EDAMAM_APP_NUTRITION_KEY.substring(0, 4)}...` : 'missing'
+  EDAMAM_APP_NUTRITION_KEY: process.env.EDAMAM_APP_NUTRITION_KEY ? `${process.env.EDAMAM_APP_NUTRITION_KEY.substring(0, 4)}...` : 'missing',
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY ? 'configured' : 'missing'
 })
 
 // Simple logger configuration without deprecated features
@@ -137,6 +140,9 @@ const edamamService = new EdamamService({
   nutritionAppKey: process.env.EDAMAM_APP_NUTRITION_KEY
 })
 
+// Create AI service
+const aiService = new AiService(fastify.log)
+
 fastify.decorate('emailService', emailService)
 fastify.decorate('authService', authService)
 fastify.decorate('categoryService', categoryService)
@@ -146,9 +152,11 @@ fastify.decorate('edamam', edamamService)
 fastify.decorate('commentService', commentService)
 fastify.decorate('ratingService', ratingService)
 fastify.decorate('collectionService', collectionService)
+fastify.decorate('AiService', AiService)
 
 await fastify.register(authRoutes, { prefix: '/api/auth' })
 await fastify.register(edamamRoutes, { prefix: '/api/edamam' })
+await fastify.register(aiRoutes, { prefix: '/api/ai' })
 
 // User routes
 await fastify.register(userRoutes, { prefix: '/api/users' })
@@ -181,7 +189,8 @@ fastify.get('/', async (request, reply) => {
       comments: '/api/comments',
       ratings: '/api/ratings',
       collections: '/api/collections',
-      edamam: '/api/edamam'
+      edamam: '/api/edamam',
+      ai: '/api/ai'
     }
   }
 })
@@ -195,7 +204,8 @@ fastify.get('/health', async (request, reply) => {
       database: 'unknown',
       storage: 'unknown',
       edamam_food: 'unknown',
-      edamam_nutrition: 'unknown'
+      edamam_nutrition: 'unknown',
+      openai: 'unknown'
     }
   }
 
@@ -241,6 +251,17 @@ fastify.get('/health', async (request, reply) => {
     health.services.edamam_nutrition = 'unhealthy'
   }
 
+  try {
+    // Перевіряємо OpenAI API
+    if (process.env.OPENAI_API_KEY) {
+      health.services.openai = 'healthy'
+    } else {
+      health.services.openai = 'not_configured'
+    }
+  } catch (error) {
+    health.services.openai = 'unhealthy'
+  }
+
   const isHealthy = Object.values(health.services).every(status => 
     status === 'healthy' || status === 'not_configured'
   )
@@ -269,7 +290,9 @@ fastify.setNotFoundHandler((request, reply) => {
       'GET /api/ratings/:dishId',
       'GET /api/collections',
       'GET /api/edamam/search',
-      'POST /api/edamam/analyze-nutrition'
+      'POST /api/edamam/analyze-nutrition',
+      'POST /api/ai/search-ingredients',
+      'POST /api/ai/recipe-suggestions'
     ]
   })
 })
@@ -387,6 +410,13 @@ const start = async () => {
       console.log('✅ Edamam Nutrition Analysis API налаштовано')
     } else {
       console.log('⚠️ Edamam Nutrition Analysis API не налаштовано. Додайте EDAMAM_APP_NUTRITION_ID та EDAMAM_APP_NUTRITION_KEY до .env файлу')
+    }
+
+    // Тестуємо OpenAI API при запуску
+    if (process.env.OPENAI_API_KEY) {
+      console.log('✅ OpenAI API налаштовано')
+    } else {
+      console.log('⚠️ OpenAI API не налаштовано. Додайте OPENAI_API_KEY до .env файлу')
     }
   } catch (err) {
     console.error('Помилка запуску сервера:', err)

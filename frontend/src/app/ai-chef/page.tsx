@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Avatar } from '@/components/ui/Avatar'
+import { apiClient } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import { 
   ChefHat, 
@@ -57,7 +58,7 @@ export default function AiChefPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [showSearchResults, setShowSearchResults] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { isAuthenticated, user } = useAuthStore()
+  const { isAuthenticated } = useAuthStore()
 
   // Scroll to bottom of messages
   useEffect(() => {
@@ -66,41 +67,6 @@ export default function AiChefPage() {
     }
   }, [messages])
 
-  const getSupabaseConfig = () => {
-    // Try different ways to get the environment variables
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 
-                       (typeof window !== 'undefined' && (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_SUPABASE_URL)
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 
-                           (typeof window !== 'undefined' && (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-    
-    return { supabaseUrl, supabaseAnonKey }
-  }
-
-  const callEdgeFunction = async (payload: any) => {
-    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig()
-    
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('Supabase configuration:', { supabaseUrl: !!supabaseUrl, supabaseAnonKey: !!supabaseAnonKey })
-      throw new Error('Конфігурація Supabase відсутня. Перевірте змінні середовища NEXT_PUBLIC_SUPABASE_URL та NEXT_PUBLIC_SUPABASE_ANON_KEY.')
-    }
-
-    const response = await fetch(`${supabaseUrl}/functions/v1/recipe-assistant`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseAnonKey}`,
-        ...(user?.access_token && { 'Authorization': `Bearer ${user.access_token}` })
-      },
-      body: JSON.stringify(payload)
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    return await response.json()
-  }
-
   const searchIngredients = async () => {
     if (!searchQuery.trim()) return
     
@@ -108,9 +74,9 @@ export default function AiChefPage() {
     setShowSearchResults(true)
     
     try {
-      const response = await callEdgeFunction({
-        action: 'search_ingredients',
-        query: searchQuery.trim()
+      const response = await apiClient.post('/ai/search-ingredients', {
+        query: searchQuery.trim(),
+        limit: 10
       })
       
       if (response.success && response.foods) {
@@ -199,8 +165,7 @@ export default function AiChefPage() {
     setMessages(prev => [...prev, newUserMessage])
     
     try {
-      const response = await callEdgeFunction({
-        action: 'get_recipe_suggestions',
+      const response = await apiClient.post('/ai/recipe-suggestions', {
         ingredients: selectedIngredients.map(ing => ing.name),
         preferences: preferences
       })
@@ -237,7 +202,7 @@ export default function AiChefPage() {
         timestamp: new Date()
       }
       
-        setMessages(prev => [...prev, errorMessage])
+      setMessages(prev => [...prev, errorMessage])
     } finally {
       setIsGenerating(false)
     }
