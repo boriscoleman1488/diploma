@@ -28,26 +28,22 @@ export class CollectionService {
         {
             name: 'Мої страви',
             description: 'Ваші створені страви',
-            system_type: 'my_dishes',
-            is_public: false
+            system_type: 'my_dishes'
         },
         {
             name: 'Улюблені',
             description: 'Збережені страви інших користувачів',
-            system_type: 'liked',
-            is_public: false
+            system_type: 'liked'
         },
         {
             name: 'Опубліковані',
             description: 'Ваші опубліковані страви',
-            system_type: 'published',
-            is_public: true
+            system_type: 'published'
         },
         {
             name: 'Приватні',
             description: 'Ваші приватні страви',
-            system_type: 'private',
-            is_public: false
+            system_type: 'private'
         }
     ]
 
@@ -92,7 +88,7 @@ export class CollectionService {
             }
         }
 
-        if (collection.user_id !== userId && !collection.is_public) {
+        if (collection.user_id !== userId) {
             return {
                 hasAccess: false,
                 error: CollectionService.ERRORS.ACCESS_DENIED
@@ -178,7 +174,7 @@ export class CollectionService {
 
     async createCollection(userId, collectionData) {
         try {
-            const { name, description, is_public = false } = collectionData
+            const { name, description } = collectionData
 
             const { data: collection, error } = await this.supabase
                 .from('dish_collections')
@@ -186,8 +182,7 @@ export class CollectionService {
                     user_id: userId,
                     name,
                     description,
-                    collection_type: 'custom',
-                    is_public
+                    collection_type: 'custom'
                 })
                 .select()
                 .single()
@@ -234,12 +229,11 @@ export class CollectionService {
             }
             
             // Update the collection
-            const { name, description, is_public } = collectionData
+            const { name, description } = collectionData
             const updateData = {}
             
             if (name !== undefined) updateData.name = name
             if (description !== undefined) updateData.description = description
-            if (is_public !== undefined) updateData.is_public = is_public
             
             const { data: updatedCollection, error } = await this.supabase
                 .from('dish_collections')
@@ -283,8 +277,7 @@ export class CollectionService {
                 name: collection.name,
                 description: collection.description,
                 collection_type: 'system',
-                system_type: collection.system_type,
-                is_public: collection.is_public
+                system_type: collection.system_type
             }))
 
             const { data: newCollections, error } = await this.supabase

@@ -4,7 +4,6 @@ export interface Collection {
   description?: string
   collection_type: 'custom' | 'system'
   system_type?: 'my_dishes' | 'liked' | 'published' | 'private'
-  is_public: boolean
   created_at: string
   updated_at: string
   user_id: string
@@ -23,13 +22,11 @@ export interface Collection {
 export interface CreateCollectionData {
   name: string
   description?: string
-  is_public?: boolean
 }
 
 export interface UpdateCollectionData {
   name?: string
   description?: string
-  is_public?: boolean
 }
 
 export interface AddDishToCollectionData {
