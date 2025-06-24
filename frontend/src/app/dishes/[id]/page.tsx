@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Avatar'
@@ -24,8 +23,7 @@ import {
   Activity,
   Zap,
   Share2,
-  BookOpen,
-  MessageCircle
+  BookOpen
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -45,8 +43,8 @@ interface NutritionData {
   }
 }
 
-export default function DishDetailPage() {
-  const { id } = useParams() as { id: string }
+export default function DishDetailPage({ params }: { params: { id: string } }) {
+  const id = params.id
   const [dish, setDish] = useState<Dish | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [nutritionData, setNutritionData] = useState<NutritionData | null>(null)
