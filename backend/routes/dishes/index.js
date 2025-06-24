@@ -44,7 +44,12 @@ export default async function dishRoutes(fastify, options) {
             const result = await fastify.dishService.getDishById(dishId)
 
             if (!result.success) {
-                return reply.code(404).send({
+                // Return 404 for dish not found scenarios
+                const statusCode = result.error === 'Dish not found' || 
+                                 result.message?.includes('not found') || 
+                                 result.message?.includes('Unable to fetch dish') ? 404 : 400
+                
+                return reply.code(statusCode).send({
                     error: result.error,
                     message: result.message
                 })

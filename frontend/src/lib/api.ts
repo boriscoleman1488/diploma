@@ -103,6 +103,19 @@ class ApiClient {
     }
   }
 
+  private isNotFoundError(errorMessage: string): boolean {
+    const notFoundIndicators = [
+      'not found',
+      'unable to fetch dish',
+      'страву не знайдено',
+      'dish not found'
+    ]
+    
+    return notFoundIndicators.some(indicator => 
+      errorMessage.toLowerCase().includes(indicator.toLowerCase())
+    )
+  }
+
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       // Handle 401 errors specially
@@ -168,7 +181,12 @@ class ApiClient {
       }
       
       if (error instanceof Error) {
-        console.error(`API Error (${options.method} ${endpoint}):`, error.message)
+        // Use console.warn for expected "not found" scenarios instead of console.error
+        if (this.isNotFoundError(error.message)) {
+          console.warn(`API Warning (${options.method} ${endpoint}):`, error.message)
+        } else {
+          console.error(`API Error (${options.method} ${endpoint}):`, error.message)
+        }
         throw error
       }
       throw new Error('Помилка мережі')
