@@ -23,7 +23,8 @@ import {
   ArrowLeft,
   Activity,
   Zap,
-  Share2
+  Share2,
+  BookOpen
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
