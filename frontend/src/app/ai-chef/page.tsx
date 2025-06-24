@@ -66,12 +66,22 @@ export default function AiChefPage() {
     }
   }, [messages])
 
+  const getSupabaseConfig = () => {
+    // Try different ways to get the environment variables
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 
+                       (typeof window !== 'undefined' && (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_SUPABASE_URL)
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 
+                           (typeof window !== 'undefined' && (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    
+    return { supabaseUrl, supabaseAnonKey }
+  }
+
   const callEdgeFunction = async (payload: any) => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig()
     
     if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Supabase configuration missing')
+      console.error('Supabase configuration:', { supabaseUrl: !!supabaseUrl, supabaseAnonKey: !!supabaseAnonKey })
+      throw new Error('Конфігурація Supabase відсутня. Перевірте змінні середовища NEXT_PUBLIC_SUPABASE_URL та NEXT_PUBLIC_SUPABASE_ANON_KEY.')
     }
 
     const response = await fetch(`${supabaseUrl}/functions/v1/recipe-assistant`, {

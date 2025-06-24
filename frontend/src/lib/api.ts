@@ -31,6 +31,20 @@ class ApiClient {
     return headers
   }
 
+  private isAuthEndpoint(endpoint: string): boolean {
+    const authEndpoints = [
+      '/auth/login',
+      '/auth/register',
+      '/auth/refresh',
+      '/auth/logout',
+      '/auth/resend-confirmation',
+      '/auth/reset-password',
+      '/auth/confirm'
+    ]
+    
+    return authEndpoints.some(authEndpoint => endpoint.startsWith(authEndpoint))
+  }
+
   private async refreshTokenIfNeeded(): Promise<boolean> {
     if (!this.session?.refresh_token) {
       return false
@@ -156,8 +170,11 @@ class ApiClient {
       // Log the request for debugging
       console.log(`API Request: ${options.method} ${this.baseURL}${endpoint}`)
       
-      // Refresh token if needed before making the request
-      await this.refreshTokenIfNeeded()
+      // Don't refresh tokens for auth endpoints
+      if (!this.isAuthEndpoint(endpoint)) {
+        // Refresh token if needed before making the request
+        await this.refreshTokenIfNeeded()
+      }
 
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         ...options,
@@ -166,8 +183,11 @@ class ApiClient {
       })
       return await this.handleResponse<T>(response)
     } catch (error) {
-      // If token was refreshed, retry the request once
-      if (error instanceof Error && error.message === 'TOKEN_REFRESHED' && retryCount === 0) {
+      // If token was refreshed, retry the request once (but not for auth endpoints)
+      if (error instanceof Error && 
+          error.message === 'TOKEN_REFRESHED' && 
+          retryCount === 0 && 
+          !this.isAuthEndpoint(endpoint)) {
         console.log('Token refreshed, retrying request...')
         const newOptions = {
           ...options,
@@ -181,6 +201,12 @@ class ApiClient {
       }
       
       if (error instanceof Error) {
+        // Don't log TOKEN_REFRESHED errors for auth endpoints
+        if (error.message === 'TOKEN_REFRESHED' && this.isAuthEndpoint(endpoint)) {
+          // For auth endpoints, treat TOKEN_REFRESHED as a regular auth error
+          throw new Error('Помилка автентифікації')
+        }
+        
         // Use console.warn for expected "not found" scenarios instead of console.error
         if (this.isNotFoundError(error.message)) {
           console.warn(`API Warning (${options.method} ${endpoint}):`, error.message)
