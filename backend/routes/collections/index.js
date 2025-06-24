@@ -14,14 +14,6 @@ export default async function collectionRoutes(fastify, options) {
         preHandler: [authenticateUser]
     }, async (request, reply) => {
         try {
-            // Defensive check for authenticated user
-            if (!request.user || !request.user.id) {
-                return reply.code(401).send({
-                    error: 'Unauthorized',
-                    message: 'User authentication required'
-                })
-            }
-
             const userId = request.user.id
             const result = await fastify.collectionService.getUserCollections(userId)
 
@@ -59,14 +51,6 @@ export default async function collectionRoutes(fastify, options) {
         }
     }, async (request, reply) => {
         try {
-            // Defensive check for authenticated user
-            if (!request.user || !request.user.id) {
-                return reply.code(401).send({
-                    error: 'Unauthorized',
-                    message: 'User authentication required'
-                })
-            }
-
             const { collectionId } = request.params
             const userId = request.user.id
             
@@ -99,14 +83,6 @@ export default async function collectionRoutes(fastify, options) {
         preHandler: [authenticateUser]
     }, async (request, reply) => {
         try {
-            // Defensive check for authenticated user
-            if (!request.user || !request.user.id) {
-                return reply.code(401).send({
-                    error: 'Unauthorized',
-                    message: 'User authentication required'
-                })
-            }
-
             const userId = request.user.id
             const { type } = request.params
 
@@ -138,14 +114,6 @@ export default async function collectionRoutes(fastify, options) {
         preHandler: [authenticateUser]
     }, async (request, reply) => {
         try {
-            // Defensive check for authenticated user
-            if (!request.user || !request.user.id) {
-                return reply.code(401).send({
-                    error: 'Unauthorized',
-                    message: 'User authentication required'
-                })
-            }
-
             const userId = request.user.id
             const result = await fastify.collectionService.createCollection(userId, request.body)
 
@@ -175,14 +143,6 @@ export default async function collectionRoutes(fastify, options) {
         preHandler: [authenticateUser]
     }, async (request, reply) => {
         try {
-            // Defensive check for authenticated user
-            if (!request.user || !request.user.id) {
-                return reply.code(401).send({
-                    error: 'Unauthorized',
-                    message: 'User authentication required'
-                })
-            }
-
             const userId = request.user.id
             const { collectionId } = request.params
             
@@ -214,14 +174,6 @@ export default async function collectionRoutes(fastify, options) {
         preHandler: [authenticateUser]
     }, async (request, reply) => {
         try {
-            // Defensive check for authenticated user
-            if (!request.user || !request.user.id) {
-                return reply.code(401).send({
-                    error: 'Unauthorized',
-                    message: 'User authentication required'
-                })
-            }
-
             const userId = request.user.id
             const { collectionId } = request.params
             const { dishId } = request.body
@@ -254,14 +206,6 @@ export default async function collectionRoutes(fastify, options) {
         preHandler: [authenticateUser]
     }, async (request, reply) => {
         try {
-            // Defensive check for authenticated user
-            if (!request.user || !request.user.id) {
-                return reply.code(401).send({
-                    error: 'Unauthorized',
-                    message: 'User authentication required'
-                })
-            }
-
             const userId = request.user.id
             const { collectionId, dishId } = request.params
 
@@ -292,14 +236,6 @@ export default async function collectionRoutes(fastify, options) {
         preHandler: [authenticateUser]
     }, async (request, reply) => {
         try {
-            // Defensive check for authenticated user
-            if (!request.user || !request.user.id) {
-                return reply.code(401).send({
-                    error: 'Unauthorized',
-                    message: 'User authentication required'
-                })
-            }
-
             const userId = request.user.id
             const { collectionId } = request.params
 

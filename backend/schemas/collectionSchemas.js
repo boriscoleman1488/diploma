@@ -11,6 +11,10 @@ export const createCollectionSchema = {
             description: {
                 type: 'string',
                 maxLength: 500
+            },
+            is_public: {
+                type: 'boolean',
+                default: false
             }
         }
     }
@@ -38,6 +42,9 @@ export const updateCollectionSchema = {
             description: {
                 type: 'string',
                 maxLength: 500
+            },
+            is_public: {
+                type: 'boolean'
             }
         }
     }

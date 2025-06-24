@@ -33,6 +33,7 @@ interface Collection {
   description?: string
   collection_type: 'custom' | 'system'
   system_type?: 'my_dishes' | 'liked' | 'published' | 'private'
+  is_public: boolean
   created_at: string
   updated_at: string
   dish_collection_items?: Array<{
@@ -56,6 +57,7 @@ interface CreateCollectionModalProps {
 function CreateCollectionModal({ isOpen, onClose, onSuccess }: CreateCollectionModalProps) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [isPublic, setIsPublic] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,13 +72,15 @@ function CreateCollectionModal({ isOpen, onClose, onSuccess }: CreateCollectionM
     try {
       const response = await apiClient.post('/collections', {
         name: name.trim(),
-        description: description.trim() || undefined
+        description: description.trim() || undefined,
+        is_public: isPublic
       })
       
       if (response.success) {
         toast.success('Колекцію успішно створено')
         setName('')
         setDescription('')
+        setIsPublic(false)
         onSuccess()
         onClose()
       } else {
@@ -94,6 +98,7 @@ function CreateCollectionModal({ isOpen, onClose, onSuccess }: CreateCollectionM
     if (!isCreating) {
       setName('')
       setDescription('')
+      setIsPublic(false)
       onClose()
     }
   }
@@ -146,6 +151,20 @@ function CreateCollectionModal({ isOpen, onClose, onSuccess }: CreateCollectionM
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
             />
+          </div>
+          
+          <div className="flex items-center">
+            <input
+              id="is_public"
+              type="checkbox"
+              checked={isPublic}
+              onChange={(e) => setIsPublic(e.target.checked)}
+              disabled={isCreating}
+              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+            />
+            <label htmlFor="is_public" className="ml-2 block text-sm text-gray-700">
+              Зробити колекцію публічною
+            </label>
           </div>
           
           <div className="flex items-center justify-end space-x-3 pt-4">
@@ -400,6 +419,17 @@ export default function CollectionsPage() {
                       <div className="flex items-center">
                         <ChefHat className="w-4 h-4 mr-1" />
                         {itemsCount} {itemsCount === 1 ? 'страва' : itemsCount > 1 && itemsCount < 5 ? 'страви' : 'страв'}
+                      </div>
+                      <div>
+                        {collection.is_public ? (
+                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                            Публічна
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                            Приватна
+                          </span>
+                        )}
                       </div>
                     </div>
                     
