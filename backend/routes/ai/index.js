@@ -1,9 +1,6 @@
 import { authenticateUser } from '../../middleware/auth.js'
 
 export default async function aiRoutes(fastify, options) {
-  // Create AI service instance
-  const aiService = new fastify.AiService(fastify.log)
-
   // Search ingredients
   fastify.post('/search-ingredients', {
     preHandler: [authenticateUser],
@@ -21,7 +18,7 @@ export default async function aiRoutes(fastify, options) {
     try {
       const { query, limit = 5 } = request.body
 
-      const result = await aiService.searchIngredients(query, limit)
+      const result = await fastify.aiService.searchIngredients(query, limit)
       
       if (!result.success) {
         return reply.code(400).send({
@@ -67,7 +64,7 @@ export default async function aiRoutes(fastify, options) {
     try {
       const { ingredients, preferences } = request.body
 
-      const result = await aiService.getRecipeSuggestions(ingredients, preferences)
+      const result = await fastify.aiService.getRecipeSuggestions(ingredients, preferences)
       
       if (!result.success) {
         return reply.code(400).send({

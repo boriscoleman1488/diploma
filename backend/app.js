@@ -152,7 +152,7 @@ fastify.decorate('edamam', edamamService)
 fastify.decorate('commentService', commentService)
 fastify.decorate('ratingService', ratingService)
 fastify.decorate('collectionService', collectionService)
-fastify.decorate('AiService', AiService)
+fastify.decorate('aiService', aiService)
 
 await fastify.register(authRoutes, { prefix: '/api/auth' })
 await fastify.register(edamamRoutes, { prefix: '/api/edamam' })
