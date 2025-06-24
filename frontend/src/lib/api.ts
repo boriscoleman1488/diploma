@@ -1,9 +1,7 @@
 import { AuthSession } from '@/types/auth'
 
-// Use the correct protocol and port for the backend
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? '/api' 
-  : 'http://localhost:3000/api'
+// Use Next.js proxy for all environments to avoid CORS issues
+const API_BASE_URL = '/api'
 
 class ApiClient {
   private baseURL: string
@@ -150,9 +148,8 @@ class ApiClient {
 
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         ...options,
-        // Add mode: 'cors' for cross-origin requests in development
-        mode: 'cors',
-        credentials: 'include'
+        // Remove mode and credentials for same-origin requests
+        credentials: 'same-origin'
       })
       return await this.handleResponse<T>(response)
     } catch (error) {
@@ -165,8 +162,7 @@ class ApiClient {
             ...options.headers,
             ...this.getAuthHeaders(!!options.body)
           },
-          mode: 'cors' as RequestMode,
-          credentials: 'include' as RequestCredentials
+          credentials: 'same-origin' as RequestCredentials
         }
         return this.makeRequest<T>(endpoint, newOptions, retryCount + 1)
       }
