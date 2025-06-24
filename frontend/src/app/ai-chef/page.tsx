@@ -186,7 +186,7 @@ export default function AiChefPage() {
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: 'На жаль, не вдалося згенерувати рецепти. Спробуйте інші інгредієнти або перевірте з'єднання.',
+          content: 'На жаль, не вдалося згенерувати рецепти. Спробуйте інші інгредієнти або перевірте з`єднання.',
           timestamp: new Date()
         }
         
