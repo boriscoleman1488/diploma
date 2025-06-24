@@ -142,6 +142,9 @@ class ApiClient {
     retryCount = 0
   ): Promise<T> {
     try {
+      // Log the request for debugging
+      console.log(`API Request: ${options.method} ${this.baseURL}${endpoint}`)
+      
       // Refresh token if needed before making the request
       await this.refreshTokenIfNeeded()
 
@@ -155,6 +158,7 @@ class ApiClient {
     } catch (error) {
       // If token was refreshed, retry the request once
       if (error instanceof Error && error.message === 'TOKEN_REFRESHED' && retryCount === 0) {
+        console.log('Token refreshed, retrying request...')
         const newOptions = {
           ...options,
           headers: {
@@ -168,6 +172,7 @@ class ApiClient {
       }
       
       if (error instanceof Error) {
+        console.error(`API Error (${options.method} ${endpoint}):`, error.message)
         throw error
       }
       throw new Error('Помилка мережі')
@@ -198,6 +203,17 @@ class ApiClient {
 
     return this.makeRequest<T>(endpoint, {
       method: 'PUT',
+      headers,
+      body,
+    })
+  }
+
+  async patch<T>(endpoint: string, data?: any): Promise<T> {
+    const headers = this.getAuthHeaders(!!data)
+    const body = data ? JSON.stringify(data) : undefined
+
+    return this.makeRequest<T>(endpoint, {
+      method: 'PATCH',
       headers,
       body,
     })

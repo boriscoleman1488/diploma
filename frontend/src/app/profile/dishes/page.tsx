@@ -42,10 +42,13 @@ export default function UserDishesPage() {
   const fetchUserDishes = async () => {
     setIsLoading(true)
     try {
-      const response = await apiClient.get('/collections/type/my_dishes')
+      // Fetch all dishes and filter by user ID
+      const response = await apiClient.get('/dishes')
       if (response.success && response.dishes) {
-        setDishes(response.dishes)
-        setFilteredDishes(response.dishes)
+        // Filter dishes by current user
+        const userDishes = response.dishes.filter(dish => dish.user_id === user?.id)
+        setDishes(userDishes)
+        setFilteredDishes(userDishes)
       }
     } catch (error) {
       console.error('Failed to fetch user dishes:', error)
