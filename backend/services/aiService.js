@@ -98,7 +98,15 @@ class AIService {
         suggestion
       }
     } catch (error) {
-      this.logger.error('Error getting recipe suggestions from Gemini', { error: error.message })
+      this.logger.error('Error getting recipe suggestions from Gemini', { 
+        error: error.message,
+        stack: error.stack,
+        name: error.name,
+        status: error.status,
+        statusText: error.statusText,
+        response: error.response?.data || error.response,
+        fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
+      })
       
       // Повернути резервну відповідь у випадку помилки
       return this.getFallbackSuggestion(ingredients, preferences)
@@ -106,10 +114,9 @@ class AIService {
   }
 
   getFallbackSuggestion(ingredients, preferences) {
-    const suggestion = `# Базові рецепти з доступних інгредієнтів\n\n## Інгредієнти: ${ingredients.join(', ')}\n\n${preferences ? `## Ваші побажання: ${preferences}\n\n` : ''}## Рекомендації:\n\n### 🥗 Простий салат\n**Час приготування:** 10 хвилин  \n**Складність:** Легко\n\n**Інструкції:**\n1. Помийте та нарізайте свіжі овочі\n2. Змішайте в салатниці\n3. Додайте олію, сіль та спеції за смаком\n4. Перемішайте та подавайте\n\n### 🍳 Смажені овочі\n**Час приготування:** 15 хвилин  \n**Складність:** Легко\n\n**Інструкції:**\n1. Розігрійте сковороду з олією\n2. Додайте нарізані овочі\n3. Смажте 10-12 хвилин, помішуючи\n4. Приправте сіллю та спеціями\n\n### 🍲 Овочевий суп\n**Час приготування:** 30 хвилин  \n**Складність:** Середньо\n\n**Інструкції:**\n1. Нарізайте овочі кубиками\n2. Обсмажте в каструлі з олією\n3. Додайте воду та варіть 20 хвилин\n4. Приправте за смаком\n\n*Примітка: AI сервіс тимчасово недоступний. Це базові рекомендації.*`
-    
-    this.logger.info('Using fallback recipe suggestion')
-    
+    // Більш розумна fallback логіка на основі інгредієнтів
+    const suggestion = this.generateSmartFallback(ingredients, preferences)
+    this.logger.info('Using enhanced fallback recipe suggestion')
     return {
       success: true,
       suggestion
