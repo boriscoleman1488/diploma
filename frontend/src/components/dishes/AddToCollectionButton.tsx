@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { apiClient } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
-import { BookOpen, Plus, Check, X } from 'lucide-react'
+import { BookOpen, Plus, Check, X, FolderPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Collection {
@@ -14,7 +14,6 @@ interface Collection {
   description?: string
   collection_type: 'custom' | 'system'
   system_type?: 'my_dishes' | 'liked' | 'published' | 'private'
-  is_public: boolean
 }
 
 interface AddToCollectionButtonProps {
@@ -167,7 +166,7 @@ export function AddToCollectionButton({ dishId, className = '' }: AddToCollectio
                 variant="outline"
                 size="sm"
                 className="w-full"
-                leftIcon={<Plus className="w-3 h-3" />}
+                leftIcon={<FolderPlus className="w-3 h-3" />}
               >
                 Створити нову колекцію
               </Button>
