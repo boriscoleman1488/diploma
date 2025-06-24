@@ -24,7 +24,8 @@ import {
   Edit,
   X,
   Globe,
-  Lock
+  Lock,
+  MessageCircle
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
