@@ -47,14 +47,13 @@ export const createDishSchema = {
                     required: ['description'],
                     properties: {
                         description: { type: 'string', minLength: 1 },
-                        image_url: { type: 'string', format: 'uri' },
+                        image_url: { type: 'string' },
                         duration_minutes: { type: 'integer', minimum: 0 }
                     }
                 }
             },
             main_image_url: {
-                type: 'string',
-                format: 'uri'
+                type: 'string'
             }
         }
     }
