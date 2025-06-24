@@ -136,12 +136,14 @@ export function useProfile() {
     try {
       const response = await apiClient.uploadFile('/users/avatar', file)
       if (response.success) {
+        // Import the auth store at the top level
+        const { useAuthStore } = await import('@/store/authStore')
+        
         // Update profile with new avatar URL
         if (response.profile) {
           setProfile(response.profile)
           
           // Update user metadata in auth store
-          const { useAuthStore } = await import('@/store/authStore')
           const currentUser = useAuthStore.getState().user
           if (currentUser) {
             useAuthStore.getState().setUser({
@@ -156,8 +158,7 @@ export function useProfile() {
           setProfile(prev => {
             if (!prev) return null
             
-            // Update user metadata in auth store
-            const { useAuthStore } = await import('@/store/authStore')
+            // Update user metadata in auth store (no await needed here since we already imported)
             const currentUser = useAuthStore.getState().user
             if (currentUser) {
               useAuthStore.getState().setUser({
