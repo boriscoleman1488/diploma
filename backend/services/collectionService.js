@@ -243,7 +243,7 @@ export class CollectionService {
                 user_id: userId,
                 name: collection.name,
                 description: collection.description,
-                collection_type: 'system',
+                collection_type: collection.system_type,
                 system_type: collection.system_type,
                 is_public: collection.is_public
             }))
