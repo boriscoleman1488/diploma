@@ -1,15 +1,15 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-class AIService {
+export class AIService {
   constructor(logger) {
     this.logger = logger
     this.geminiApiKey = process.env.GEMINI_API_KEY
     this.edamamFoodAppId = process.env.EDAMAM_APP_FOOD_ID
     this.edamamFoodAppKey = process.env.EDAMAM_APP_FOOD_KEY
     
-    // Ініціалізація Gemini AI
+    // Ініціалізація Gemini AI відповідно до нової документації
     if (this.geminiApiKey) {
-      this.gemini = new GoogleGenerativeAI(this.geminiApiKey);
+      this.gemini = new GoogleGenerativeAI(this.geminiApiKey)
     }
   }
 
@@ -23,49 +23,21 @@ class AIService {
         }
       }
 
-      // Тестовий запит до Gemini API
-      const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.geminiApiKey}`
+      // Тестовий запит до Gemini API використовуючи новий метод
+      const model = this.gemini.getGenerativeModel({ model: 'gemini-2.5-flash' })
+      const result = await model.generateContent('Test')
+      const response = await result.response
       
-      const response = await fetch(testUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: 'Test'
-            }]
-          }]
-        })
-      })
-
-      if (response.ok) {
+      if (response.text()) {
         this.logger.info('Gemini API key is valid')
         return {
           success: true,
           message: 'Gemini API ключ валідний'
         }
       } else {
-        const errorData = await response.json()
-        this.logger.error('Gemini API key validation failed', { 
-          status: response.status,
-          error: errorData 
-        })
-        
-        let errorMessage = 'Невалідний Gemini API ключ'
-        if (response.status === 400) {
-          errorMessage = 'Невірний формат API ключа'
-        } else if (response.status === 403) {
-          errorMessage = 'API ключ заблокований або немає доступу'
-        } else if (response.status === 429) {
-          errorMessage = 'Перевищено ліміт запитів'
-        }
-        
         return {
           success: false,
-          error: errorMessage,
-          details: errorData
+          error: 'Невалідний Gemini API ключ'
         }
       }
     } catch (error) {
@@ -74,9 +46,18 @@ class AIService {
         stack: error.stack
       })
       
+      let errorMessage = 'Помилка при перевірці API ключа'
+      if (error.message.includes('API_KEY_INVALID')) {
+        errorMessage = 'Невірний формат API ключа'
+      } else if (error.message.includes('PERMISSION_DENIED')) {
+        errorMessage = 'API ключ заблокований або немає доступу'
+      } else if (error.message.includes('RESOURCE_EXHAUSTED')) {
+        errorMessage = 'Перевищено ліміт запитів'
+      }
+      
       return {
         success: false,
-        error: 'Помилка при перевірці API ключа',
+        error: errorMessage,
         details: error.message
       }
     }
@@ -140,7 +121,8 @@ class AIService {
         hasPreferences: !!preferences
       })
 
-      const systemPrompt = `Ти корисний кулінарний помічник, який пропонує рецепти на основі доступних інгредієнтів. 
+      // Системна інструкція відповідно до нової документації
+      const systemInstruction = `Ти корисний кулінарний помічник, який пропонує рецепти на основі доступних інгредієнтів. 
 Зосередься на практичних, легких для виконання рецептах, які використовують надані інгредієнти.
 Форматуй свою відповідь у markdown з чіткими розділами:
 1. Назва рецепту (як заголовок)
@@ -154,13 +136,15 @@ class AIService {
 
       const userMessage = `У мене є ці інгредієнти: ${ingredients.join(', ')}. ${preferences ? `Мої переваги: ${preferences}.` : ''} Що я можу приготувати?`
 
-      // Використовуємо новий API відповідно до документації
-      const response = await this.gemini.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: `${systemPrompt}\n\nКористувач: ${userMessage}`
+      // Використання нового API відповідно до документації
+      const model = this.gemini.getGenerativeModel({ 
+        model: 'gemini-2.5-flash',
+        systemInstruction: systemInstruction
       })
       
-      const suggestion = response.text
+      const result = await model.generateContent(userMessage)
+      const response = await result.response
+      const suggestion = response.text()
 
       this.logger.info('Gemini recipe suggestion generated successfully', { 
         responseLength: suggestion.length 
@@ -171,7 +155,7 @@ class AIService {
         suggestion
       }
     } catch (error) {
-      // детальне логування помилки
+      // Детальне логування помилки
       this.logger.error('Error getting recipe suggestions from Gemini', { 
         error: error.message,
         stack: error.stack,
@@ -181,8 +165,8 @@ class AIService {
         response: error.response?.data || error.response,
         fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
       })
-      
-      // повертаємо просту помилку
+
+      // Повертаємо просту помилку
       return {
         success: false,
         error: 'AI чат тимчасово не працює. Спробуйте пізніше.'
@@ -191,51 +175,13 @@ class AIService {
   }
 
   getFallbackSuggestion(ingredients, preferences = '') {
-    const fallbackRecipes = [
-      {
-        title: "🍳 Простий омлет",
-        description: "Швидкий та поживний сніданок з доступних інгредієнтів",
-        time: "10 хвилин",
-        difficulty: "Легко"
-      },
-      {
-        title: "🥗 Свіжий салат",
-        description: "Здоровий салат з наявних овочів та зелені",
-        time: "5 хвилин",
-        difficulty: "Дуже легко"
-      },
-      {
-        title: "🍝 Паста з простим соусом",
-        description: "Класична паста з базовими інгредієнтами",
-        time: "15 хвилин",
-        difficulty: "Легко"
-      }
-    ]
-
-    const randomRecipe = fallbackRecipes[Math.floor(Math.random() * fallbackRecipes.length)]
+    this.logger.info('Using fallback suggestion due to missing Gemini API key')
     
-    const suggestion = `# ${randomRecipe.title}
-
-${randomRecipe.description}
-
-**Час приготування:** ${randomRecipe.time}  
-**Рівень складності:** ${randomRecipe.difficulty}
-
-## Інгредієнти:
-${ingredients.map(ing => `- ${ing}`).join('\n')}
-
-## Інструкції:
-1. Підготуйте всі інгредієнти
-2. Слідуйте базовому рецепту для обраної страви
-3. Адаптуйте під свої смаки
-
-*Примітка: AI сервіс тимчасово недоступний. Це базова рекомендація на основі ваших інгредієнтів.*`
-
     return {
-      success: true,
-      suggestion
+      success: false,
+      error: 'AI чат тимчасово не працює. Спробуйте пізніше.'
     }
   }
 }
 
-export default AIService;
+export default AIService
