@@ -1,0 +1,44 @@
+# Supabase конфігурація
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_KEY=your_supabase_service_role_key
+SUPABASE_JWT_SECRET=your_supabase_jwt_secret
+
+# Server конфігурація
+PORT=3000
+NODE_ENV=development
+LOG_LEVEL=info
+
+# CORS конфігурація
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+
+# EDAMAM API конфігурація
+# ВАЖЛИВО: Потрібні окремі credentials для різних API
+# 1. Для Food Database API (пошук інгредієнтів):
+EDAMAM_APP_FOOD_ID=your_food_database_app_id
+EDAMAM_APP_FOOD_KEY=your_food_database_app_key
+
+# 2. Для Nutrition Analysis API (аналіз калорій):
+EDAMAM_APP_NUTRITION_ID=your_nutrition_analysis_app_id
+EDAMAM_APP_NUTRITION_KEY=your_nutrition_analysis_app_key
+
+# OpenAI API конфігурація
+OPENAI_API_KEY=your_openai_api_key
+
+# Frontend URL
+FRONTEND_URL=http://localhost:5173
+
+# Email конфігурація (опціонально)
+# Якщо не налаштовано, email повідомлення будуть тільки логуватися
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password
+FROM_EMAIL=noreply@recipeapp.com
+FROM_NAME=Recipe App
+
+# Supabase Email Settings
+# Перевірте в Supabase Dashboard > Authentication > Settings:
+# - Enable email confirmations: може бути true або false
+# - Confirm email change: рекомендується true
+# - Enable secure email change: рекомендується true
