@@ -12,7 +12,6 @@ import { apiClient } from '@/lib/api'
 
 const navigation = [
   { name: 'Профіль', href: '/profile', icon: User },
-  { name: 'Мої страви', href: '/profile/dishes', icon: ChefHat },
   { name: 'Категорії', href: '/categories', icon: Grid3X3 },
   { name: 'Страви', href: '/dishes', icon: ChefHat },
   { name: 'Колекції', href: '/collections', icon: BookOpen },
