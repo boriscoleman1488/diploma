@@ -34,7 +34,7 @@ export default async function aiRoutes(fastify, options) {
         return reply.code(400).send({
           success: false,
           error: result.error,
-          message: 'Не вдалося знайти інгредієнти'
+          message: result.message || result.error || 'Не вдалося знайти інгредієнти'
         })
       }
 
@@ -48,7 +48,7 @@ export default async function aiRoutes(fastify, options) {
       return reply.code(500).send({
         success: false,
         error: error.message || 'Internal server error',
-        message: 'Помилка пошуку інгредієнтів'
+        message: error.message || 'Помилка пошуку інгредієнтів'
       })
     }
   })
@@ -85,7 +85,7 @@ export default async function aiRoutes(fastify, options) {
         return reply.code(400).send({
           success: false,
           error: result.error,
-          message: 'Не вдалося згенерувати рецепти'
+          message: result.message || result.error || 'Не вдалося згенерувати рецепти'
         })
       }
 
@@ -98,7 +98,7 @@ export default async function aiRoutes(fastify, options) {
       return reply.code(500).send({
         success: false,
         error: error.message || 'Internal server error',
-        message: 'Помилка генерації рецептів'
+        message: error.message || 'Помилка генерації рецептів'
       })
     }
   })
