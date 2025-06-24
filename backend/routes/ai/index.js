@@ -1,6 +1,11 @@
 import { authenticateUser } from '../../middleware/auth.js'
 
 export default async function aiRoutes(fastify, options) {
+  // Ensure the AI service is properly available
+  if (!fastify.aiService) {
+    throw new Error('AI Service not properly registered')
+  }
+
   // Search ingredients
   fastify.post('/search-ingredients', {
     preHandler: [authenticateUser],
@@ -17,6 +22,11 @@ export default async function aiRoutes(fastify, options) {
   }, async (request, reply) => {
     try {
       const { query, limit = 5 } = request.body
+
+      // Ensure the service method exists before calling
+      if (typeof fastify.aiService.searchIngredients !== 'function') {
+        throw new Error('searchIngredients method not available on AI service')
+      }
 
       const result = await fastify.aiService.searchIngredients(query, limit)
       
@@ -63,6 +73,11 @@ export default async function aiRoutes(fastify, options) {
   }, async (request, reply) => {
     try {
       const { ingredients, preferences } = request.body
+
+      // Ensure the service method exists before calling
+      if (typeof fastify.aiService.getRecipeSuggestions !== 'function') {
+        throw new Error('getRecipeSuggestions method not available on AI service')
+      }
 
       const result = await fastify.aiService.getRecipeSuggestions(ingredients, preferences)
       
