@@ -221,7 +221,7 @@ export class DishService {
         }
     }
 
-    async getDishes() {
+    async getUserDishes(userId) {
         try {
             const { data: dishes, error } = await this.supabase
                 .from('dishes')
@@ -236,15 +236,15 @@ export class DishService {
                     dish_ingredients(*),
                     dish_steps(*)
                 `)
-                .eq('status', this.DISH_STATUS.APPROVED)
+                .eq('user_id', userId)
                 .order('created_at', { ascending: false })
 
             if (error) {
-                this.logger.error('Dishes fetch error', { error: error.message })
+                this.logger.error('User dishes fetch error', { error: error.message })
                 return {
                     success: false,
                     error: 'Database error',
-                    message: 'Unable to fetch dishes'
+                    message: 'Unable to fetch user dishes'
                 }
             }
 
@@ -271,11 +271,11 @@ export class DishService {
                 total: processedDishes.length
             }
         } catch (error) {
-            this.logger.error('Dishes fetch error', { error: error.message })
+            this.logger.error('User dishes fetch error', { error: error.message })
             return {
                 success: false,
                 error: 'Internal server error',
-                message: 'Unable to fetch dishes'
+                message: 'Unable to fetch user dishes'
             }
         }
     }

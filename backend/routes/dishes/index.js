@@ -268,4 +268,32 @@ export default async function dishRoutes(fastify, options) {
             })
         }
     })
+    fastify.get('/my-dishes', {
+        preHandler: [authenticateUser],
+        schema: getDishesSchema
+    }, async (request, reply) => {
+        try {
+            const userId = request.user.id
+            const result = await fastify.dishService.getUserDishes(userId)
+    
+            if (!result.success) {
+                return reply.code(400).send({
+                    error: result.error,
+                    message: result.message
+                })
+            }
+    
+            return {
+                success: true,
+                dishes: result.dishes,
+                total: result.dishes.length
+            }
+        } catch (error) {
+            fastify.log.error('Get user dishes error', { error: error.message })
+            return reply.code(500).send({
+                error: 'Internal server error',
+                message: 'Unable to fetch user dishes'
+            })
+        }
+    })
 }
