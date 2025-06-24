@@ -345,11 +345,6 @@ export default function DishDetailPage() {
 
           {/* Comments Section */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <MessageCircle className="w-5 h-5 mr-2" />
-              </CardTitle>
-            </CardHeader>
             <CardContent>
               <CommentSection dishId={id} />
             </CardContent>
