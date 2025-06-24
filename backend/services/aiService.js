@@ -98,6 +98,7 @@ class AIService {
         suggestion
       }
     } catch (error) {
+      // вивиде помилку в чому саме проблема
       this.logger.error('Error getting recipe suggestions from Gemini', { 
         error: error.message,
         stack: error.stack,
@@ -107,19 +108,6 @@ class AIService {
         response: error.response?.data || error.response,
         fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
       })
-      
-      // Повернути резервну відповідь у випадку помилки
-      return this.getFallbackSuggestion(ingredients, preferences)
-    }
-  }
-
-  getFallbackSuggestion(ingredients, preferences) {
-    // Більш розумна fallback логіка на основі інгредієнтів
-    const suggestion = this.generateSmartFallback(ingredients, preferences)
-    this.logger.info('Using enhanced fallback recipe suggestion')
-    return {
-      success: true,
-      suggestion
     }
   }
 }

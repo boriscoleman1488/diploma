@@ -52,7 +52,7 @@ console.log('Environment variables check:', {
   EDAMAM_APP_FOOD_KEY: process.env.EDAMAM_APP_FOOD_KEY ? `${process.env.EDAMAM_APP_FOOD_KEY.substring(0, 4)}...` : 'missing',
   EDAMAM_APP_NUTRITION_ID: process.env.EDAMAM_APP_NUTRITION_ID ? `${process.env.EDAMAM_APP_NUTRITION_ID.substring(0, 4)}...` : 'missing',
   EDAMAM_APP_NUTRITION_KEY: process.env.EDAMAM_APP_NUTRITION_KEY ? `${process.env.EDAMAM_APP_NUTRITION_KEY.substring(0, 4)}...` : 'missing',
-  OPENAI_API_KEY: process.env.OPENAI_API_KEY ? 'configured' : 'missing'
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'configured' : 'missing'
 })
 
 // Simple logger configuration without deprecated features
@@ -205,7 +205,7 @@ fastify.get('/health', async (request, reply) => {
       storage: 'unknown',
       edamam_food: 'unknown',
       edamam_nutrition: 'unknown',
-      openai: 'unknown'
+      gemini: 'unknown'
     }
   }
 
@@ -253,13 +253,13 @@ fastify.get('/health', async (request, reply) => {
 
   try {
     // Перевіряємо OpenAI API
-    if (process.env.OPENAI_API_KEY) {
-      health.services.openai = 'healthy'
+    if (process.env.GEMINI_API_KEY) {
+      health.services.gemini = 'healthy'
     } else {
-      health.services.openai = 'not_configured'
+      health.services.gemini = 'not_configured'
     }
   } catch (error) {
-    health.services.openai = 'unhealthy'
+    health.services.gemini = 'unhealthy'
   }
 
   const isHealthy = Object.values(health.services).every(status => 
@@ -412,11 +412,11 @@ const start = async () => {
       console.log('⚠️ Edamam Nutrition Analysis API не налаштовано. Додайте EDAMAM_APP_NUTRITION_ID та EDAMAM_APP_NUTRITION_KEY до .env файлу')
     }
 
-    // Тестуємо OpenAI API при запуску
-    if (process.env.OPENAI_API_KEY) {
-      console.log('✅ OpenAI API налаштовано')
+    // Тестуємо Gemini API при запуску
+    if (process.env.GEMINI_API_KEY) {
+      console.log('✅ Gemini API налаштовано')
     } else {
-      console.log('⚠️ OpenAI API не налаштовано. Додайте OPENAI_API_KEY до .env файлу')
+      console.log('⚠️ Gemini API не налаштовано. Додайте GEMINI_API_KEY до .env файлу')
     }
   } catch (err) {
     console.error('Помилка запуску сервера:', err)
