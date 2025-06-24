@@ -99,7 +99,7 @@ fastify.addHook('onRequest', async (request, reply) => {
 })
 
 await fastify.register(fastifyRateLimit, {
-  max: 100,
+  max: 1000,
   timeWindow: '1 minute'
 })
 
