@@ -368,24 +368,15 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
 
           {/* Action Buttons */}
           <div className="flex space-x-3 pt-4 border-t border-gray-200">
-            <Button
-              variant="outline"
-              leftIcon={<Heart className="w-4 h-4" />}
-              className="flex-1"
-              onClick={() => isAuthenticated ? null : handleAuthAction('поставити лайк')}
-              disabled={!isAuthenticated}
-            >
-              Подобається ({likesCount})
-            </Button>
-            <Button
-              variant="outline"
-              leftIcon={<MessageCircle className="w-4 h-4" />}
-              className="flex-1"
-              onClick={() => isAuthenticated ? null : handleAuthAction('залишити коментар')}
-              disabled={!isAuthenticated}
-            >
-              Коментарі ({dish.comments_count || 0})
-            </Button>
+            <Link href={`/dishes/${dish.id}`} className="flex-1">
+              <Button
+                variant="primary"
+                className="w-full"
+                leftIcon={<Eye className="w-4 h-4" />}
+              >
+                Переглянути повну сторінку
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
@@ -839,13 +830,14 @@ export default function DishesPage() {
                         </p>
                       </div>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleViewDish(dish.id)}
-                    >
-                      Переглянути
-                    </Button>
+                    <Link href={`/dishes/${dish.id}`}>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                      >
+                        Переглянути
+                      </Button>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>
