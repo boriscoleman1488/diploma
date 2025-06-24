@@ -221,6 +221,65 @@ export class DishService {
         }
     }
 
+    async getDishes() {
+        try {
+            const { data: dishes, error } = await this.supabase
+                .from('dishes')
+                .select(`
+                    *,
+                    profiles:user_id(full_name, email, profile_tag, avatar_url),
+                    dish_category_relations(
+                        dish_categories(id, name)
+                    ),
+                    dish_ratings(rating_type),
+                    dish_comments(id),
+                    dish_ingredients(*),
+                    dish_steps(*)
+                `)
+                .eq('status', this.DISH_STATUS.APPROVED)
+                .order('created_at', { ascending: false })
+
+            if (error) {
+                this.logger.error('Public dishes fetch error', { error: error.message })
+                return {
+                    success: false,
+                    error: 'Database error',
+                    message: 'Unable to fetch dishes'
+                }
+            }
+
+            const processedDishes = (dishes || []).map(dish => ({
+                ...dish,
+                categories: dish.dish_category_relations?.map(rel => rel.dish_categories) || [],
+                ratings: dish.dish_ratings || [],
+                comments_count: dish.dish_comments?.length || 0,
+                ingredients: dish.dish_ingredients?.sort((a, b) => a.order_index - b.order_index) || [],
+                steps: dish.dish_steps?.sort((a, b) => a.step_number - b.step_number) || []
+            }))
+
+            processedDishes.forEach(dish => {
+                delete dish.dish_category_relations
+                delete dish.dish_ratings
+                delete dish.dish_comments
+                delete dish.dish_ingredients
+                delete dish.dish_steps
+            })
+
+            return {
+                success: true,
+                dishes: processedDishes,
+                total: processedDishes.length
+            }
+        } catch (error) {
+            this.logger.error('Public dishes fetch error', { error: error.message })
+            return {
+                success: false,
+                error: 'Internal server error',
+                message: 'Unable to fetch dishes'
+            }
+        }
+    }
+
     async getUserDishes(userId) {
         try {
             const { data: dishes, error } = await this.supabase
