@@ -15,7 +15,7 @@ import { CommentService } from './services/commentService.js'
 import { RatingService } from './services/ratingService.js'
 import { CollectionService } from './services/collectionService.js'
 import { EmailService } from './services/emailService.js'
-import { AiService } from './services/aiService.js'
+import AIService from './services/aiService.js'
 
 import authRoutes from './routes/auth.js'
 import edamamRoutes from './routes/edamam/index.js'

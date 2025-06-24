@@ -1,9 +1,16 @@
-export class AiService {
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+class AIService {
   constructor(logger) {
     this.logger = logger
-    this.openaiApiKey = process.env.OPENAI_API_KEY
+    this.geminiApiKey = process.env.GEMINI_API_KEY
     this.edamamFoodAppId = process.env.EDAMAM_APP_FOOD_ID
     this.edamamFoodAppKey = process.env.EDAMAM_APP_FOOD_KEY
+    
+    // Ініціалізація Gemini AI
+    if (this.geminiApiKey) {
+      this.gemini = new GoogleGenerativeAI(this.geminiApiKey);
+    }
   }
 
   async searchIngredients(query, limit = 5) {
@@ -51,76 +58,63 @@ export class AiService {
 
   async getRecipeSuggestions(ingredients, preferences = '') {
     try {
-      if (!this.openaiApiKey) {
-        this.logger.error('OpenAI API key missing')
-        return {
-          success: false,
-          error: 'OpenAI API key missing'
-        }
+      if (!this.geminiApiKey) {
+        this.logger.error('Gemini API key missing')
+        return this.getFallbackSuggestion(ingredients, preferences)
       }
 
-      this.logger.info('Getting recipe suggestions', { 
+      this.logger.info('Getting recipe suggestions with Gemini', { 
         ingredientsCount: ingredients.length,
         hasPreferences: !!preferences
       })
 
-      const systemPrompt = `You are a helpful cooking assistant that suggests recipes based on available ingredients. 
-      Focus on practical, easy-to-follow recipes that use the ingredients provided.
-      Format your response in markdown with clear sections:
-      1. Recipe name (as a heading)
-      2. Brief description
-      3. Ingredients list (with quantities)
-      4. Step-by-step instructions
-      5. Cooking time and difficulty level
+      const systemPrompt = `Ти корисний кулінарний помічник, який пропонує рецепти на основі доступних інгредієнтів. 
+Зосередься на практичних, легких для виконання рецептах, які використовують надані інгредієнти.
+Форматуй свою відповідь у markdown з чіткими розділами:
+1. Назва рецепту (як заголовок)
+2. Короткий опис
+3. Список інгредієнтів (з кількістю)
+4. Покрокові інструкції
+5. Час приготування та рівень складності
+
+Якщо у користувача є дієтичні переваги або обмеження, адаптуй свої пропозиції відповідно.
+Якщо список інгредієнтів дуже обмежений, запропонуй прості рецепти або порекомендуй кілька додаткових інгредієнтів.`
+
+      const userMessage = `У мене є ці інгредієнти: ${ingredients.join(', ')}. ${preferences ? `Мої переваги: ${preferences}.` : ''} Що я можу приготувати?`
+
+      const model = this.gemini.getGenerativeModel({ model: 'gemini-pro' })
+      const prompt = `${systemPrompt}\n\nКористувач: ${userMessage}`
       
-      If the user has dietary preferences or restrictions, adapt your suggestions accordingly.
-      If the ingredients list is very limited, suggest simple recipes or recommend a few additional ingredients that would enable more options.`;
+      const result = await model.generateContent(prompt)
+      const response = await result.response
+      const suggestion = response.text()
 
-      const userMessage = `I have these ingredients: ${ingredients.join(', ')}. ${preferences ? `My preferences: ${preferences}.` : ''} What can I cook?`;
-
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.openaiApiKey}`
-        },
-        body: JSON.stringify({
-          model: "gpt-3.5-turbo",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userMessage }
-          ],
-          temperature: 0.7,
-          max_tokens: 1000
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        this.logger.error('OpenAI API error', { 
-          status: response.status, 
-          error: errorData.error 
-        });
-        throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
-      }
-
-      const data = await response.json();
-      const suggestion = data.choices[0].message.content;
-
-      this.logger.info('Recipe suggestion generated successfully', { 
+      this.logger.info('Gemini recipe suggestion generated successfully', { 
         responseLength: suggestion.length 
-      });
+      })
 
       return {
         success: true,
         suggestion
-      };
+      }
     } catch (error) {
-      this.logger.error('Error getting recipe suggestions', { error: error.message });
-      return {
-        success: false,
-        error: error.message
-      };
+      this.logger.error('Error getting recipe suggestions from Gemini', { error: error.message })
+      
+      // Повернути резервну відповідь у випадку помилки
+      return this.getFallbackSuggestion(ingredients, preferences)
+    }
+  }
+
+  getFallbackSuggestion(ingredients, preferences) {
+    const suggestion = `# Базові рецепти з доступних інгредієнтів\n\n## Інгредієнти: ${ingredients.join(', ')}\n\n${preferences ? `## Ваші побажання: ${preferences}\n\n` : ''}## Рекомендації:\n\n### 🥗 Простий салат\n**Час приготування:** 10 хвилин  \n**Складність:** Легко\n\n**Інструкції:**\n1. Помийте та нарізайте свіжі овочі\n2. Змішайте в салатниці\n3. Додайте олію, сіль та спеції за смаком\n4. Перемішайте та подавайте\n\n### 🍳 Смажені овочі\n**Час приготування:** 15 хвилин  \n**Складність:** Легко\n\n**Інструкції:**\n1. Розігрійте сковороду з олією\n2. Додайте нарізані овочі\n3. Смажте 10-12 хвилин, помішуючи\n4. Приправте сіллю та спеціями\n\n### 🍲 Овочевий суп\n**Час приготування:** 30 хвилин  \n**Складність:** Середньо\n\n**Інструкції:**\n1. Нарізайте овочі кубиками\n2. Обсмажте в каструлі з олією\n3. Додайте воду та варіть 20 хвилин\n4. Приправте за смаком\n\n*Примітка: AI сервіс тимчасово недоступний. Це базові рекомендації.*`
+    
+    this.logger.info('Using fallback recipe suggestion')
+    
+    return {
+      success: true,
+      suggestion
     }
   }
 }
+
+export default AIService;
