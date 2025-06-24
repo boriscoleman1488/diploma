@@ -4,10 +4,12 @@ import {
     addDishToCollectionSchema,
     removeDishFromCollectionSchema,
     getCollectionSchema,
-    getDishesByTypeSchema
+    getDishesByTypeSchema,
+    updateCollectionSchema
 } from '../../schemas/collectionSchemas.js'
 
 export default async function collectionRoutes(fastify, options) {
+    // Get all user collections
     fastify.get('/', {
         preHandler: [authenticateUser]
     }, async (request, reply) => {
@@ -35,12 +37,53 @@ export default async function collectionRoutes(fastify, options) {
         }
     })
 
+    // Get collection by ID with dishes
+    fastify.get('/:collectionId', {
+        preHandler: [authenticateUser],
+        schema: {
+            params: {
+                type: 'object',
+                required: ['collectionId'],
+                properties: {
+                    collectionId: { type: 'string', format: 'uuid' }
+                }
+            }
+        }
+    }, async (request, reply) => {
+        try {
+            const { collectionId } = request.params
+            const userId = request.user.id
+            
+            const result = await fastify.collectionService.getCollectionWithDishes(userId, collectionId)
+
+            if (!result.success) {
+                return reply.code(404).send({
+                    error: result.error,
+                    message: result.message
+                })
+            }
+
+            return reply.send({
+                success: true,
+                collection: result.collection,
+                dishes: result.dishes
+            })
+        } catch (error) {
+            fastify.log.error(error)
+            return reply.code(500).send({
+                error: 'Internal server error',
+                message: 'Unable to fetch collection'
+            })
+        }
+    })
+
+    // Get dishes by system collection type
     fastify.get('/type/:type', {
         schema: getDishesByTypeSchema,
         preHandler: [authenticateUser]
     }, async (request, reply) => {
         try {
-            const { userId } = request.user
+            const userId = request.user.id
             const { type } = request.params
 
             const result = await fastify.collectionService.getDishesByType(userId, type)
@@ -65,12 +108,13 @@ export default async function collectionRoutes(fastify, options) {
         }
     })
 
+    // Create new collection
     fastify.post('/', {
         schema: createCollectionSchema,
         preHandler: [authenticateUser]
     }, async (request, reply) => {
         try {
-            const { userId } = request.user
+            const userId = request.user.id
             const result = await fastify.collectionService.createCollection(userId, request.body)
 
             if (!result.success) {
@@ -93,12 +137,44 @@ export default async function collectionRoutes(fastify, options) {
         }
     })
 
+    // Update collection
+    fastify.put('/:collectionId', {
+        schema: updateCollectionSchema,
+        preHandler: [authenticateUser]
+    }, async (request, reply) => {
+        try {
+            const userId = request.user.id
+            const { collectionId } = request.params
+            
+            const result = await fastify.collectionService.updateCollection(userId, collectionId, request.body)
+
+            if (!result.success) {
+                return reply.code(400).send({
+                    error: result.error,
+                    message: result.message
+                })
+            }
+
+            return reply.send({
+                success: true,
+                collection: result.collection
+            })
+        } catch (error) {
+            fastify.log.error(error)
+            return reply.code(500).send({
+                error: 'Internal server error',
+                message: 'Unable to update collection'
+            })
+        }
+    })
+
+    // Add dish to collection
     fastify.post('/dishes/:collectionId', {
         schema: addDishToCollectionSchema,
         preHandler: [authenticateUser]
     }, async (request, reply) => {
         try {
-            const { userId } = request.user
+            const userId = request.user.id
             const { collectionId } = request.params
             const { dishId } = request.body
 
@@ -124,12 +200,13 @@ export default async function collectionRoutes(fastify, options) {
         }
     })
 
+    // Remove dish from collection
     fastify.delete('/:collectionId/dishes/:dishId', {
         schema: removeDishFromCollectionSchema,
         preHandler: [authenticateUser]
     }, async (request, reply) => {
         try {
-            const { userId } = request.user
+            const userId = request.user.id
             const { collectionId, dishId } = request.params
 
             const result = await fastify.collectionService.removeDishFromCollection(userId, collectionId, dishId)
@@ -153,12 +230,13 @@ export default async function collectionRoutes(fastify, options) {
         }
     })
 
+    // Delete collection
     fastify.delete('/:collectionId', {
         schema: getCollectionSchema,
         preHandler: [authenticateUser]
     }, async (request, reply) => {
         try {
-            const { userId } = request.user
+            const userId = request.user.id
             const { collectionId } = request.params
 
             const result = await fastify.collectionService.deleteCollection(userId, collectionId)

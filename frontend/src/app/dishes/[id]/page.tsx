@@ -8,6 +8,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { CommentSection } from '@/components/dishes/CommentSection'
 import { RatingSection } from '@/components/dishes/RatingSection'
+import { AddToCollectionButton } from '@/components/dishes/AddToCollectionButton'
 import { apiClient } from '@/lib/api'
 import { formatRelativeTime } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
@@ -21,7 +22,8 @@ import {
   Grid3X3,
   ArrowLeft,
   Activity,
-  Zap
+  Zap,
+  Share2
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -90,6 +92,24 @@ export default function DishDetailPage() {
       toast.error('Помилка аналізу поживності')
     } finally {
       setIsAnalyzingNutrition(false)
+    }
+  }
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: dish?.title || 'Рецепт страви',
+        text: dish?.description || 'Перегляньте цей рецепт',
+        url: window.location.href
+      })
+      .catch(error => {
+        console.error('Error sharing:', error)
+      })
+    } else {
+      // Fallback for browsers that don't support navigator.share
+      navigator.clipboard.writeText(window.location.href)
+        .then(() => toast.success('Посилання скопійовано в буфер обміну'))
+        .catch(() => toast.error('Не вдалося скопіювати посилання'))
     }
   }
 
@@ -392,23 +412,38 @@ export default function DishDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Share Section (placeholder) */}
+          {/* Collection Section */}
+          {isAuthenticated && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <BookOpen className="w-5 h-5 mr-2" />
+                  Колекції
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AddToCollectionButton dishId={id} />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Share Section */}
           <Card>
             <CardHeader>
-              <CardTitle>Поділитися</CardTitle>
+              <CardTitle className="flex items-center">
+                <Share2 className="w-5 h-5 mr-2" />
+                Поділитися
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex space-x-2">
-                <Button variant="outline" className="flex-1">
-                  Facebook
-                </Button>
-                <Button variant="outline" className="flex-1">
-                  Twitter
-                </Button>
-                <Button variant="outline" className="flex-1">
-                  Telegram
-                </Button>
-              </div>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                leftIcon={<Share2 className="w-4 h-4" />}
+                onClick={handleShare}
+              >
+                Поділитися рецептом
+              </Button>
             </CardContent>
           </Card>
         </div>

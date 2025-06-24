@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { User, Settings, LogOut, Menu, X, Shield, Grid3X3, ChefHat } from 'lucide-react'
+import { User, Settings, LogOut, Menu, X, Shield, Grid3X3, ChefHat, BookOpen } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
@@ -14,6 +14,7 @@ const navigation = [
   { name: 'Профіль', href: '/profile', icon: User },
   { name: 'Категорії', href: '/categories', icon: Grid3X3 },
   { name: 'Страви', href: '/dishes', icon: ChefHat },
+  { name: 'Колекції', href: '/collections', icon: BookOpen },
   { name: 'Налаштування', href: '/profile/settings', icon: Settings },
 ]
 
@@ -107,7 +108,7 @@ export function Navigation() {
         <div className="flex justify-between h-16">
           {/* Logo and main navigation */}
           <div className="flex items-center">
-            <Link href="/profile" className="flex items-center space-x-2">
+            <Link href="/" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">R</span>
               </div>
@@ -120,7 +121,8 @@ export function Navigation() {
                 const Icon = item.icon
                 const isActive = pathname === item.href || 
                   (item.href === '/admin/users' && pathname.startsWith('/admin')) ||
-                  (item.href === '/dishes' && pathname.startsWith('/dishes'))
+                  (item.href === '/dishes' && pathname.startsWith('/dishes')) ||
+                  (item.href === '/collections' && pathname.startsWith('/collections'))
                 
                 return (
                   <Link
@@ -198,7 +200,8 @@ export function Navigation() {
               const Icon = item.icon
               const isActive = pathname === item.href || 
                 (item.href === '/admin/users' && pathname.startsWith('/admin')) ||
-                (item.href === '/dishes' && pathname.startsWith('/dishes'))
+                (item.href === '/dishes' && pathname.startsWith('/dishes')) ||
+                (item.href === '/collections' && pathname.startsWith('/collections'))
               
               return (
                 <Link
