@@ -679,8 +679,8 @@ export class DishService {
 
             this.logger.info('Starting dish deletion - cleaning up related records', { dishId, userId })
 
-            // Delete dish comments first
-            const { error: commentsError } = await this.supabase
+            // Delete dish comments first - using admin client to bypass RLS
+            const { error: commentsError } = await this.supabaseAdmin
                 .from('dish_comments')
                 .delete()
                 .eq('dish_id', dishId)
@@ -694,8 +694,8 @@ export class DishService {
                 }
             }
 
-            // Delete dish ratings
-            const { error: ratingsError } = await this.supabase
+            // Delete dish ratings - using admin client to bypass RLS
+            const { error: ratingsError } = await this.supabaseAdmin
                 .from('dish_ratings')
                 .delete()
                 .eq('dish_id', dishId)
@@ -709,8 +709,8 @@ export class DishService {
                 }
             }
 
-            // Delete dish collection items
-            const { error: collectionItemsError } = await this.supabase
+            // Delete dish collection items - using admin client to bypass RLS
+            const { error: collectionItemsError } = await this.supabaseAdmin
                 .from('dish_collection_items')
                 .delete()
                 .eq('dish_id', dishId)
@@ -724,8 +724,8 @@ export class DishService {
                 }
             }
 
-            // Delete dish ingredients
-            const { error: ingredientsError } = await this.supabase
+            // Delete dish ingredients - using admin client to bypass RLS
+            const { error: ingredientsError } = await this.supabaseAdmin
                 .from('dish_ingredients')
                 .delete()
                 .eq('dish_id', dishId)
@@ -739,8 +739,8 @@ export class DishService {
                 }
             }
 
-            // Delete dish steps
-            const { error: stepsError } = await this.supabase
+            // Delete dish steps - using admin client to bypass RLS
+            const { error: stepsError } = await this.supabaseAdmin
                 .from('dish_steps')
                 .delete()
                 .eq('dish_id', dishId)
@@ -754,8 +754,8 @@ export class DishService {
                 }
             }
 
-            // Delete dish category relations
-            const { error: categoryRelationsError } = await this.supabase
+            // Delete dish category relations - using admin client to bypass RLS
+            const { error: categoryRelationsError } = await this.supabaseAdmin
                 .from('dish_category_relations')
                 .delete()
                 .eq('dish_id', dishId)
@@ -769,8 +769,8 @@ export class DishService {
                 }
             }
 
-            // Finally, delete the dish itself
-            const { error: deleteError } = await this.supabase
+            // Finally, delete the dish itself - using admin client to bypass RLS
+            const { error: deleteError } = await this.supabaseAdmin
                 .from('dishes')
                 .delete()
                 .eq('id', dishId)
