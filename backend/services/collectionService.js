@@ -274,7 +274,6 @@ export class CollectionService {
                     *,
                     dish_collection_items(
                         dish_id,
-                        user_id,
                         added_at,
                         dishes(
                             id,
