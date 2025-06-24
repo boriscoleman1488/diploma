@@ -112,7 +112,7 @@ ${preferences ? `\n*Примітка: Враховуйте ваші перева
 
       const userMessage = `У мене є ці інгредієнти: ${ingredients.join(', ')}. ${preferences ? `Мої переваги: ${preferences}.` : ''} Що я можу приготувати?`
 
-      const model = this.gemini.getGenerativeModel({ model: 'gemini-pro' })
+      const model = this.gemini.getGenerativeModel({ model: 'gemini-1.5-pro' })
       const prompt = `${systemPrompt}\n\nКористувач: ${userMessage}`
       
       const result = await model.generateContent(prompt)
