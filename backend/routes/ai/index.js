@@ -102,4 +102,30 @@ export default async function aiRoutes(fastify, options) {
       })
     }
   })
+  
+  // Додайте цей маршрут
+  fastify.get('/validate-key', async (request, reply) => {
+    try {
+      const result = await fastify.aiService.validateGeminiApiKey()
+      
+      if (result.success) {
+        return reply.send({
+          success: true,
+          message: result.message
+        })
+      } else {
+        return reply.code(400).send({
+          success: false,
+          error: result.error,
+          details: result.details
+        })
+      }
+    } catch (error) {
+      fastify.log.error('API key validation error', { error: error.message })
+      return reply.code(500).send({
+        success: false,
+        error: 'Внутрішня помилка сервера'
+      })
+    }
+  })
 }
