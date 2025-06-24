@@ -57,7 +57,6 @@ interface CreateCollectionModalProps {
 function CreateCollectionModal({ isOpen, onClose, onSuccess }: CreateCollectionModalProps) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [isPublic, setIsPublic] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,14 +72,12 @@ function CreateCollectionModal({ isOpen, onClose, onSuccess }: CreateCollectionM
       const response = await apiClient.post('/collections', {
         name: name.trim(),
         description: description.trim() || undefined,
-        is_public: isPublic
       })
       
       if (response.success) {
         toast.success('Колекцію успішно створено')
         setName('')
         setDescription('')
-        setIsPublic(false)
         onSuccess()
         onClose()
       } else {
@@ -98,7 +95,6 @@ function CreateCollectionModal({ isOpen, onClose, onSuccess }: CreateCollectionM
     if (!isCreating) {
       setName('')
       setDescription('')
-      setIsPublic(false)
       onClose()
     }
   }
@@ -151,20 +147,6 @@ function CreateCollectionModal({ isOpen, onClose, onSuccess }: CreateCollectionM
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
             />
-          </div>
-          
-          <div className="flex items-center">
-            <input
-              id="is_public"
-              type="checkbox"
-              checked={isPublic}
-              onChange={(e) => setIsPublic(e.target.checked)}
-              disabled={isCreating}
-              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-            />
-            <label htmlFor="is_public" className="ml-2 block text-sm text-gray-700">
-              Зробити колекцію публічною
-            </label>
           </div>
           
           <div className="flex items-center justify-end space-x-3 pt-4">

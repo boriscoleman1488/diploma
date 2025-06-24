@@ -1,3 +1,4 @@
+
 export const createCollectionSchema = {
     body: {
         type: 'object',
@@ -11,10 +12,6 @@ export const createCollectionSchema = {
             description: {
                 type: 'string',
                 maxLength: 500
-            },
-            is_public: {
-                type: 'boolean',
-                default: false
             }
         }
     }

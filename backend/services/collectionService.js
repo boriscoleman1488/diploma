@@ -24,33 +24,6 @@ export class CollectionService {
         DISH_REMOVED: 'Dish removed from collection successfully'
     }
 
-    static SYSTEM_COLLECTIONS = [
-        {
-            name: 'Мої страви',
-            description: 'Ваші створені страви',
-            system_type: 'my_dishes',
-            is_public: false
-        },
-        {
-            name: 'Улюблені',
-            description: 'Збережені страви інших користувачів',
-            system_type: 'liked',
-            is_public: false
-        },
-        {
-            name: 'Опубліковані',
-            description: 'Ваші опубліковані страви',
-            system_type: 'published',
-            is_public: true
-        },
-        {
-            name: 'Приватні',
-            description: 'Ваші приватні страви',
-            system_type: 'private',
-            is_public: false
-        }
-    ]
-
     _handleError(operation, error, customMessage = null) {
         this.logger.error(`${operation} error`, { error: error.message })
         return {
@@ -117,28 +90,6 @@ export class CollectionService {
         return { exists: true, collection }
     }
 
-    async _ensureSystemCollections(userId) {
-        const { data: systemCollections, error } = await this.supabase
-            .from('dish_collections')
-            .select('id, system_type')
-            .eq('user_id', userId)
-            .eq('collection_type', 'system')
-
-        if (error) {
-            throw error
-        }
-
-        if (!systemCollections || systemCollections.length === 0) {
-            const createResult = await this.createSystemCollections(userId)
-            if (!createResult.success) {
-                throw new Error(createResult.error)
-            }
-            return createResult.collections
-        }
-
-        return systemCollections
-    }
-
     _shouldAddToSystemCollection(systemType, dishStatus) {
         switch (systemType) {
             case 'my_dishes':
@@ -154,7 +105,7 @@ export class CollectionService {
 
     async createCollection(userId, collectionData) {
         try {
-            const { name, description, is_public = false } = collectionData
+            const { name, description } = collectionData
 
             const { data: collection, error } = await this.supabase
                 .from('dish_collections')
@@ -163,7 +114,6 @@ export class CollectionService {
                     name,
                     description,
                     collection_type: 'custom',
-                    is_public
                 })
                 .select()
                 .single()
@@ -210,12 +160,17 @@ export class CollectionService {
             }
             
             // Update the collection
-            const { name, description, is_public } = collectionData
+            // В методі createCollection видалити:
+            // const { name, description, is_public = false } = collectionData
+            // is_public
+            
+            // В методі updateCollection видалити:
+            // const { name, description, is_public } = collectionData
+            // if (is_public !== undefined) updateData.is_public = is_public
             const updateData = {}
             
             if (name !== undefined) updateData.name = name
-            if (description !== undefined) updateData.description = description
-            if (is_public !== undefined) updateData.is_public = is_public
+            if (description !== undefined) updateData.description = descriptionc
             
             const { data: updatedCollection, error } = await this.supabase
                 .from('dish_collections')
@@ -244,8 +199,6 @@ export class CollectionService {
                 name: collection.name,
                 description: collection.description,
                 collection_type: collection.system_type,
-                system_type: collection.system_type,
-                is_public: collection.is_public
             }))
 
             const { data: newCollections, error } = await this.supabase
@@ -265,9 +218,6 @@ export class CollectionService {
 
     async getUserCollections(userId) {
         try {
-            // Ensure system collections exist
-            await this._ensureSystemCollections(userId)
-            
             const { data: collections, error } = await this.supabase
                 .from('dish_collections')
                 .select(`

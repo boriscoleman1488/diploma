@@ -29,7 +29,6 @@ export interface CreateCollectionData {
 export interface UpdateCollectionData {
   name?: string
   description?: string
-  is_public?: boolean
 }
 
 export interface AddDishToCollectionData {
