@@ -12,6 +12,7 @@ import { apiClient } from '@/lib/api'
 
 const navigation = [
   { name: 'Профіль', href: '/profile', icon: User },
+  { name: 'Мої страви', href: '/profile/dishes', icon: ChefHat },
   { name: 'Категорії', href: '/categories', icon: Grid3X3 },
   { name: 'Страви', href: '/dishes', icon: ChefHat },
   { name: 'Колекції', href: '/collections', icon: BookOpen },
@@ -122,7 +123,8 @@ export function Navigation() {
                 const isActive = pathname === item.href || 
                   (item.href === '/admin/users' && pathname.startsWith('/admin')) ||
                   (item.href === '/dishes' && pathname.startsWith('/dishes')) ||
-                  (item.href === '/collections' && pathname.startsWith('/collections'))
+                  (item.href === '/collections' && pathname.startsWith('/collections')) ||
+                  (item.href === '/profile/dishes' && pathname === '/profile/dishes')
                 
                 return (
                   <Link
@@ -201,7 +203,8 @@ export function Navigation() {
               const isActive = pathname === item.href || 
                 (item.href === '/admin/users' && pathname.startsWith('/admin')) ||
                 (item.href === '/dishes' && pathname.startsWith('/dishes')) ||
-                (item.href === '/collections' && pathname.startsWith('/collections'))
+                (item.href === '/collections' && pathname.startsWith('/collections')) ||
+                (item.href === '/profile/dishes' && pathname === '/profile/dishes')
               
               return (
                 <Link
