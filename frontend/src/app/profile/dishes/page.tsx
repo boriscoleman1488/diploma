@@ -374,7 +374,7 @@ export default function UserDishesPage() {
                           Переглянути
                         </Button>
                       </Link>
-                      <Link href={`/dishes/edit/${dish.id}`} className="flex-1">
+                      <Link href={`/dishes/${dish.id}/edit`} className="flex-1">
                         <Button 
                           variant="outline" 
                           size="sm"
