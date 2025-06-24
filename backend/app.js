@@ -52,7 +52,7 @@ console.log('Environment variables check:', {
   EDAMAM_APP_FOOD_KEY: process.env.EDAMAM_APP_FOOD_KEY ? `${process.env.EDAMAM_APP_FOOD_KEY.substring(0, 4)}...` : 'missing',
   EDAMAM_APP_NUTRITION_ID: process.env.EDAMAM_APP_NUTRITION_ID ? `${process.env.EDAMAM_APP_NUTRITION_ID.substring(0, 4)}...` : 'missing',
   EDAMAM_APP_NUTRITION_KEY: process.env.EDAMAM_APP_NUTRITION_KEY ? `${process.env.EDAMAM_APP_NUTRITION_KEY.substring(0, 4)}...` : 'missing',
-  OPENAI_API_KEY: process.env.OPENAI_API_KEY ? 'configured' : 'missing'
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'configured' : 'missing'
 })
 
 // Simple logger configuration without deprecated features
