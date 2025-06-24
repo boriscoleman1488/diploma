@@ -117,26 +117,50 @@ export class CollectionService {
         return { exists: true, collection }
     }
 
-    async _ensureSystemCollections(userId) {
+    async _checkSystemCollectionsExist(userId) {
         const { data: systemCollections, error } = await this.supabase
             .from('dish_collections')
             .select('id, system_type')
             .eq('user_id', userId)
-            .eq('collection_type', 'system')
+            .not('system_type', 'is', null)
 
         if (error) {
-            throw error
+            this.logger.error('Error checking system collections', { error: error.message, userId })
+            return false
         }
 
-        if (!systemCollections || systemCollections.length === 0) {
-            const createResult = await this.createSystemCollections(userId)
-            if (!createResult.success) {
-                throw new Error(createResult.error)
+        // Check if we have all required system collections
+        const requiredTypes = ['my_dishes', 'liked', 'published', 'private']
+        const existingTypes = systemCollections?.map(c => c.system_type) || []
+        
+        return requiredTypes.every(type => existingTypes.includes(type))
+    }
+
+    async _ensureSystemCollections(userId) {
+        // First check if system collections already exist
+        const collectionsExist = await this._checkSystemCollectionsExist(userId)
+        
+        if (collectionsExist) {
+            // If collections exist, just return them
+            const { data: systemCollections, error } = await this.supabase
+                .from('dish_collections')
+                .select('id, system_type')
+                .eq('user_id', userId)
+                .not('system_type', 'is', null)
+                
+            if (error) {
+                throw error
             }
-            return createResult.collections
+            
+            return systemCollections
         }
-
-        return systemCollections
+        
+        // If collections don't exist, create them
+        const createResult = await this.createSystemCollections(userId)
+        if (!createResult.success) {
+            throw new Error(createResult.error)
+        }
+        return createResult.collections
     }
 
     _shouldAddToSystemCollection(systemType, dishStatus) {
@@ -201,7 +225,7 @@ export class CollectionService {
             }
             
             // Check if it's a system collection
-            if (collection.collection_type === 'system') {
+            if (collection.system_type) {
                 return {
                     success: false,
                     error: CollectionService.ERRORS.SYSTEM_COLLECTION,
@@ -239,18 +263,36 @@ export class CollectionService {
 
     async createSystemCollections(userId) {
         try {
+            // First check if system collections already exist to avoid duplicates
+            const collectionsExist = await this._checkSystemCollectionsExist(userId)
+            
+            if (collectionsExist) {
+                // If collections exist, just return them
+                const { data: existingCollections } = await this.supabase
+                    .from('dish_collections')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .not('system_type', 'is', null)
+                    
+                return this._handleSuccess({ collections: existingCollections })
+            }
+            
+            // Create collections only if they don't exist
             const collectionsToCreate = CollectionService.SYSTEM_COLLECTIONS.map(collection => ({
                 user_id: userId,
                 name: collection.name,
                 description: collection.description,
-                collection_type: collection.system_type,
+                collection_type: 'system',
                 system_type: collection.system_type,
                 is_public: collection.is_public
             }))
 
             const { data: newCollections, error } = await this.supabase
                 .from('dish_collections')
-                .insert(collectionsToCreate)
+                .upsert(collectionsToCreate, { 
+                    onConflict: 'user_id,system_type',
+                    ignoreDuplicates: true
+                })
                 .select()
 
             if (error) {
@@ -486,7 +528,7 @@ export class CollectionService {
             }
             
             // Check if it's a system collection
-            if (collection.collection_type === 'system') {
+            if (collection.system_type) {
                 return {
                     success: false,
                     error: CollectionService.ERRORS.SYSTEM_COLLECTION,
@@ -535,9 +577,10 @@ export class CollectionService {
             if (itemsToAdd.length > 0) {
                 const { error } = await this.supabase
                     .from('dish_collection_items')
-                    .insert(itemsToAdd)
-                    .on_conflict(['collection_id', 'dish_id', 'user_id'])
-                    .ignore()
+                    .upsert(itemsToAdd, {
+                        onConflict: 'collection_id,dish_id,user_id',
+                        ignoreDuplicates: true
+                    })
 
                 if (error) {
                     return this._handleError('Add dish to system collections', error)
@@ -556,7 +599,7 @@ export class CollectionService {
                 .from('dish_collections')
                 .select('id, system_type')
                 .eq('user_id', userId)
-                .eq('collection_type', 'system')
+                .not('system_type', 'is', null)
 
             if (systemCollections && systemCollections.length > 0) {
                 // Remove from all system collections first
@@ -617,23 +660,16 @@ export class CollectionService {
 
     async getDishesByType(userId, type) {
         try {
+            // Ensure system collections exist
+            await this._ensureSystemCollections(userId)
+            
             const { exists, collection } = await this._getSystemCollectionByType(userId, type)
             if (!exists) {
-                // Create system collections if they don't exist
-                await this._ensureSystemCollections(userId)
-                
-                // Try again to get the collection
-                const retryResult = await this._getSystemCollectionByType(userId, type)
-                if (!retryResult.exists) {
-                    return {
-                        success: false,
-                        error: CollectionService.ERRORS.COLLECTION_NOT_FOUND,
-                        message: `System collection '${type}' not found for user`
-                    }
+                return {
+                    success: false,
+                    error: CollectionService.ERRORS.COLLECTION_NOT_FOUND,
+                    message: `System collection '${type}' not found for user`
                 }
-                
-                // Use the newly created collection
-                return await this.getDishesByType(userId, type)
             }
 
             const { data: collectionItems, error } = await this.supabase
