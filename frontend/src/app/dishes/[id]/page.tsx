@@ -95,22 +95,38 @@ export default function DishDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
-  const handleShare = () => {
+  const handleShare = async () => {
+    const shareData = {
+      title: dish?.title || 'Рецепт страви',
+      text: dish?.description || 'Перегляньте цей рецепт',
+      url: window.location.href
+    }
+
+    // Check if Web Share API is supported and can share this data
     if (navigator.share) {
-      navigator.share({
-        title: dish?.title || 'Рецепт страви',
-        text: dish?.description || 'Перегляньте цей рецепт',
-        url: window.location.href
-      })
-      .catch(error => {
-        console.error('Error sharing:', error)
-      })
+      // Check if navigator.canShare is available and if the data can be shared
+      if (navigator.canShare && !navigator.canShare(shareData)) {
+        // If canShare returns false, fall back to clipboard
+        fallbackToClipboard()
+        return
+      }
+
+      try {
+        await navigator.share(shareData)
+      } catch (error) {
+        // If sharing fails (permission denied, user cancelled, etc.), fall back to clipboard
+        fallbackToClipboard()
+      }
     } else {
       // Fallback for browsers that don't support navigator.share
-      navigator.clipboard.writeText(window.location.href)
-        .then(() => toast.success('Посилання скопійовано в буфер обміну'))
-        .catch(() => toast.error('Не вдалося скопіювати посилання'))
+      fallbackToClipboard()
     }
+  }
+
+  const fallbackToClipboard = () => {
+    navigator.clipboard.writeText(window.location.href)
+      .then(() => toast.success('Посилання скопійовано в буфер обміну'))
+      .catch(() => toast.error('Не вдалося скопіювати посилання'))
   }
 
   useEffect(() => {
