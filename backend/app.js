@@ -106,7 +106,7 @@ await fastify.register(fastifyRateLimit, {
 // Register multipart support for file uploads
 await fastify.register(fastifyMultipart, {
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 10 * 1024 * 1024, // 10MB limit to match dish-images bucket
     files: 1 // Only allow 1 file at a time
   }
 })
