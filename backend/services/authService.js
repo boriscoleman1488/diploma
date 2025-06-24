@@ -1,6 +1,6 @@
 export class AuthService {
-    static PROFILE_TAG_MAX_ATTEMPTS = 10
-    static PROFILE_TAG_RANDOM_RANGE = 10000
+    static PROFILE_TAG_MAX_ATTEMPTS = 50
+    static PROFILE_TAG_RANDOM_RANGE = 1000000
     static DEFAULT_USER_ROLE = 'user'
 
     static ERROR_MESSAGES = {
@@ -56,10 +56,12 @@ export class AuthService {
 
     _generateTimestampProfileTag() {
         const timestamp = Date.now()
-        return `user_${timestamp}`
+        const randomSuffix = Math.floor(Math.random() * 1000)
+        return `user_${timestamp}_${randomSuffix}`
     }
 
     async generateUniqueProfileTag(baseName = 'user') {
+        // First, try with random numbers
         for (let attempt = 0; attempt < AuthService.PROFILE_TAG_MAX_ATTEMPTS; attempt++) {
             const randomNum = Math.floor(Math.random() * AuthService.PROFILE_TAG_RANDOM_RANGE) + 1
             const profileTag = `${baseName}_${randomNum}`
@@ -72,6 +74,7 @@ export class AuthService {
                     .single()
 
                 if (error?.code === 'PGRST116') {
+                    // No record found, this tag is unique
                     return profileTag
                 }
 
@@ -90,7 +93,47 @@ export class AuthService {
             }
         }
 
-        return this._generateTimestampProfileTag()
+        // If random attempts failed, try timestamp-based approach with additional uniqueness
+        let timestampAttempts = 0
+        const maxTimestampAttempts = 10
+
+        while (timestampAttempts < maxTimestampAttempts) {
+            const timestampTag = this._generateTimestampProfileTag()
+            
+            try {
+                const { data, error } = await this.supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('profile_tag', timestampTag)
+                    .single()
+
+                if (error?.code === 'PGRST116') {
+                    // No record found, this tag is unique
+                    return timestampTag
+                }
+
+                if (error && error.code !== 'PGRST116') {
+                    this.logger.error('Error checking timestamp profile tag uniqueness', {
+                        error: error.message,
+                        profileTag: timestampTag,
+                        attempt: timestampAttempts
+                    })
+                }
+            } catch (error) {
+                this.logger.error('Timestamp profile tag generation error', {
+                    error: error.message,
+                    attempt: timestampAttempts
+                })
+            }
+
+            timestampAttempts++
+            // Add a small delay to ensure different timestamps
+            await new Promise(resolve => setTimeout(resolve, 1))
+        }
+
+        // Final fallback with UUID-like suffix
+        const uuid = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+        return `${baseName}_${Date.now()}_${uuid}`
     }
 
     async register(email, password, fullName) {
