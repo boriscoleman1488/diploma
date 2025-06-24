@@ -7,13 +7,23 @@ export class AIService {
     this.edamamFoodAppId = process.env.EDAMAM_APP_FOOD_ID
     this.edamamFoodAppKey = process.env.EDAMAM_APP_FOOD_KEY
     
-    // Ініціалізація Gemini AI відповідно до нової документації
+    // Initialize Gemini AI according to the new documentation
     if (this.geminiApiKey) {
-      this.gemini = new GoogleGenerativeAI(this.geminiApiKey)
+      try {
+        this.gemini = new GoogleGenerativeAI(this.geminiApiKey)
+        this.logger.info('Gemini AI initialized successfully')
+      } catch (error) {
+        this.logger.error('Failed to initialize Gemini AI', { 
+          error: error.message,
+          stack: error.stack
+        })
+      }
+    } else {
+      this.logger.warn('GEMINI_API_KEY not provided in environment variables')
     }
   }
 
-  // Функція перевірки валідності Gemini API ключа
+  // Function to validate Gemini API key
   async validateGeminiApiKey() {
     try {
       if (!this.geminiApiKey) {
@@ -23,8 +33,8 @@ export class AIService {
         }
       }
 
-      // Тестовий запит до Gemini API використовуючи новий метод
-      const model = this.gemini.getGenerativeModel({ model: 'gemini-2.5-flash' })
+      // Test request to Gemini API using the new method
+      const model = this.gemini.getGenerativeModel({ model: 'gemini-1.5-flash' })
       const result = await model.generateContent('Test')
       const response = await result.response
       
@@ -108,11 +118,11 @@ export class AIService {
 
   async getRecipeSuggestions(ingredients, preferences = '') {
     try {
-      if (!this.geminiApiKey) {
-        this.logger.error('Gemini API key missing')
+      if (!this.geminiApiKey || !this.gemini) {
+        this.logger.error('Gemini API key missing or initialization failed')
         return {
           success: false,
-          error: 'AI чат тимчасово не працює. Спробуйте пізніше.'
+          error: 'AI чат тимчасово не працює. Перевірте налаштування GEMINI_API_KEY в .env файлі.'
         }
       }
 
@@ -121,7 +131,7 @@ export class AIService {
         hasPreferences: !!preferences
       })
 
-      // Системна інструкція відповідно до нової документації
+      // System instruction according to the new documentation
       const systemInstruction = `Ти корисний кулінарний помічник, який пропонує рецепти на основі доступних інгредієнтів. 
 Зосередься на практичних, легких для виконання рецептах, які використовують надані інгредієнти.
 Форматуй свою відповідь у markdown з чіткими розділами:
@@ -136,9 +146,9 @@ export class AIService {
 
       const userMessage = `У мене є ці інгредієнти: ${ingredients.join(', ')}. ${preferences ? `Мої переваги: ${preferences}.` : ''} Що я можу приготувати?`
 
-      // Використання нового API відповідно до документації
+      // Using the new API according to documentation
       const model = this.gemini.getGenerativeModel({ 
-        model: 'gemini-2.5-flash',
+        model: 'gemini-1.5-flash',
         systemInstruction: systemInstruction
       })
       
@@ -155,7 +165,7 @@ export class AIService {
         suggestion
       }
     } catch (error) {
-      // Детальне логування помилки
+      // Detailed error logging
       this.logger.error('Error getting recipe suggestions from Gemini', { 
         error: error.message,
         stack: error.stack,
@@ -166,7 +176,7 @@ export class AIService {
         fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
       })
 
-      // Повертаємо просту помилку
+      // Return a user-friendly error message
       return {
         success: false,
         error: 'AI чат тимчасово не працює. Спробуйте пізніше.'
