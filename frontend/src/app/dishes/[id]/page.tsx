@@ -24,7 +24,8 @@ import {
   Activity,
   Zap,
   Share2,
-  BookOpen
+  BookOpen,
+  MessageCircle
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
