@@ -56,6 +56,36 @@ class AIService {
     }
   }
 
+  getFallbackSuggestion(ingredients, preferences = '') {
+    this.logger.info('Using fallback suggestion due to missing Gemini API key')
+    
+    const suggestion = `# Простий рецепт з доступних інгредієнтів
+
+## Опис
+На жаль, AI-помічник недоступний, але ось кілька загальних порад для приготування з інгредієнтів: ${ingredients.join(', ')}.
+
+## Загальні поради:
+1. Спробуйте приготувати салат, якщо у вас є овочі
+2. Зробіть омлет або яєчню, якщо є яйця
+3. Приготуйте суп з наявних овочів та м'яса
+4. Використайте спеції для покращення смаку
+
+## Час приготування
+15-30 хвилин
+
+## Рівень складності
+Легкий
+
+${preferences ? `\n*Примітка: Враховуйте ваші переваги: ${preferences}*` : ''}
+
+Для отримання персоналізованих рецептів, будь ласка, налаштуйте AI-сервіс.`
+
+    return {
+      success: true,
+      suggestion
+    }
+  }
+
   async getRecipeSuggestions(ingredients, preferences = '') {
     try {
       if (!this.geminiApiKey) {
@@ -108,6 +138,12 @@ class AIService {
         response: error.response?.data || error.response,
         fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
       })
+
+      // Return structured error response instead of undefined
+      return {
+        success: false,
+        error: `Failed to generate recipe suggestions: ${error.message}`
+      }
     }
   }
 }
