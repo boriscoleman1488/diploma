@@ -1,6 +1,9 @@
 import { AuthSession } from '@/types/auth'
 
-const API_BASE_URL = '/api'
+// Use the correct protocol and port for the backend
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? '/api' 
+  : 'http://localhost:3000/api'
 
 class ApiClient {
   private baseURL: string
@@ -142,7 +145,12 @@ class ApiClient {
       // Refresh token if needed before making the request
       await this.refreshTokenIfNeeded()
 
-      const response = await fetch(`${this.baseURL}${endpoint}`, options)
+      const response = await fetch(`${this.baseURL}${endpoint}`, {
+        ...options,
+        // Add mode: 'cors' for cross-origin requests in development
+        mode: 'cors',
+        credentials: 'include'
+      })
       return await this.handleResponse<T>(response)
     } catch (error) {
       // If token was refreshed, retry the request once
@@ -152,7 +160,9 @@ class ApiClient {
           headers: {
             ...options.headers,
             ...this.getAuthHeaders(!!options.body)
-          }
+          },
+          mode: 'cors' as RequestMode,
+          credentials: 'include' as RequestCredentials
         }
         return this.makeRequest<T>(endpoint, newOptions, retryCount + 1)
       }
