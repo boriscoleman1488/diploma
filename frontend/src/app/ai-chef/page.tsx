@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { Avatar } from '@/components/ui/Avatar'
-import { apiClient } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import { 
   ChefHat, 
@@ -58,7 +57,7 @@ export default function AiChefPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [showSearchResults, setShowSearchResults] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, user } = useAuthStore()
 
   // Scroll to bottom of messages
   useEffect(() => {
@@ -67,6 +66,31 @@ export default function AiChefPage() {
     }
   }, [messages])
 
+  const callEdgeFunction = async (payload: any) => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Supabase configuration missing')
+    }
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/recipe-assistant`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        ...(user?.access_token && { 'Authorization': `Bearer ${user.access_token}` })
+      },
+      body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  }
+
   const searchIngredients = async () => {
     if (!searchQuery.trim()) return
     
@@ -74,7 +98,7 @@ export default function AiChefPage() {
     setShowSearchResults(true)
     
     try {
-      const response = await apiClient.post('/functions/v1/recipe-assistant', {
+      const response = await callEdgeFunction({
         action: 'search_ingredients',
         query: searchQuery.trim()
       })
@@ -165,7 +189,7 @@ export default function AiChefPage() {
     setMessages(prev => [...prev, newUserMessage])
     
     try {
-      const response = await apiClient.post('/functions/v1/recipe-assistant', {
+      const response = await callEdgeFunction({
         action: 'get_recipe_suggestions',
         ingredients: selectedIngredients.map(ing => ing.name),
         preferences: preferences
@@ -203,7 +227,7 @@ export default function AiChefPage() {
         timestamp: new Date()
       }
       
-      setMessages(prev => [...prev, errorMessage])
+        setMessages(prev => [...prev, errorMessage])
     } finally {
       setIsGenerating(false)
     }
