@@ -1,3 +1,4 @@
+
 export const createCollectionSchema = {
     body: {
         type: 'object',
@@ -11,10 +12,36 @@ export const createCollectionSchema = {
             description: {
                 type: 'string',
                 maxLength: 500
-            },
-            collection_type: {
+            }
+        }
+    }
+}
+
+export const updateCollectionSchema = {
+    params: {
+        type: 'object',
+        required: ['collectionId'],
+        properties: {
+            collectionId: {
                 type: 'string',
-                enum: ['custom', 'my_dishes', 'liked', 'published', 'private']
+                format: 'uuid'
+            }
+        }
+    },
+    body: {
+        type: 'object',
+        properties: {
+            name: {
+                type: 'string',
+                minLength: 1,
+                maxLength: 100
+            },
+            description: {
+                type: 'string',
+                maxLength: 500
+            },
+            is_public: {
+                type: 'boolean'
             }
         }
     }
@@ -63,9 +90,9 @@ export const removeDishFromCollectionSchema = {
 export const getCollectionSchema = {
     params: {
         type: 'object',
-        required: ['userId'],
+        required: ['collectionId'],
         properties: {
-            userId: {
+            collectionId: {
                 type: 'string',
                 format: 'uuid'
             }

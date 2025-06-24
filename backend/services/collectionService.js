@@ -12,37 +12,17 @@ export class CollectionService {
         CREATE_ERROR: 'Unable to create collection',
         FETCH_ERROR: 'Unable to fetch collections',
         ADD_ERROR: 'Unable to add dish to collection',
-        REMOVE_ERROR: 'Unable to remove dish from collection'
+        REMOVE_ERROR: 'Unable to remove dish from collection',
+        SYSTEM_COLLECTION: 'Cannot modify system collection'
     }
 
     static MESSAGES = {
         COLLECTION_CREATED: 'Collection created successfully',
+        COLLECTION_UPDATED: 'Collection updated successfully',
+        COLLECTION_DELETED: 'Collection deleted successfully',
         DISH_ADDED: 'Dish added to collection successfully',
         DISH_REMOVED: 'Dish removed from collection successfully'
     }
-
-    static SYSTEM_COLLECTIONS = [
-        {
-            name: 'Мої страви',
-            description: 'Ваші створені страви',
-            system_type: 'my_dishes'
-        },
-        {
-            name: 'Улюблені',
-            description: 'Збережені страви інших користувачів',
-            system_type: 'liked'
-        },
-        {
-            name: 'Опубліковані',
-            description: 'Ваші опубліковані страви',
-            system_type: 'published'
-        },
-        {
-            name: 'Приватні',
-            description: 'Ваші приватні страви',
-            system_type: 'private'
-        }
-    ]
 
     _handleError(operation, error, customMessage = null) {
         this.logger.error(`${operation} error`, { error: error.message })
@@ -110,28 +90,6 @@ export class CollectionService {
         return { exists: true, collection }
     }
 
-    async _ensureSystemCollections(userId) {
-        const { data: systemCollections, error } = await this.supabase
-            .from('dish_collections')
-            .select('id, system_type')
-            .eq('user_id', userId)
-            .eq('collection_type', 'system')
-
-        if (error) {
-            throw error
-        }
-
-        if (!systemCollections || systemCollections.length === 0) {
-            const createResult = await this.createSystemCollections(userId)
-            if (!createResult.success) {
-                throw new Error(createResult.error)
-            }
-            return createResult.collections
-        }
-
-        return systemCollections
-    }
-
     _shouldAddToSystemCollection(systemType, dishStatus) {
         switch (systemType) {
             case 'my_dishes':
@@ -147,7 +105,7 @@ export class CollectionService {
 
     async createCollection(userId, collectionData) {
         try {
-            const { name, description, is_public = false } = collectionData
+            const { name, description } = collectionData
 
             const { data: collection, error } = await this.supabase
                 .from('dish_collections')
@@ -156,7 +114,6 @@ export class CollectionService {
                     name,
                     description,
                     collection_type: 'custom',
-                    is_public
                 })
                 .select()
                 .single()
@@ -171,15 +128,77 @@ export class CollectionService {
         }
     }
 
+    async updateCollection(userId, collectionId, collectionData) {
+        try {
+            // Check if collection exists and user has access
+            const { exists, collection } = await this._getCollectionById(collectionId)
+            
+            if (!exists) {
+                return {
+                    success: false,
+                    error: CollectionService.ERRORS.COLLECTION_NOT_FOUND,
+                    message: 'The specified collection does not exist'
+                }
+            }
+            
+            // Check if user owns the collection
+            if (collection.user_id !== userId) {
+                return {
+                    success: false,
+                    error: CollectionService.ERRORS.ACCESS_DENIED,
+                    message: 'You do not have permission to update this collection'
+                }
+            }
+            
+            // Check if it's a system collection
+            if (collection.collection_type === 'system') {
+                return {
+                    success: false,
+                    error: CollectionService.ERRORS.SYSTEM_COLLECTION,
+                    message: 'System collections cannot be modified'
+                }
+            }
+            
+            // Update the collection
+            // В методі createCollection видалити:
+            // const { name, description, is_public = false } = collectionData
+            // is_public
+            
+            // В методі updateCollection видалити:
+            // const { name, description, is_public } = collectionData
+            // if (is_public !== undefined) updateData.is_public = is_public
+            const updateData = {}
+            
+            if (name !== undefined) updateData.name = name
+            if (description !== undefined) updateData.description = descriptionc
+            
+            const { data: updatedCollection, error } = await this.supabase
+                .from('dish_collections')
+                .update(updateData)
+                .eq('id', collectionId)
+                .select()
+                .single()
+                
+            if (error) {
+                return this._handleError('Collection update', error, 'Unable to update collection')
+            }
+            
+            return this._handleSuccess(
+                { collection: updatedCollection },
+                CollectionService.MESSAGES.COLLECTION_UPDATED
+            )
+        } catch (error) {
+            return this._handleError('Collection update', error)
+        }
+    }
+
     async createSystemCollections(userId) {
         try {
             const collectionsToCreate = CollectionService.SYSTEM_COLLECTIONS.map(collection => ({
                 user_id: userId,
                 name: collection.name,
                 description: collection.description,
-                collection_type: 'system',
-                system_type: collection.system_type,
-                is_public: false
+                collection_type: collection.system_type,
             }))
 
             const { data: newCollections, error } = await this.supabase
@@ -205,7 +224,6 @@ export class CollectionService {
                     *,
                     dish_collection_items(
                         dish_id,
-                        user_id,
                         added_at,
                         dishes(
                             id,
@@ -228,6 +246,84 @@ export class CollectionService {
         }
     }
 
+    async getCollectionWithDishes(userId, collectionId) {
+        try {
+            // Check if collection exists and user has access
+            const accessCheck = await this._checkCollectionAccess(collectionId, userId)
+            if (!accessCheck.hasAccess) {
+                return {
+                    success: false,
+                    error: accessCheck.error,
+                    message: accessCheck.error === CollectionService.ERRORS.COLLECTION_NOT_FOUND
+                        ? 'The specified collection does not exist'
+                        : 'You do not have permission to view this collection'
+                }
+            }
+
+            const collection = accessCheck.collection
+
+            // Get dishes in the collection
+            const { data: collectionItems, error: itemsError } = await this.supabase
+                .from('dish_collection_items')
+                .select(`
+                    dish_id,
+                    added_at,
+                    dishes(
+                        *,
+                        profiles(
+                            id,
+                            full_name,
+                            email,
+                            profile_tag,
+                            avatar_url
+                        ),
+                        dish_category_relations(
+                            dish_categories(
+                                id,
+                                name
+                            )
+                        ),
+                        dish_ratings(
+                            rating_type
+                        ),
+                        dish_comments(id)
+                    )
+                `)
+                .eq('collection_id', collectionId)
+                .order('added_at', { ascending: false })
+
+            if (itemsError) {
+                return this._handleError('Collection dishes fetch', itemsError, 'Unable to fetch dishes in collection')
+            }
+
+            // Process dishes to include added_at date and format them properly
+            const dishes = collectionItems?.map(item => {
+                const dish = item.dishes
+                return {
+                    ...dish,
+                    added_to_collection_at: item.added_at,
+                    categories: dish.dish_category_relations?.map(rel => rel.dish_categories) || [],
+                    ratings: dish.dish_ratings || [],
+                    comments_count: dish.dish_comments?.length || 0
+                }
+            }) || []
+
+            // Clean up nested properties
+            dishes.forEach(dish => {
+                delete dish.dish_category_relations
+                delete dish.dish_ratings
+                delete dish.dish_comments
+            })
+
+            return this._handleSuccess({ 
+                collection,
+                dishes
+            })
+        } catch (error) {
+            return this._handleError('Collection with dishes fetch', error)
+        }
+    }
+
     async addDishToCollection(userId, collectionId, dishId) {
         try {
             const accessCheck = await this._checkCollectionAccess(collectionId, userId)
@@ -235,6 +331,38 @@ export class CollectionService {
                 return {
                     success: false,
                     error: accessCheck.error
+                }
+            }
+
+            // Check if dish exists
+            const { data: dish, error: dishError } = await this.supabase
+                .from('dishes')
+                .select('id, status')
+                .eq('id', dishId)
+                .single()
+
+            if (dishError || !dish) {
+                return {
+                    success: false,
+                    error: 'Dish not found',
+                    message: 'The specified dish does not exist'
+                }
+            }
+
+            // Check if dish is already in collection
+            const { data: existingItem, error: checkError } = await this.supabase
+                .from('dish_collection_items')
+                .select('id')
+                .eq('collection_id', collectionId)
+                .eq('dish_id', dishId)
+                .eq('user_id', userId)
+                .maybeSingle()
+
+            if (existingItem) {
+                return {
+                    success: false,
+                    error: CollectionService.ERRORS.DISH_ALREADY_IN_COLLECTION,
+                    message: 'This dish is already in the collection'
                 }
             }
 
@@ -249,12 +377,6 @@ export class CollectionService {
                 .single()
 
             if (error) {
-                if (error.code === '23505') {
-                    return {
-                        success: false,
-                        error: CollectionService.ERRORS.DISH_ALREADY_IN_COLLECTION
-                    }
-                }
                 return this._handleError('Add dish to collection', error, CollectionService.ERRORS.ADD_ERROR)
             }
 
@@ -291,6 +413,63 @@ export class CollectionService {
         }
     }
 
+    async deleteCollection(userId, collectionId) {
+        try {
+            // Check if collection exists
+            const { exists, collection } = await this._getCollectionById(collectionId)
+            
+            if (!exists) {
+                return {
+                    success: false,
+                    error: CollectionService.ERRORS.COLLECTION_NOT_FOUND,
+                    message: 'The specified collection does not exist'
+                }
+            }
+            
+            // Check if user owns the collection
+            if (collection.user_id !== userId) {
+                return {
+                    success: false,
+                    error: CollectionService.ERRORS.ACCESS_DENIED,
+                    message: 'You do not have permission to delete this collection'
+                }
+            }
+            
+            // Check if it's a system collection
+            if (collection.collection_type === 'system') {
+                return {
+                    success: false,
+                    error: CollectionService.ERRORS.SYSTEM_COLLECTION,
+                    message: 'System collections cannot be deleted'
+                }
+            }
+            
+            // First delete all items in the collection
+            const { error: itemsError } = await this.supabase
+                .from('dish_collection_items')
+                .delete()
+                .eq('collection_id', collectionId)
+                
+            if (itemsError) {
+                return this._handleError('Delete collection items', itemsError, 'Unable to delete collection items')
+            }
+            
+            // Then delete the collection
+            const { error } = await this.supabase
+                .from('dish_collections')
+                .delete()
+                .eq('id', collectionId)
+                
+            if (error) {
+                return this._handleError('Delete collection', error, 'Unable to delete collection')
+            }
+            
+            return this._handleSuccess({}, CollectionService.MESSAGES.COLLECTION_DELETED)
+        } catch (error) {
+            return this._handleError('Delete collection', error)
+        }
+    }
+
     async addDishToSystemCollections(dishId, userId, dishStatus) {
         try {
             const systemCollections = await this._ensureSystemCollections(userId)
@@ -307,6 +486,8 @@ export class CollectionService {
                 const { error } = await this.supabase
                     .from('dish_collection_items')
                     .insert(itemsToAdd)
+                    .on_conflict(['collection_id', 'dish_id', 'user_id'])
+                    .ignore()
 
                 if (error) {
                     return this._handleError('Add dish to system collections', error)
@@ -323,11 +504,12 @@ export class CollectionService {
         try {
             const { data: systemCollections } = await this.supabase
                 .from('dish_collections')
-                .select('id')
+                .select('id, system_type')
                 .eq('user_id', userId)
                 .eq('collection_type', 'system')
 
             if (systemCollections && systemCollections.length > 0) {
+                // Remove from all system collections first
                 const collectionIds = systemCollections.map(c => c.id)
                 await this.supabase
                     .from('dish_collection_items')
@@ -337,6 +519,7 @@ export class CollectionService {
                     .in('collection_id', collectionIds)
             }
 
+            // Add to appropriate system collections based on new status
             return await this.addDishToSystemCollections(dishId, userId, newStatus)
         } catch (error) {
             return this._handleError('Update dish in system collections', error)
@@ -351,7 +534,16 @@ export class CollectionService {
 
             const { exists, collection } = await this._getSystemCollectionByType(userId, 'liked')
             if (!exists) {
-                return this._handleError('Add liked dish', new Error('Liked collection not found'))
+                // Create system collections if they don't exist
+                await this._ensureSystemCollections(userId)
+                
+                // Try again to get the liked collection
+                const retryResult = await this._getSystemCollectionByType(userId, 'liked')
+                if (!retryResult.exists) {
+                    return this._handleError('Add liked dish', new Error('Liked collection not found'))
+                }
+                
+                return await this.addDishToCollection(userId, retryResult.collection.id, dishId)
             }
 
             return await this.addDishToCollection(userId, collection.id, dishId)
@@ -377,11 +569,21 @@ export class CollectionService {
         try {
             const { exists, collection } = await this._getSystemCollectionByType(userId, type)
             if (!exists) {
-                return {
-                    success: false,
-                    error: CollectionService.ERRORS.COLLECTION_NOT_FOUND,
-                    message: `System collection '${type}' not found for user`
+                // Create system collections if they don't exist
+                await this._ensureSystemCollections(userId)
+                
+                // Try again to get the collection
+                const retryResult = await this._getSystemCollectionByType(userId, type)
+                if (!retryResult.exists) {
+                    return {
+                        success: false,
+                        error: CollectionService.ERRORS.COLLECTION_NOT_FOUND,
+                        message: `System collection '${type}' not found for user`
+                    }
                 }
+                
+                // Use the newly created collection
+                return await this.getDishesByType(userId, type)
             }
 
             const { data: collectionItems, error } = await this.supabase
@@ -392,10 +594,11 @@ export class CollectionService {
                         *,
                         dish_category_relations(
                             dish_categories(name)
-                        )
-                    ),
-                    profiles(full_name, profile_tag),
-                    dish_ratings(rating_type)
+                        ),
+                        profiles(full_name, profile_tag, avatar_url),
+                        dish_ratings(rating_type),
+                        dish_comments(id)
+                    )
                 `)
                 .eq('collection_id', collection.id)
                 .order('added_at', { ascending: false })
@@ -409,9 +612,18 @@ export class CollectionService {
                 return {
                     ...dish,
                     categories: dish.dish_category_relations?.map(rel => rel.dish_categories) || [],
+                    ratings: dish.dish_ratings || [],
+                    comments_count: dish.dish_comments?.length || 0,
                     added_to_collection_at: item.added_at
                 }
             }) || []
+
+            // Clean up nested properties
+            dishes.forEach(dish => {
+                delete dish.dish_category_relations
+                delete dish.dish_ratings
+                delete dish.dish_comments
+            })
 
             return this._handleSuccess({ dishes })
         } catch (error) {

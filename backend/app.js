@@ -17,6 +17,7 @@ import { CollectionService } from './services/collectionService.js'
 import { EmailService } from './services/emailService.js'
 
 import authRoutes from './routes/auth.js'
+import edamamRoutes from './routes/edamam/index.js'
 
 import userRoutes from './routes/users/index.js'
 import userAdminRoutes from './routes/users/admin.js'
@@ -42,6 +43,14 @@ process.on('unhandledRejection', (reason, promise) => {
 })
 
 dotenv.config()
+
+// Log environment variables for debugging (without exposing sensitive data)
+console.log('Environment variables check:', {
+  EDAMAM_APP_FOOD_ID: process.env.EDAMAM_APP_FOOD_ID ? `${process.env.EDAMAM_APP_FOOD_ID.substring(0, 4)}...` : 'missing',
+  EDAMAM_APP_FOOD_KEY: process.env.EDAMAM_APP_FOOD_KEY ? `${process.env.EDAMAM_APP_FOOD_KEY.substring(0, 4)}...` : 'missing',
+  EDAMAM_APP_NUTRITION_ID: process.env.EDAMAM_APP_NUTRITION_ID ? `${process.env.EDAMAM_APP_NUTRITION_ID.substring(0, 4)}...` : 'missing',
+  EDAMAM_APP_NUTRITION_KEY: process.env.EDAMAM_APP_NUTRITION_KEY ? `${process.env.EDAMAM_APP_NUTRITION_KEY.substring(0, 4)}...` : 'missing'
+})
 
 // Simple logger configuration without deprecated features
 const fastify = Fastify({
@@ -90,7 +99,7 @@ fastify.addHook('onRequest', async (request, reply) => {
 })
 
 await fastify.register(fastifyRateLimit, {
-  max: 100,
+  max: 1000,
   timeWindow: '1 minute'
 })
 
@@ -113,14 +122,20 @@ const emailService = new EmailService(fastify.log)
 const authService = new AuthService(supabaseClient, fastify.log, emailService)
 const categoryService = new CategoryService(supabaseClient, fastify.log)
 const userService = new UserService(supabaseClient, fastify.log, emailService)
-const dishService = new DishService(supabaseClient, fastify.log)
+const collectionService = new CollectionService(supabaseClient, fastify.log)
+const dishService = new DishService(supabaseClient, fastify.log, collectionService, supabaseAdmin)
 const commentService = new CommentService(supabaseClient, fastify.log)
 const ratingService = new RatingService(supabaseClient, fastify.log)
-const collectionService = new CollectionService(supabaseClient, fastify.log)
-const edamamService = new EdamamService(
-  process.env.EDAMAM_APP_ID,
-  process.env.EDAMAM_APP_KEY
-)
+
+// Створюємо EdamamService з правильними credentials для кожного API
+const edamamService = new EdamamService({
+  // Food Database API credentials
+  foodAppId: process.env.EDAMAM_APP_FOOD_ID,
+  foodAppKey: process.env.EDAMAM_APP_FOOD_KEY,
+  // Nutrition Analysis API credentials
+  nutritionAppId: process.env.EDAMAM_APP_NUTRITION_ID,
+  nutritionAppKey: process.env.EDAMAM_APP_NUTRITION_KEY
+})
 
 fastify.decorate('emailService', emailService)
 fastify.decorate('authService', authService)
@@ -133,6 +148,7 @@ fastify.decorate('ratingService', ratingService)
 fastify.decorate('collectionService', collectionService)
 
 await fastify.register(authRoutes, { prefix: '/api/auth' })
+await fastify.register(edamamRoutes, { prefix: '/api/edamam' })
 
 // User routes
 await fastify.register(userRoutes, { prefix: '/api/users' })
@@ -164,7 +180,8 @@ fastify.get('/', async (request, reply) => {
       admin: '/api/admin',
       comments: '/api/comments',
       ratings: '/api/ratings',
-      collections: '/api/collections'
+      collections: '/api/collections',
+      edamam: '/api/edamam'
     }
   }
 })
@@ -176,7 +193,9 @@ fastify.get('/health', async (request, reply) => {
     timestamp: new Date().toISOString(),
     services: {
       database: 'unknown',
-      storage: 'unknown'
+      storage: 'unknown',
+      edamam_food: 'unknown',
+      edamam_nutrition: 'unknown'
     }
   }
 
@@ -200,7 +219,31 @@ fastify.get('/health', async (request, reply) => {
     health.services.storage = 'unhealthy'
   }
 
-  const isHealthy = Object.values(health.services).every(status => status === 'healthy')
+  try {
+    // Перевіряємо Edamam Food API
+    if (edamamService && process.env.EDAMAM_APP_FOOD_ID && process.env.EDAMAM_APP_FOOD_KEY) {
+      health.services.edamam_food = 'healthy'
+    } else {
+      health.services.edamam_food = 'not_configured'
+    }
+  } catch (error) {
+    health.services.edamam_food = 'unhealthy'
+  }
+
+  try {
+    // Перевіряємо Edamam Nutrition API
+    if (edamamService && process.env.EDAMAM_APP_NUTRITION_ID && process.env.EDAMAM_APP_NUTRITION_KEY) {
+      health.services.edamam_nutrition = 'healthy'
+    } else {
+      health.services.edamam_nutrition = 'not_configured'
+    }
+  } catch (error) {
+    health.services.edamam_nutrition = 'unhealthy'
+  }
+
+  const isHealthy = Object.values(health.services).every(status => 
+    status === 'healthy' || status === 'not_configured'
+  )
   health.status = isHealthy ? 'healthy' : 'degraded'
 
   return health
@@ -224,7 +267,9 @@ fastify.setNotFoundHandler((request, reply) => {
       'POST /api/comments/:dishId',
       'GET /api/comments/:dishId',
       'GET /api/ratings/:dishId',
-      'GET /api/collections'
+      'GET /api/collections',
+      'GET /api/edamam/search',
+      'POST /api/edamam/analyze-nutrition'
     ]
   })
 })
@@ -288,6 +333,19 @@ const start = async () => {
       }
     } catch (storageError) {
       console.log('⚠️ Помилка підключення до Supabase Storage:', storageError.message)
+    }
+
+    // Тестуємо Edamam APIs при запуску
+    if (process.env.EDAMAM_APP_FOOD_ID && process.env.EDAMAM_APP_FOOD_KEY) {
+      console.log('✅ Edamam Food Database API налаштовано')
+    } else {
+      console.log('⚠️ Edamam Food Database API не налаштовано. Додайте EDAMAM_APP_FOOD_ID та EDAMAM_APP_FOOD_KEY до .env файлу')
+    }
+
+    if (process.env.EDAMAM_APP_NUTRITION_ID && process.env.EDAMAM_APP_NUTRITION_KEY) {
+      console.log('✅ Edamam Nutrition Analysis API налаштовано')
+    } else {
+      console.log('⚠️ Edamam Nutrition Analysis API не налаштовано. Додайте EDAMAM_APP_NUTRITION_ID та EDAMAM_APP_NUTRITION_KEY до .env файлу')
     }
   } catch (err) {
     console.error('Помилка запуску сервера:', err)

@@ -2,15 +2,47 @@
 
 import { useEffect } from 'react'
 import { useAuthStore } from '@/store/authStore'
+import { apiClient } from '@/lib/api'
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const { verifyToken, isAuthenticated, session } = useAuthStore()
+  const { session, isAuthenticated, verifyToken } = useAuthStore()
 
   useEffect(() => {
+    // Set the session in API client when it changes
+    if (session) {
+      apiClient.setSession(session)
+    }
+
+    // Verify token on app start if we have a session but not authenticated
     if (session && !isAuthenticated) {
-      verifyToken()
+      verifyToken().catch((error) => {
+        console.error('Initial token verification failed:', error)
+      })
     }
   }, [session, isAuthenticated, verifyToken])
+
+  // Set up periodic token refresh
+  useEffect(() => {
+    if (!session?.access_token) return
+
+    const checkTokenExpiry = () => {
+      const now = Date.now() / 1000
+      const expiresAt = session.expires_at
+      const tenMinutes = 10 * 60
+
+      // If token expires in less than 10 minutes, refresh it
+      if (expiresAt && (expiresAt - now) < tenMinutes) {
+        verifyToken().catch((error) => {
+          console.error('Periodic token refresh failed:', error)
+        })
+      }
+    }
+
+    // Check every 5 minutes
+    const interval = setInterval(checkTokenExpiry, 5 * 60 * 1000)
+
+    return () => clearInterval(interval)
+  }, [session, verifyToken])
 
   return <>{children}</>
 }

@@ -163,7 +163,7 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Profile Information */}
+      {/* Profile Information and Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -212,6 +212,16 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
+              <Link href="/profile/dishes" className="block">
+                <Button variant="outline" className="w-full justify-start" leftIcon={<ChefHat className="w-4 h-4" />}>
+                  Мої страви
+                </Button>
+              </Link>
+              <Link href="/collections" className="block">
+                <Button variant="outline" className="w-full justify-start" leftIcon={<Heart className="w-4 h-4" />}>
+                  Мої колекції
+                </Button>
+              </Link>
               <Link href="/profile/settings" className="block">
                 <Button variant="outline" className="w-full justify-start" leftIcon={<Settings className="w-4 h-4" />}>
                   Налаштування профілю

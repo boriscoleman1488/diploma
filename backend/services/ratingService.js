@@ -260,30 +260,6 @@ export class RatingService {
     }
   }
 
-  async getUserRating(dishId, userId) {
-    try {
-      this._validateIds(dishId, userId)
-
-      const { data, error } = await this.supabase
-        .from('dish_ratings')
-        .select('rating_type')
-        .eq('user_id', userId)
-        .eq('dish_id', dishId)
-        .eq('rating_type', this.RATING_VALUES.LIKE)
-        .single()
-
-      if (error && error.code !== 'PGRST116') {
-        return this._handleError(error, 'Unable to get user rating', { dishId, userId })
-      }
-
-      const rating = data ? data.rating_type : null
-      return this._handleSuccess({ rating })
-
-    } catch (error) {
-      return this._handleError(error, this.ERRORS.INTERNAL_ERROR, { dishId, userId })
-    }
-  }
-
   async removeRating(dishId, userId) {
     try {
       this._validateIds(dishId, userId)
@@ -318,7 +294,7 @@ export class RatingService {
           {
             dish_id: dishId,
             user_id: userId,
-            rating: this.RATING_VALUES.LIKE
+            rating_type: this.RATING_VALUES.LIKE
           },
           {
             onConflict: 'dish_id,user_id'
@@ -358,10 +334,10 @@ export class RatingService {
 
       const { data, error } = await this.supabase
         .from('dish_ratings')
-        .select('rating')
+        .select('rating_type')
         .eq('user_id', userId)
         .eq('dish_id', dishId)
-        .eq('rating', this.RATING_VALUES.LIKE)
+        .eq('rating_type', this.RATING_VALUES.LIKE)
         .single()
 
       if (error && error.code !== 'PGRST116') {
@@ -390,14 +366,14 @@ export class RatingService {
                         id,
                         title,
                         description,
-                        image_url,
+                        main_image_url,
                         status,
                         created_at,
                         profiles:user_id(id, full_name, profile_tag)
                     )
                 `, { count: 'exact' })
         .eq('user_id', userId)
-        .eq('rating', this.RATING_VALUES.LIKE)
+        .eq('rating_type', this.RATING_VALUES.LIKE)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1)
 
@@ -433,13 +409,13 @@ export class RatingService {
                         id,
                         title,
                         description,
-                        image_url,
+                        main_image_url,
                         status,
                         created_at,
                         profiles:user_id(id, full_name, profile_tag)
                     )
                 `)
-        .eq('rating', this.RATING_VALUES.LIKE)
+        .eq('rating_type', this.RATING_VALUES.LIKE)
         .eq('dishes.status', this.DISH_STATUS.PUBLISHED)
 
       const periodDate = this._getDateByPeriod(period)
@@ -485,20 +461,9 @@ export class RatingService {
     try {
       this._validateIds(null, userId)
 
-      const { data: rating, error: ratingError } = await this.supabase
+      const { data: ratings, error } = await this.supabase
         .from('dish_ratings')
-        .upsert(
-          {
-            dish_id: dishId,
-            user_id: userId,
-            rating_type: this.RATING_VALUES.LIKE
-          },
-          {
-            onConflict: 'dish_id,user_id'
-          }
-        )
-        .select()
-        .single()
+        .select('rating_type')
         .eq('user_id', userId)
 
       if (error) {
@@ -624,11 +589,11 @@ export class RatingService {
     }
   }
 
-  async getSystemRatingStats() {
+  async getRatingStats() {
     try {
       const { data: allRatings, error } = await this.supabase
         .from('dish_ratings')
-        .select('rating_type, created_at')  // Змінено з 'rating' на 'rating_type'
+        .select('rating_type, created_at')
 
       if (error) {
         return this._handleError(error, 'Unable to get system rating stats')

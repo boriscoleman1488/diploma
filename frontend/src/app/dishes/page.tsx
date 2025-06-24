@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Avatar } from '@/components/ui/Avatar'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { Avatar } from '@/components/ui/Avatar'
 import { apiClient } from '@/lib/api'
 import { formatDate, formatRelativeTime } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
+import { Dish } from '@/types/dish'
 import { 
   ChefHat, 
   Search, 
@@ -20,57 +21,15 @@ import {
   Filter,
   Grid3X3,
   Eye,
-  Star,
-  TrendingUp,
-  Calendar,
-  ArrowRight,
+  X,
   LogIn,
   UserPlus,
   Image as ImageIcon,
   Activity,
-  Zap,
-  X
+  Zap
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
-
-interface Dish {
-  id: string
-  title: string
-  description: string
-  main_image_url?: string
-  servings: number
-  status: string
-  created_at: string
-  updated_at: string
-  user_id: string
-  profiles?: {
-    full_name?: string
-    email: string
-    profile_tag?: string
-    avatar_url?: string
-  }
-  categories?: Array<{
-    dish_categories: {
-      id: string
-      name: string
-    }
-  }>
-  ratings?: Array<{
-    rating_type: number
-  }>
-  comments_count?: number
-  ingredients?: Array<{
-    name: string
-    amount: number
-    unit: string
-  }>
-  steps?: Array<{
-    description: string
-    duration_minutes?: number
-    image_url?: string
-  }>
-}
 
 interface Category {
   id: string
@@ -142,6 +101,26 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
     }
   }
 
+  const getDishCategories = (dish: Dish) => {
+    if (!dish.categories || !Array.isArray(dish.categories)) return []
+    
+    return dish.categories
+      .map(categoryRelation => {
+        if (categoryRelation && typeof categoryRelation === 'object') {
+          if (categoryRelation.dish_categories && categoryRelation.dish_categories.name) {
+            return categoryRelation.dish_categories
+          }
+          if (categoryRelation.name) {
+            return categoryRelation
+          }
+        }
+        return null
+      })
+      .filter(Boolean)
+  }
+
+  const dishCategories = getDishCategories(dish)
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -196,20 +175,19 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
           </div>
 
           {/* Categories */}
-          {dish.categories && dish.categories.length > 0 && (
+          {dishCategories.length > 0 && (
             <div>
               <h4 className="font-medium text-gray-900 mb-2">Категорії</h4>
               <div className="flex flex-wrap gap-2">
-                {dish.categories
-                  .filter(cat => cat && cat.dish_categories && cat.dish_categories.name)
-                  .map((cat, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
-                    >
-                      {cat.dish_categories.name}
-                    </span>
-                  ))}
+                {dishCategories.map((cat, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
+                  >
+                    <Grid3X3 className="w-3 h-3 mr-1" />
+                    {cat.name}
+                  </span>
+                ))}
               </div>
             </div>
           )}
@@ -406,16 +384,15 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
   )
 }
 
-export default function HomePage() {
+export default function DishesPage() {
   const [dishes, setDishes] = useState<Dish[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [filteredDishes, setFilteredDishes] = useState<Dish[]>([])
+  const [selectedCategory, setSelectedCategory] = useState<string>('')
+  const [categories, setCategories] = useState<Category[]>([])
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
-  const { isAuthenticated } = useAuthStore()
 
   const fetchDishes = async () => {
     setIsLoading(true)
@@ -433,20 +410,18 @@ export default function HomePage() {
 
       const response = await apiClient.get(url)
       if (response.success && response.dishes) {
-        // Фільтруємо тільки схвалені страви
-        const approvedDishes = response.dishes.filter((dish: Dish) => dish.status === 'approved')
-        setDishes(approvedDishes)
-        setFilteredDishes(approvedDishes)
+        setDishes(response.dishes)
+        setFilteredDishes(response.dishes)
       }
     } catch (error) {
       console.error('Failed to fetch dishes:', error)
-      toast.error('Не вдалося завантажити страви')
+      toast.error(error instanceof Error ? error.message : 'Не вдалося завантажити страви')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const fetchCategories = async () => {
+  const fetchCategories =  async () => {
     try {
       const response = await apiClient.get('/categories')
       if (response.success && response.categories) {
@@ -485,13 +460,29 @@ export default function HomePage() {
     if (searchQuery.trim()) {
       filtered = filtered.filter(dish =>
         dish.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        dish.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        dish.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
+        dish.description.toLowerCase().includes(searchQuery.toLowerCase())
       )
     }
 
     setFilteredDishes(filtered)
   }, [searchQuery, dishes])
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      draft: { label: 'Чернетка', color: 'bg-gray-100 text-gray-800' },
+      pending: { label: 'На розгляді', color: 'bg-yellow-100 text-yellow-800' },
+      approved: { label: 'Опубліковано', color: 'bg-green-100 text-green-800' },
+      rejected: { label: 'Відхилено', color: 'bg-red-100 text-red-800' }
+    }
+
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.draft
+
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
+        {config.label}
+      </span>
+    )
+  }
 
   const getTotalCookingTime = (dish: Dish) => {
     if (!dish.steps || !Array.isArray(dish.steps)) return null
@@ -501,322 +492,359 @@ export default function HomePage() {
 
   const getDishCategories = (dish: Dish) => {
     if (!dish.categories || !Array.isArray(dish.categories)) return []
-    return dish.categories.filter(cat => cat?.dish_categories?.name)
+    
+    return dish.categories
+      .map(categoryRelation => {
+        if (categoryRelation && typeof categoryRelation === 'object') {
+          if (categoryRelation.dish_categories && categoryRelation.dish_categories.name) {
+            return categoryRelation.dish_categories
+          }
+          if (categoryRelation.name) {
+            return categoryRelation
+          }
+        }
+        return null
+      })
+      .filter(Boolean)
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-primary-500 to-primary-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
-              Відкрийте світ смаків
-            </h1>
-            <p className="text-xl text-primary-100 mb-8 max-w-2xl mx-auto">
-              Знайдіть ідеальні рецепти від нашої спільноти кулінарів. 
-              Готуйте, діліться та насолоджуйтеся!
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              {isAuthenticated ? (
-                <Link href="/dishes/add">
-                  <Button 
-                    size="lg"
-                    variant="secondary"
-                    leftIcon={<Plus className="w-5 h-5" />}
-                    className="bg-white text-primary-600 hover:bg-primary-50"
-                  >
-                    Додати свою страву
-                  </Button>
-                </Link>
-              ) : (
-                <Link href="/auth/register">
-                  <Button 
-                    size="lg"
-                    variant="secondary"
-                    leftIcon={<ChefHat className="w-5 h-5" />}
-                    className="bg-white text-primary-600 hover:bg-primary-50"
-                  >
-                    Приєднатися
-                  </Button>
-                </Link>
-              )}
-              <Button 
-                size="lg"
-                variant="outline"
-                leftIcon={<Search className="w-5 h-5" />}
-                className="border-white text-white hover:bg-white hover:text-primary-600"
-                onClick={() => document.getElementById('search-input')?.focus()}
-              >
-                Знайти рецепти
-              </Button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-white flex items-center">
+                <ChefHat className="w-8 h-8 mr-3" />
+                Страви
+              </h1>
+              <p className="text-primary-100 mt-1">
+                Відкрийте для себе дивовижні рецепти з аналізом калорій від нашої спільноти
+              </p>
             </div>
+            <Link href="/dishes/add">
+              <Button 
+                variant="secondary" 
+                leftIcon={<Plus className="w-4 h-4" />}
+                className="bg-white text-primary-600 hover:bg-primary-50"
+              >
+                Додати страву
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6 text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-primary-100 rounded-lg mb-4">
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-primary-100 rounded-lg">
                 <ChefHat className="w-6 h-6 text-primary-600" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">{dishes.length}</h3>
-              <p className="text-gray-600">Схвалених страв</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6 text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mb-4">
-                <Users className="w-6 h-6 text-green-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900">
-                {new Set(dishes.map(d => d.user_id)).size}
-              </h3>
-              <p className="text-gray-600">Активних кулінарів</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6 text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg mb-4">
-                <Activity className="w-6 h-6 text-blue-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900">
-                {dishes.filter(d => d.ingredients && d.ingredients.length > 0).length}
-              </h3>
-              <p className="text-gray-600">Страв з аналізом калорій</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Search and Filters */}
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <Input
-                  id="search-input"
-                  placeholder="Пошук страв за назвою, описом або автором..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  leftIcon={<Search className="w-4 h-4" />}
-                />
-              </div>
-              <div className="md:w-64">
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="">Всі категорії</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Всього страв</p>
+                <p className="text-2xl font-bold text-gray-900">{dishes.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Dishes Grid */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center">
-              <LoadingSpinner size="lg" />
-              <p className="mt-4 text-gray-600">Завантаження страв...</p>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Eye className="w-6 h-6 text-green-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Опубліковано</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {dishes.filter(d => d.status === 'approved').length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <Clock className="w-6 h-6 text-yellow-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">На розгляді</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {dishes.filter(d => d.status === 'pending').length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Activity className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">З аналізом калорій</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {dishes.filter(d => d.ingredients && d.ingredients.length > 0).length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <Input
+                placeholder="Пошук страв за назвою або описом..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                leftIcon={<Search className="w-4 h-4" />}
+              />
+            </div>
+            <div className="md:w-64">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="">Всі категорії</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
-        ) : filteredDishes.length === 0 ? (
-          <div className="text-center py-16">
-            <ChefHat className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchQuery || selectedCategory ? 'Страви не знайдено' : 'Поки що немає страв'}
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {searchQuery || selectedCategory 
-                ? 'Спробуйте змінити критерії пошуку'
-                : 'Станьте першим, хто поділиться своїм рецептом!'
-              }
-            </p>
-            {!searchQuery && !selectedCategory && isAuthenticated && (
-              <Link href="/dishes/add">
-                <Button leftIcon={<Plus className="w-4 h-4" />}>
-                  Додати першу страву
-                </Button>
-              </Link>
-            )}
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                {searchQuery || selectedCategory ? 'Результати пошуку' : 'Популярні страви'}
-              </h2>
-              <p className="text-gray-600">
-                Знайдено {filteredDishes.length} {filteredDishes.length === 1 ? 'страва' : 'страв'}
-              </p>
+          
+          {/* Active filters display */}
+          {(searchQuery || selectedCategory) && (
+            <div className="mt-4 flex items-center gap-2">
+              <span className="text-sm text-gray-500">Активні фільтри:</span>
+              {searchQuery && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  Пошук: "{searchQuery}"
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="ml-1 text-blue-600 hover:text-blue-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {selectedCategory && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Категорія: {categories.find(c => c.id === selectedCategory)?.name}
+                  <button
+                    onClick={() => setSelectedCategory('')}
+                    className="ml-1 text-green-600 hover:text-green-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
             </div>
+          )}
+        </CardContent>
+      </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredDishes.map((dish) => {
-                const cookingTime = getTotalCookingTime(dish)
-                const likesCount = dish.ratings?.filter(r => r.rating_type === 1).length || 0
-                const dishCategories = getDishCategories(dish)
-                const hasIngredients = dish.ingredients && dish.ingredients.length > 0
+      {/* Dishes Grid */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <LoadingSpinner size="lg" />
+            <p className="mt-4 text-gray-600">Завантаження страв...</p>
+          </div>
+        </div>
+      ) : filteredDishes.length === 0 ? (
+        <div className="text-center py-12">
+          <ChefHat className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {searchQuery || selectedCategory ? 'Страви не знайдено' : 'Немає страв'}
+          </h3>
+          <p className="text-gray-600 mb-6">
+            {searchQuery || selectedCategory 
+              ? 'Спробуйте змінити критерії пошуку або очистити фільтри'
+              : 'Станьте першим, хто додасть страву!'
+            }
+          </p>
+          {searchQuery || selectedCategory ? (
+            <div className="flex justify-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchQuery('')
+                  setSelectedCategory('')
+                }}
+              >
+                Очистити фільтри
+              </Button>
+            </div>
+          ) : (
+            <Link href="/dishes/add">
+              <Button leftIcon={<Plus className="w-4 h-4" />}>
+                Додати першу страву
+              </Button>
+            </Link>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredDishes.map((dish) => {
+            const cookingTime = getTotalCookingTime(dish)
+            const likesCount = dish.ratings?.filter(r => r.rating_type === 1).length || 0
+            const dishCategories = getDishCategories(dish)
+            const hasIngredients = dish.ingredients && dish.ingredients.length > 0
 
-                return (
-                  <Card key={dish.id} className="hover:shadow-lg transition-all duration-200 overflow-hidden group cursor-pointer">
-                    {/* Image */}
-                    <div 
-                      className="aspect-video bg-gray-200 overflow-hidden relative"
-                      onClick={() => handleViewDish(dish.id)}
-                    >
-                      {dish.main_image_url ? (
-                        <img
-                          src={dish.main_image_url}
-                          alt={dish.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <ChefHat className="w-12 h-12 text-gray-400" />
+            return (
+              <Card key={dish.id} className="hover:shadow-lg transition-shadow overflow-hidden group cursor-pointer">
+                {/* Image */}
+                <div 
+                  className="aspect-video bg-gray-200 overflow-hidden relative"
+                  onClick={() => handleViewDish(dish.id)}
+                >
+                  {dish.main_image_url ? (
+                    <img
+                      src={dish.main_image_url}
+                      alt={dish.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <ChefHat className="w-12 h-12 text-gray-400" />
+                    </div>
+                  )}
+                  
+                  {/* Nutrition Badge */}
+                  {hasIngredients && (
+                    <div className="absolute top-2 left-2">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <Activity className="w-3 h-3 mr-1" />
+                        Аналіз калорій
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Overlay */}
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        leftIcon={<Eye className="w-4 h-4" />}
+                      >
+                        Переглянути
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <CardContent className="p-6">
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900 text-lg mb-1 line-clamp-2">
+                        {dish.title}
+                      </h3>
+                      {getStatusBadge(dish.status)}
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                    {dish.description}
+                  </p>
+
+                  {/* Categories */}
+                  {dishCategories.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-4">
+                      {dishCategories.slice(0, 3).map((cat, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
+                        >
+                          <Grid3X3 className="w-3 h-3 mr-1" />
+                          {cat.name}
+                        </span>
+                      ))}
+                      {dishCategories.length > 3 && (
+                        <span className="text-xs text-gray-500">
+                          +{dishCategories.length - 3} ще
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Stats */}
+                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center">
+                        <Users className="w-4 h-4 mr-1" />
+                        {dish.servings} порцій
+                      </div>
+                      {cookingTime && (
+                        <div className="flex items-center">
+                          <Clock className="w-4 h-4 mr-1" />
+                          {cookingTime} хв
                         </div>
                       )}
-                      
-                      {/* Nutrition Badge */}
-                      {hasIngredients && (
-                        <div className="absolute top-2 left-2">
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            <Activity className="w-3 h-3 mr-1" />
-                            Аналіз калорій
-                          </span>
-                        </div>
-                      )}
-                      
-                      {/* Overlay */}
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            leftIcon={<Eye className="w-4 h-4" />}
-                          >
-                            Переглянути
-                          </Button>
-                        </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="flex items-center">
+                        <Heart className="w-4 h-4 mr-1" />
+                        {likesCount}
+                      </div>
+                      <div className="flex items-center">
+                        <MessageCircle className="w-4 h-4 mr-1" />
+                        {dish.comments_count || 0}
                       </div>
                     </div>
+                  </div>
 
-                    <CardContent className="p-6">
-                      {/* Header */}
-                      <div className="mb-3">
-                        <h3 className="font-semibold text-gray-900 text-lg mb-1 line-clamp-2">
-                          {dish.title}
-                        </h3>
-                        <p className="text-gray-600 text-sm line-clamp-2">
-                          {dish.description}
+                  {/* Author */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Avatar
+                        src={dish.profiles?.avatar_url}
+                        name={dish.profiles?.full_name || dish.profiles?.email}
+                        size="sm"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {dish.profiles?.full_name || 'Невідомий автор'}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {formatRelativeTime(dish.created_at)}
                         </p>
                       </div>
-
-                      {/* Categories */}
-                      {dishCategories.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-4">
-                          {dishCategories.slice(0, 2).map((cat, index) => (
-                            <span
-                              key={index}
-                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
-                            >
-                              {cat.dish_categories.name}
-                            </span>
-                          ))}
-                          {dishCategories.length > 2 && (
-                            <span className="text-xs text-gray-500">
-                              +{dishCategories.length - 2}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Stats */}
-                      <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center">
-                            <Users className="w-4 h-4 mr-1" />
-                            {dish.servings}
-                          </div>
-                          {cookingTime && (
-                            <div className="flex items-center">
-                              <Clock className="w-4 h-4 mr-1" />
-                              {cookingTime}хв
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <div className="flex items-center">
-                            <Heart className="w-4 h-4 mr-1" />
-                            {likesCount}
-                          </div>
-                          <div className="flex items-center">
-                            <MessageCircle className="w-4 h-4 mr-1" />
-                            {dish.comments_count || 0}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Author */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Avatar
-                            src={dish.profiles?.avatar_url}
-                            name={dish.profiles?.full_name || dish.profiles?.email}
-                            size="sm"
-                          />
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {dish.profiles?.full_name || 'Невідомий автор'}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {formatRelativeTime(dish.created_at)}
-                            </p>
-                          </div>
-                        </div>
-                        <Link href={`/dishes/${dish.id}`}>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            rightIcon={<ArrowRight className="w-3 h-3" />}
-                          >
-                            Детальніше
-                          </Button>
-                        </Link>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
-            </div>
-
-            {/* Load More Button (for future pagination) */}
-            {filteredDishes.length >= 12 && (
-              <div className="text-center mt-12">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  leftIcon={<TrendingUp className="w-4 h-4" />}
-                >
-                  Завантажити більше страв
-                </Button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+                    </div>
+                    <Link href={`/dishes/${dish.id}`}>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                      >
+                        Переглянути
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      )}
 
       {/* Dish Details Modal */}
       <DishDetailsModal

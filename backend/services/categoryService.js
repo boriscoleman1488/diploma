@@ -7,7 +7,6 @@ export class CategoryService {
     static ERRORS = {
         CATEGORY_NOT_FOUND: 'Category not found',
         CATEGORY_EXISTS: 'Category already exists',
-        CATEGORY_IN_USE: 'Category is in use',
         INTERNAL_ERROR: 'Internal server error',
         FETCH_ERROR: 'Unable to fetch category',
         CREATE_ERROR: 'Unable to create category',
@@ -19,7 +18,6 @@ export class CategoryService {
     static MESSAGES = {
         CATEGORY_NOT_FOUND: 'The specified category does not exist',
         CATEGORY_EXISTS: 'A category with this name already exists',
-        CATEGORY_IN_USE: 'Cannot delete category that is used by dishes',
         CATEGORY_CREATED: 'Category created successfully',
         CATEGORY_UPDATED: 'Category updated successfully',
         CATEGORY_DELETED: 'Category deleted successfully'
@@ -77,20 +75,6 @@ export class CategoryService {
         }
 
         return data && data.length > 0
-    }
-
-    async _checkCategoryInUse(categoryId) {
-        const { data: relations, error } = await this.supabase
-            .from('dish_category_relations')
-            .select('dish_id')
-            .eq('category_id', categoryId)
-            .limit(1)
-
-        if (error) {
-            throw error
-        }
-
-        return relations && relations.length > 0
     }
 
     async getAllCategories() {
@@ -187,15 +171,17 @@ export class CategoryService {
                 }
             }
 
-            const inUse = await this._checkCategoryInUse(categoryId)
-            if (inUse) {
-                return {
-                    success: false,
-                    error: CategoryService.ERRORS.CATEGORY_IN_USE,
-                    message: CategoryService.MESSAGES.CATEGORY_IN_USE
-                }
+            // First, delete all category relations (associations with dishes)
+            const { error: relationsError } = await this.supabase
+                .from('dish_category_relations')
+                .delete()
+                .eq('category_id', categoryId)
+
+            if (relationsError) {
+                return this._handleError('Category relations deletion', relationsError, CategoryService.ERRORS.DELETE_ERROR)
             }
 
+            // Then delete the category itself
             const { error } = await this.supabase
                 .from('dish_categories')
                 .delete()

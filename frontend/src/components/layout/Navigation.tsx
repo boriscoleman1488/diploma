@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { User, Settings, LogOut, Menu, X, Shield, Grid3X3, ChefHat } from 'lucide-react'
+import { User, Settings, LogOut, Menu, X, Shield, Grid3X3, ChefHat, BookOpen } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
@@ -12,21 +12,51 @@ import { apiClient } from '@/lib/api'
 
 const navigation = [
   { name: 'Профіль', href: '/profile', icon: User },
+  { name: 'Мої страви', href: '/profile/dishes', icon: ChefHat },
   { name: 'Категорії', href: '/categories', icon: Grid3X3 },
   { name: 'Страви', href: '/dishes', icon: ChefHat },
+  { name: 'Колекції', href: '/collections', icon: BookOpen },
   { name: 'Налаштування', href: '/profile/settings', icon: Settings },
-
 ]
 
 export function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(false)
+  const [userProfile, setUserProfile] = useState<any>(null)
   const pathname = usePathname()
-  const { user, logout } = useAuthStore()
+  const { user, logout, isAuthenticated, verifyToken } = useAuthStore()
+
+  // Fetch user profile to get avatar
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!isAuthenticated || !user) {
+        setUserProfile(null)
+        return
+      }
+
+      try {
+        const response = await apiClient.get('/users/profile')
+        if (response.success && response.profile) {
+          setUserProfile(response.profile)
+        }
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error)
+      }
+    }
+
+    fetchUserProfile()
+  }, [user, isAuthenticated])
 
   // Check if user is admin
   useEffect(() => {
     const checkAdminRole = async () => {
+      if (!isAuthenticated || !user) {
+        setIsAdmin(false)
+        return
+      }
+
+      setIsCheckingAdmin(true)
       try {
         const response = await apiClient.get('/users/profile')
         if (response.success && response.profile) {
@@ -34,13 +64,34 @@ export function Navigation() {
         }
       } catch (error) {
         console.error('Failed to check admin role:', error)
+        
+        // If it's an auth error, try to refresh token
+        if (error instanceof Error && error.message.includes('увійдіть в систему')) {
+          const refreshed = await verifyToken()
+          if (refreshed) {
+            // Retry after token refresh
+            try {
+              const response = await apiClient.get('/users/profile')
+              if (response.success && response.profile) {
+                setIsAdmin(response.profile.role === 'admin')
+              }
+            } catch (retryError) {
+              console.error('Retry failed:', retryError)
+              setIsAdmin(false)
+            }
+          } else {
+            setIsAdmin(false)
+          }
+        } else {
+          setIsAdmin(false)
+        }
+      } finally {
+        setIsCheckingAdmin(false)
       }
     }
 
-    if (user) {
-      checkAdminRole()
-    }
-  }, [user])
+    checkAdminRole()
+  }, [user, isAuthenticated, verifyToken])
 
   const handleLogout = async () => {
     await logout()
@@ -58,7 +109,7 @@ export function Navigation() {
         <div className="flex justify-between h-16">
           {/* Logo and main navigation */}
           <div className="flex items-center">
-            <Link href="/profile" className="flex items-center space-x-2">
+            <Link href="/" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">R</span>
               </div>
@@ -70,7 +121,10 @@ export function Navigation() {
               {allNavigation.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href || 
-                  (item.href === '/admin/users' && pathname.startsWith('/admin'))
+                  (item.href === '/admin/users' && pathname.startsWith('/admin')) ||
+                  (item.href === '/dishes' && pathname.startsWith('/dishes')) ||
+                  (item.href === '/collections' && pathname.startsWith('/collections')) ||
+                  (item.href === '/profile/dishes' && pathname === '/profile/dishes')
                 
                 return (
                   <Link
@@ -85,6 +139,9 @@ export function Navigation() {
                   >
                     <Icon className="w-4 h-4 mr-2" />
                     {item.name}
+                    {item.name === 'Адміністрування' && isCheckingAdmin && (
+                      <span className="ml-2 text-xs text-gray-400">...</span>
+                    )}
                   </Link>
                 )
               })}
@@ -96,13 +153,13 @@ export function Navigation() {
             {user && (
               <div className="hidden md:flex items-center space-x-3">
                 <Avatar
-                  src={user.metadata?.avatar_url}
-                  name={user.fullName || user.email}
+                  src={userProfile?.avatar_url}
+                  name={userProfile?.full_name || user.fullName || user.email}
                   size="sm"
                 />
                 <div className="text-sm">
                   <p className="font-medium text-gray-900">
-                    {user.fullName || 'Користувач'}
+                    {userProfile?.full_name || user.fullName || 'Користувач'}
                   </p>
                   <p className="text-gray-500">{user.email}</p>
                 </div>
@@ -144,7 +201,10 @@ export function Navigation() {
             {allNavigation.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href || 
-                (item.href === '/admin/users' && pathname.startsWith('/admin'))
+                (item.href === '/admin/users' && pathname.startsWith('/admin')) ||
+                (item.href === '/dishes' && pathname.startsWith('/dishes')) ||
+                (item.href === '/collections' && pathname.startsWith('/collections')) ||
+                (item.href === '/profile/dishes' && pathname === '/profile/dishes')
               
               return (
                 <Link
@@ -171,13 +231,13 @@ export function Navigation() {
             <div className="pt-4 pb-3 border-t border-gray-200">
               <div className="flex items-center px-4">
                 <Avatar
-                  src={user.metadata?.avatar_url}
-                  name={user.fullName || user.email}
+                  src={userProfile?.avatar_url}
+                  name={userProfile?.full_name || user.fullName || user.email}
                   size="md"
                 />
                 <div className="ml-3">
                   <div className="text-base font-medium text-gray-800">
-                    {user.fullName || 'Користувач'}
+                    {userProfile?.full_name || user.fullName || 'Користувач'}
                   </div>
                   <div className="text-sm font-medium text-gray-500">
                     {user.email}
