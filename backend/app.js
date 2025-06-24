@@ -141,7 +141,7 @@ const edamamService = new EdamamService({
 })
 
 // Create AI service
-const aiService = new AiService(fastify.log)
+const aiService = new AIService(fastify.log)
 
 fastify.decorate('emailService', emailService)
 fastify.decorate('authService', authService)
