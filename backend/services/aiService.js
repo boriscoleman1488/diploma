@@ -7,7 +7,6 @@ export class AIService {
     this.edamamFoodAppId = process.env.EDAMAM_APP_FOOD_ID
     this.edamamFoodAppKey = process.env.EDAMAM_APP_FOOD_KEY
     
-    // Initialize Gemini AI according to the new documentation
     if (this.geminiApiKey) {
       try {
         this.gemini = new GoogleGenerativeAI(this.geminiApiKey)

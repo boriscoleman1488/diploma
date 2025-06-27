@@ -16,6 +16,7 @@ import { RatingService } from './services/ratingService.js'
 import { CollectionService } from './services/collectionService.js'
 import { EmailService } from './services/emailService.js'
 import AIService from './services/aiService.js'
+import { TranslationService } from './services/translationService.js'
 
 import authRoutes from './routes/auth.js'
 import edamamRoutes from './routes/edamam/index.js'
@@ -130,14 +131,20 @@ const dishService = new DishService(supabaseClient, fastify.log, collectionServi
 const commentService = new CommentService(supabaseClient, fastify.log)
 const ratingService = new RatingService(supabaseClient, fastify.log)
 
-// Створюємо EdamamService з правильними credentials для кожного API
+const translationService = new TranslationService({
+  apiKey: process.env.GOOGLE_TRANSLATE_API_KEY,
+  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID
+})
+
 const edamamService = new EdamamService({
   // Food Database API credentials
   foodAppId: process.env.EDAMAM_APP_FOOD_ID,
   foodAppKey: process.env.EDAMAM_APP_FOOD_KEY,
   // Nutrition Analysis API credentials
   nutritionAppId: process.env.EDAMAM_APP_NUTRITION_ID,
-  nutritionAppKey: process.env.EDAMAM_APP_NUTRITION_KEY
+  nutritionAppKey: process.env.EDAMAM_APP_NUTRITION_KEY,
+  // Add translation service
+  translationService: translationService
 })
 
 // Create AI service
@@ -147,6 +154,7 @@ fastify.decorate('emailService', emailService)
 fastify.decorate('authService', authService)
 fastify.decorate('categoryService', categoryService)
 fastify.decorate('userService', userService)
+fastify.decorate('translationService', translationService)
 fastify.decorate('dishService', dishService)
 fastify.decorate('edamam', edamamService)
 fastify.decorate('commentService', commentService)

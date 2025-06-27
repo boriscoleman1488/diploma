@@ -51,7 +51,6 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
 
     setIsSearching(true)
     try {
-      // Тут ми викликаємо backend endpoint, який використовує Edamam API
       const response = await apiClient.get(`/edamam/search?query=${encodeURIComponent(query)}&limit=10`)
       
       if (response.success && response.foods) {

@@ -18,9 +18,7 @@ const adminNavigation = [
   { name: 'Категорії', href: '/admin/categories', icon: Grid3X3 },
   { name: 'Страви', href: '/admin/dishes', icon: ChefHat },
   { name: 'Коментарі', href: '/admin/comments', icon: MessageCircle },
-  { name: 'Рейтинги', href: '/admin/ratings', icon: Star },
-  { name: 'Колекції', href: '/admin/collections', icon: BookOpen },
-  { name: 'Статистика', href: '/admin/stats', icon: BarChart3 },
+  { name: 'Рейтинги', href: '/admin/ratings', icon: Star }
 ]
 
 export function AdminSidebar() {

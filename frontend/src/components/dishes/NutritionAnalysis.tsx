@@ -257,7 +257,7 @@ export function NutritionAnalysis({
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDietLabelColor(label)}`}
                       >
                         <Target className="w-3 h-3 mr-1" />
-                        {label}
+                        {translateDietLabel(label)}
                       </span>
                     ))}
                     {nutrition.healthLabels.slice(0, 5).map((label, index) => (
@@ -266,7 +266,7 @@ export function NutritionAnalysis({
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getHealthLabelColor(label)}`}
                       >
                         <CheckCircle className="w-3 h-3 mr-1" />
-                        {label}
+                        {translateHealthLabel(label)}
                       </span>
                     ))}
                     {nutrition.healthLabels.length > 5 && (
@@ -291,7 +291,7 @@ export function NutritionAnalysis({
                             key={index}
                             className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800"
                           >
-                            {caution}
+                            {translateCaution(caution)}
                           </span>
                         ))}
                       </div>
@@ -379,4 +379,86 @@ export function NutritionAnalysis({
       </Card>
     </div>
   )
+}
+
+// Функції для перекладу характеристик дієти
+const translateDietLabel = (label: string): string => {
+  const dietTranslations: { [key: string]: string } = {
+    'Balanced': 'Збалансована',
+    'High-Fiber': 'Високий вміст клітковини',
+    'High-Protein': 'Високий вміст білка',
+    'Low-Carb': 'Низький вміст вуглеводів',
+    'Low-Fat': 'Низький вміст жирів',
+    'Low-Sodium': 'Низький вміст натрію',
+    'Keto-Friendly': 'Кето-дружня',
+    'Paleo': 'Палео',
+    'Vegan': 'Веганська',
+    'Vegetarian': 'Вегетаріанська',
+    'Pescatarian': 'Пескетаріанська',
+    'Mediterranean': 'Середземноморська',
+    'DASH': 'DASH дієта',
+    'Low-FODMAP': 'Низький FODMAP'
+  }
+  return dietTranslations[label] || label
+}
+
+// Функції для перекладу характеристик здоров'я
+const translateHealthLabel = (label: string): string => {
+  const healthTranslations: { [key: string]: string } = {
+    'Vegan': 'Веганський',
+    'Vegetarian': 'Вегетаріанський',
+    'Paleo': 'Палео',
+    'Dairy-Free': 'Без молочних продуктів',
+    'Gluten-Free': 'Без глютену',
+    'Wheat-Free': 'Без пшениці',
+    'Egg-Free': 'Без яєць',
+    'Milk-Free': 'Без молока',
+    'Peanut-Free': 'Без арахісу',
+    'Tree-Nut-Free': 'Без горіхів',
+    'Soy-Free': 'Без сої',
+    'Fish-Free': 'Без риби',
+    'Shellfish-Free': 'Без морепродуктів',
+    'Pork-Free': 'Без свинини',
+    'Red-Meat-Free': 'Без червоного м\'яса',
+    'Crustacean-Free': 'Без ракоподібних',
+    'Celery-Free': 'Без селери',
+    'Mustard-Free': 'Без гірчиці',
+    'Sesame-Free': 'Без кунжуту',
+    'Lupine-Free': 'Без люпину',
+    'Mollusk-Free': 'Без молюсків',
+    'Alcohol-Free': 'Без алкоголю',
+    'No oil added': 'Без додавання олії',
+    'Low Sugar': 'Низький вміст цукру',
+    'Keto-Friendly': 'Кето-дружній',
+    'Kidney-Friendly': 'Дружній до нирок',
+    'Kosher': 'Кошерний',
+    'Low Potassium': 'Низький вміст калію',
+    'Low Sodium': 'Низький вміст натрію',
+    'FODMAP-Free': 'Без FODMAP',
+    'Immuno-Supportive': 'Підтримує імунітет'
+  }
+  return healthTranslations[label] || label
+}
+
+// Функції для перекладу попереджень
+const translateCaution = (caution: string): string => {
+  const cautionTranslations: { [key: string]: string } = {
+    'Gluten': 'Містить глютен',
+    'Wheat': 'Містить пшеницю',
+    'Eggs': 'Містить яйця',
+    'Milk': 'Містить молоко',
+    'Peanuts': 'Містить арахіс',
+    'Tree-Nuts': 'Містить горіхи',
+    'Soy': 'Містить сою',
+    'Fish': 'Містить рибу',
+    'Shellfish': 'Містить морепродукти',
+    'Crustaceans': 'Містить ракоподібних',
+    'Mollusks': 'Містить молюсків',
+    'Celery': 'Містить селеру',
+    'Mustard': 'Містить гірчицю',
+    'Sesame': 'Містить кунжут',
+    'Lupine': 'Містить люпин',
+    'Sulfites': 'Містить сульфіти'
+  }
+  return cautionTranslations[caution] || caution
 }

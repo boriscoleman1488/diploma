@@ -612,7 +612,6 @@ export default function AdminDishesPage() {
                 <option value="pending">На розгляді</option>
                 <option value="approved">Схвалено</option>
                 <option value="rejected">Відхилено</option>
-                <option value="draft">Чернетки</option>
               </select>
             </div>
           </div>

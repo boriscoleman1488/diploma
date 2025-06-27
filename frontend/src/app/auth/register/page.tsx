@@ -46,7 +46,6 @@ export default function RegisterPage() {
     if (result.success) {
       if (result.requiresEmailConfirmation) {
         toast.success('Реєстрація успішна! Будь ласка, перевірте вашу електронну пошту для підтвердження.')
-        // Show additional message about welcome email
         setTimeout(() => {
           toast('Вам також надіслано вітальний лист!', {
             icon: '📧',
