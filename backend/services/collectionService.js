@@ -472,8 +472,17 @@ export class CollectionService {
 
     async addDishToSystemCollections(dishId, userId, dishStatus) {
         try {
-            const systemCollections = await this._ensureSystemCollections(userId)
 
+            const { data: systemCollections, error: collectionsError } = await this.supabase
+                .from('dish_collections')
+                .select('id, system_type')
+                .eq('user_id', userId)
+                .eq('collection_type', 'system')
+                
+            if (collectionsError || !systemCollections) {
+                return this._handleError('Get system collections', collectionsError)
+            }
+    
             const itemsToAdd = systemCollections
                 .filter(collection => this._shouldAddToSystemCollection(collection.system_type, dishStatus))
                 .map(collection => ({
@@ -481,19 +490,19 @@ export class CollectionService {
                     dish_id: dishId,
                     user_id: userId
                 }))
-
+    
             if (itemsToAdd.length > 0) {
                 const { error } = await this.supabase
                     .from('dish_collection_items')
                     .insert(itemsToAdd)
                     .on_conflict(['collection_id', 'dish_id', 'user_id'])
                     .ignore()
-
+    
                 if (error) {
                     return this._handleError('Add dish to system collections', error)
                 }
             }
-
+    
             return this._handleSuccess()
         } catch (error) {
             return this._handleError('Add dish to system collections', error)
@@ -531,21 +540,13 @@ export class CollectionService {
             if (userId === dishOwnerId) {
                 return this._handleSuccess()
             }
-
+    
             const { exists, collection } = await this._getSystemCollectionByType(userId, 'liked')
             if (!exists) {
-                // Create system collections if they don't exist
-                await this._ensureSystemCollections(userId)
-                
-                // Try again to get the liked collection
-                const retryResult = await this._getSystemCollectionByType(userId, 'liked')
-                if (!retryResult.exists) {
-                    return this._handleError('Add liked dish', new Error('Liked collection not found'))
-                }
-                
-                return await this.addDishToCollection(userId, retryResult.collection.id, dishId)
-            }
 
+                return this._handleError('Add liked dish', new Error('Liked collection not found'))
+            }
+    
             return await this.addDishToCollection(userId, collection.id, dishId)
         } catch (error) {
             return this._handleError('Add liked dish to collection', error)
@@ -569,8 +570,6 @@ export class CollectionService {
         try {
             const { exists, collection } = await this._getSystemCollectionByType(userId, type)
             if (!exists) {
-                // Create system collections if they don't exist
-                await this._ensureSystemCollections(userId)
                 
                 // Try again to get the collection
                 const retryResult = await this._getSystemCollectionByType(userId, type)

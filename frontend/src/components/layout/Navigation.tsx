@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { User, Settings, LogOut, Menu, X, Shield, Grid3X3, ChefHat, BookOpen } from 'lucide-react'
+import { User, Settings, LogOut, Menu, X, Shield, Grid3X3, ChefHat, BookOpen, Sparkles } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
@@ -12,11 +12,8 @@ import { apiClient } from '@/lib/api'
 
 const navigation = [
   { name: 'Профіль', href: '/profile', icon: User },
-  { name: 'Мої страви', href: '/profile/dishes', icon: ChefHat },
-  { name: 'Категорії', href: '/categories', icon: Grid3X3 },
   { name: 'Страви', href: '/dishes', icon: ChefHat },
-  { name: 'Колекції', href: '/collections', icon: BookOpen },
-  { name: 'Налаштування', href: '/profile/settings', icon: Settings },
+  { name: 'AI-шеф', href: '/ai-chef', icon: Sparkles },
 ]
 
 export function Navigation() {
@@ -124,7 +121,8 @@ export function Navigation() {
                   (item.href === '/admin/users' && pathname.startsWith('/admin')) ||
                   (item.href === '/dishes' && pathname.startsWith('/dishes')) ||
                   (item.href === '/collections' && pathname.startsWith('/collections')) ||
-                  (item.href === '/profile/dishes' && pathname === '/profile/dishes')
+                  (item.href === '/profile/dishes' && pathname === '/profile/dishes') ||
+                  (item.href === '/ai-chef' && pathname === '/ai-chef')
                 
                 return (
                   <Link
@@ -204,7 +202,8 @@ export function Navigation() {
                 (item.href === '/admin/users' && pathname.startsWith('/admin')) ||
                 (item.href === '/dishes' && pathname.startsWith('/dishes')) ||
                 (item.href === '/collections' && pathname.startsWith('/collections')) ||
-                (item.href === '/profile/dishes' && pathname === '/profile/dishes')
+                (item.href === '/profile/dishes' && pathname === '/profile/dishes') ||
+                (item.href === '/ai-chef' && pathname === '/ai-chef')
               
               return (
                 <Link

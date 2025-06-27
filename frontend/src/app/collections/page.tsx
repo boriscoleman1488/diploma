@@ -31,9 +31,7 @@ interface Collection {
   id: string
   name: string
   description?: string
-  collection_type: 'custom' | 'system'
-  system_type?: 'my_dishes' | 'liked' | 'published' | 'private'
-  is_public: boolean
+  collection_type: 'custom'
   created_at: string
   updated_at: string
   dish_collection_items?: Array<{
@@ -186,8 +184,12 @@ export default function CollectionsPage() {
     try {
       const response = await apiClient.get('/collections')
       if (response.success && response.collections) {
-        setCollections(response.collections)
-        setFilteredCollections(response.collections)
+        // Filter to only include custom collections
+        const customCollections = response.collections.filter(
+          collection => collection.collection_type === 'custom'
+        )
+        setCollections(customCollections)
+        setFilteredCollections(customCollections)
       }
     } catch (error) {
       console.error('Failed to fetch collections:', error)
@@ -240,36 +242,6 @@ export default function CollectionsPage() {
       setFilteredCollections(collections)
     }
   }, [searchQuery, collections])
-
-  const getSystemCollectionIcon = (systemType?: string) => {
-    switch (systemType) {
-      case 'my_dishes':
-        return <ChefHat className="w-5 h-5 text-primary-600" />
-      case 'liked':
-        return <Heart className="w-5 h-5 text-red-600" />
-      case 'published':
-        return <Eye className="w-5 h-5 text-green-600" />
-      case 'private':
-        return <BookOpen className="w-5 h-5 text-blue-600" />
-      default:
-        return <BookOpen className="w-5 h-5 text-gray-600" />
-    }
-  }
-
-  const getSystemCollectionName = (systemType?: string) => {
-    switch (systemType) {
-      case 'my_dishes':
-        return 'Мої страви'
-      case 'liked':
-        return 'Улюблені'
-      case 'published':
-        return 'Опубліковані'
-      case 'private':
-        return 'Приватні'
-      default:
-        return 'Колекція'
-    }
-  }
 
   const getCollectionItemsCount = (collection: Collection) => {
     return collection.dish_collection_items?.length || 0
@@ -362,7 +334,6 @@ export default function CollectionsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCollections.map((collection) => {
-            const isSystemCollection = collection.collection_type === 'system'
             const itemsCount = getCollectionItemsCount(collection)
             
             return (
@@ -370,23 +341,21 @@ export default function CollectionsPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <div className="flex items-center">
-                      {getSystemCollectionIcon(collection.system_type)}
+                      <BookOpen className="w-5 h-5 text-gray-600 mr-2" />
                       <span className="ml-2">{collection.name}</span>
                     </div>
-                    {!isSystemCollection && (
-                      <div className="flex space-x-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          leftIcon={<Trash2 className="w-4 h-4" />}
-                          onClick={() => handleDeleteCollection(collection.id, collection.name)}
-                          disabled={isDeleting === collection.id}
-                          className="text-red-600 border-red-300 hover:bg-red-50"
-                        >
-                          {isDeleting === collection.id ? 'Видалення...' : 'Видалити'}
-                        </Button>
-                      </div>
-                    )}
+                    <div className="flex space-x-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        leftIcon={<Trash2 className="w-4 h-4" />}
+                        onClick={() => handleDeleteCollection(collection.id, collection.name)}
+                        disabled={isDeleting === collection.id}
+                        className="text-red-600 border-red-300 hover:bg-red-50"
+                      >
+                        {isDeleting === collection.id ? 'Видалення...' : 'Видалити'}
+                      </Button>
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -403,15 +372,9 @@ export default function CollectionsPage() {
                         {itemsCount} {itemsCount === 1 ? 'страва' : itemsCount > 1 && itemsCount < 5 ? 'страви' : 'страв'}
                       </div>
                       <div>
-                        {collection.is_public ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
-                            Публічна
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                            Приватна
-                          </span>
-                        )}
+                        <span className="text-xs text-gray-500">
+                          {formatRelativeTime(collection.created_at)}
+                        </span>
                       </div>
                     </div>
                     

@@ -23,8 +23,6 @@ import {
   ArrowLeft,
   Edit,
   X,
-  Globe,
-  Lock,
   MessageCircle
 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -34,9 +32,7 @@ interface Collection {
   id: string
   name: string
   description?: string
-  collection_type: 'custom' | 'system'
-  system_type?: 'my_dishes' | 'liked' | 'published' | 'private'
-  is_public: boolean
+  collection_type: 'custom'
   created_at: string
   updated_at: string
   user_id: string
@@ -81,14 +77,12 @@ interface EditCollectionModalProps {
 function EditCollectionModal({ collection, isOpen, onClose, onSuccess }: EditCollectionModalProps) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [isPublic, setIsPublic] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
 
   useEffect(() => {
     if (isOpen && collection) {
       setName(collection.name)
       setDescription(collection.description || '')
-      setIsPublic(collection.is_public)
     }
   }, [isOpen, collection])
 
@@ -104,8 +98,7 @@ function EditCollectionModal({ collection, isOpen, onClose, onSuccess }: EditCol
     try {
       const response = await apiClient.put(`/collections/${collection?.id}`, {
         name: name.trim(),
-        description: description.trim() || undefined,
-        is_public: isPublic
+        description: description.trim() || undefined
       })
       
       if (response.success) {
@@ -177,20 +170,6 @@ function EditCollectionModal({ collection, isOpen, onClose, onSuccess }: EditCol
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
             />
-          </div>
-          
-          <div className="flex items-center">
-            <input
-              id="is_public"
-              type="checkbox"
-              checked={isPublic}
-              onChange={(e) => setIsPublic(e.target.checked)}
-              disabled={isUpdating}
-              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-            />
-            <label htmlFor="is_public" className="ml-2 block text-sm text-gray-700">
-              Зробити колекцію публічною
-            </label>
           </div>
           
           <div className="flex items-center justify-end space-x-3 pt-4">
@@ -295,22 +274,6 @@ export default function CollectionDetailPage() {
   }, [searchQuery, dishes])
 
   const isOwner = collection && user && collection.user_id === user.id
-  const isSystemCollection = collection?.collection_type === 'system'
-
-  const getSystemCollectionIcon = (systemType?: string) => {
-    switch (systemType) {
-      case 'my_dishes':
-        return <ChefHat className="w-6 h-6 text-primary-600" />
-      case 'liked':
-        return <Heart className="w-6 h-6 text-red-600" />
-      case 'published':
-        return <Eye className="w-6 h-6 text-green-600" />
-      case 'private':
-        return <BookOpen className="w-6 h-6 text-blue-600" />
-      default:
-        return <BookOpen className="w-6 h-6 text-gray-600" />
-    }
-  }
 
   const getTotalCookingTime = (dish: Dish) => {
     if (!dish.steps || !Array.isArray(dish.steps)) return null
@@ -400,27 +363,15 @@ export default function CollectionDetailPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-              {getSystemCollectionIcon(collection.system_type)}
+              <BookOpen className="w-6 h-6 text-gray-600 mr-2" />
               <span className="ml-2">{collection.name}</span>
-              {collection.is_public && (
-                <span className="ml-2 inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
-                  <Globe className="w-3 h-3 mr-1" />
-                  Публічна
-                </span>
-              )}
-              {!collection.is_public && (
-                <span className="ml-2 inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                  <Lock className="w-3 h-3 mr-1" />
-                  Приватна
-                </span>
-              )}
             </h1>
             {collection.description && (
               <p className="mt-1 text-gray-600">{collection.description}</p>
             )}
           </div>
         </div>
-        {isOwner && !isSystemCollection && (
+        {isOwner && (
           <Button
             variant="outline"
             leftIcon={<Edit className="w-4 h-4" />}

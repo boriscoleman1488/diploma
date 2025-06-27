@@ -1,9 +1,7 @@
 import { AuthSession } from '@/types/auth'
 
-// Use the correct protocol and port for the backend
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? '/api' 
-  : 'http://localhost:3000/api'
+// Use Next.js proxy for all environments to avoid CORS issues
+const API_BASE_URL = '/api'
 
 class ApiClient {
   private baseURL: string
@@ -31,6 +29,20 @@ class ApiClient {
     }
 
     return headers
+  }
+
+  private isAuthEndpoint(endpoint: string): boolean {
+    const authEndpoints = [
+      '/auth/login',
+      '/auth/register',
+      '/auth/refresh',
+      '/auth/logout',
+      '/auth/resend-confirmation',
+      '/auth/reset-password',
+      '/auth/confirm'
+    ]
+    
+    return authEndpoints.some(authEndpoint => endpoint.startsWith(authEndpoint))
   }
 
   private async refreshTokenIfNeeded(): Promise<boolean> {
@@ -105,6 +117,19 @@ class ApiClient {
     }
   }
 
+  private isNotFoundError(errorMessage: string): boolean {
+    const notFoundIndicators = [
+      'not found',
+      'unable to fetch dish',
+      'страву не знайдено',
+      'dish not found'
+    ]
+    
+    return notFoundIndicators.some(indicator => 
+      errorMessage.toLowerCase().includes(indicator.toLowerCase())
+    )
+  }
+
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       // Handle 401 errors specially
@@ -142,32 +167,52 @@ class ApiClient {
     retryCount = 0
   ): Promise<T> {
     try {
-      // Refresh token if needed before making the request
-      await this.refreshTokenIfNeeded()
+      // Log the request for debugging
+      console.log(`API Request: ${options.method} ${this.baseURL}${endpoint}`)
+      
+      // Don't refresh tokens for auth endpoints
+      if (!this.isAuthEndpoint(endpoint)) {
+        // Refresh token if needed before making the request
+        await this.refreshTokenIfNeeded()
+      }
 
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         ...options,
-        // Add mode: 'cors' for cross-origin requests in development
-        mode: 'cors',
-        credentials: 'include'
+        // Remove mode and credentials for same-origin requests
+        credentials: 'same-origin'
       })
       return await this.handleResponse<T>(response)
     } catch (error) {
-      // If token was refreshed, retry the request once
-      if (error instanceof Error && error.message === 'TOKEN_REFRESHED' && retryCount === 0) {
+      // If token was refreshed, retry the request once (but not for auth endpoints)
+      if (error instanceof Error && 
+          error.message === 'TOKEN_REFRESHED' && 
+          retryCount === 0 && 
+          !this.isAuthEndpoint(endpoint)) {
+        console.log('Token refreshed, retrying request...')
         const newOptions = {
           ...options,
           headers: {
             ...options.headers,
             ...this.getAuthHeaders(!!options.body)
           },
-          mode: 'cors' as RequestMode,
-          credentials: 'include' as RequestCredentials
+          credentials: 'same-origin' as RequestCredentials
         }
         return this.makeRequest<T>(endpoint, newOptions, retryCount + 1)
       }
       
       if (error instanceof Error) {
+        // Don't log TOKEN_REFRESHED errors for auth endpoints
+        if (error.message === 'TOKEN_REFRESHED' && this.isAuthEndpoint(endpoint)) {
+          // For auth endpoints, treat TOKEN_REFRESHED as a regular auth error
+          throw new Error('Помилка автентифікації')
+        }
+        
+        // Use console.warn for expected "not found" scenarios instead of console.error
+        if (this.isNotFoundError(error.message)) {
+          console.warn(`API Warning (${options.method} ${endpoint}):`, error.message)
+        } else {
+          console.error(`API Error (${options.method} ${endpoint}):`, error.message)
+        }
         throw error
       }
       throw new Error('Помилка мережі')
@@ -198,6 +243,17 @@ class ApiClient {
 
     return this.makeRequest<T>(endpoint, {
       method: 'PUT',
+      headers,
+      body,
+    })
+  }
+
+  async patch<T>(endpoint: string, data?: any): Promise<T> {
+    const headers = this.getAuthHeaders(!!data)
+    const body = data ? JSON.stringify(data) : undefined
+
+    return this.makeRequest<T>(endpoint, {
+      method: 'PATCH',
       headers,
       body,
     })

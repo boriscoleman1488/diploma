@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Avatar'
@@ -24,8 +23,7 @@ import {
   Activity,
   Zap,
   Share2,
-  BookOpen,
-  MessageCircle
+  BookOpen
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -45,13 +43,26 @@ interface NutritionData {
   }
 }
 
-export default function DishDetailPage() {
-  const { id } = useParams() as { id: string }
+export default function DishDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const [dish, setDish] = useState<Dish | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [nutritionData, setNutritionData] = useState<NutritionData | null>(null)
   const [isAnalyzingNutrition, setIsAnalyzingNutrition] = useState(false)
   const { isAuthenticated } = useAuthStore()
+
+  const isNotFoundError = (errorMessage: string): boolean => {
+    const notFoundIndicators = [
+      'not found',
+      'unable to fetch dish',
+      'страву не знайдено',
+      'dish not found'
+    ]
+    
+    return notFoundIndicators.some(indicator => 
+      errorMessage.toLowerCase().includes(indicator.toLowerCase())
+    )
+  }
 
   const fetchDish = async () => {
     setIsLoading(true)
@@ -63,8 +74,16 @@ export default function DishDetailPage() {
         toast.error('Страву не знайдено')
       }
     } catch (error) {
-      console.error('Failed to fetch dish:', error)
-      toast.error(error instanceof Error ? error.message : 'Не вдалося завантажити страву')
+      const errorMessage = error instanceof Error ? error.message : 'Не вдалося завантажити страву'
+      
+      // Use console.warn for expected "not found" scenarios instead of console.error
+      if (isNotFoundError(errorMessage)) {
+        console.warn('Failed to fetch dish:', errorMessage)
+      } else {
+        console.error('Failed to fetch dish:', error)
+      }
+      
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -97,22 +116,38 @@ export default function DishDetailPage() {
     }
   }
 
-  const handleShare = () => {
+  const handleShare = async () => {
+    const shareData = {
+      title: dish?.title || 'Рецепт страви',
+      text: dish?.description || 'Перегляньте цей рецепт',
+      url: window.location.href
+    }
+
+    // Check if Web Share API is supported and can share this data
     if (navigator.share) {
-      navigator.share({
-        title: dish?.title || 'Рецепт страви',
-        text: dish?.description || 'Перегляньте цей рецепт',
-        url: window.location.href
-      })
-      .catch(error => {
-        console.error('Error sharing:', error)
-      })
+      // Check if navigator.canShare is available and if the data can be shared
+      if (navigator.canShare && !navigator.canShare(shareData)) {
+        // If canShare returns false, fall back to clipboard
+        fallbackToClipboard()
+        return
+      }
+
+      try {
+        await navigator.share(shareData)
+      } catch (error) {
+        // If sharing fails (permission denied, user cancelled, etc.), fall back to clipboard
+        fallbackToClipboard()
+      }
     } else {
       // Fallback for browsers that don't support navigator.share
-      navigator.clipboard.writeText(window.location.href)
-        .then(() => toast.success('Посилання скопійовано в буфер обміну'))
-        .catch(() => toast.error('Не вдалося скопіювати посилання'))
+      fallbackToClipboard()
     }
+  }
+
+  const fallbackToClipboard = () => {
+    navigator.clipboard.writeText(window.location.href)
+      .then(() => toast.success('Посилання скопійовано в буфер обміну'))
+      .catch(() => toast.error('Не вдалося скопіювати посилання'))
   }
 
   useEffect(() => {

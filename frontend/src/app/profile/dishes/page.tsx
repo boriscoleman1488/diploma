@@ -37,12 +37,15 @@ export default function UserDishesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [filteredDishes, setFilteredDishes] = useState<Dish[]>([])
+  const [isDeleting, setIsDeleting] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState<string | null>(null)
   const { user } = useAuthStore()
 
   const fetchUserDishes = async () => {
     setIsLoading(true)
     try {
-      const response = await apiClient.get('/collections/type/my_dishes')
+      // Use the new endpoint for user's own dishes
+      const response = await apiClient.get('/dishes/my-dishes')
       if (response.success && response.dishes) {
         setDishes(response.dishes)
         setFilteredDishes(response.dishes)
@@ -60,6 +63,7 @@ export default function UserDishesPage() {
       return
     }
 
+    setIsDeleting(dishId)
     try {
       const response = await apiClient.delete(`/dishes/${dishId}`)
       if (response.success) {
@@ -71,10 +75,13 @@ export default function UserDishesPage() {
     } catch (error) {
       console.error('Failed to delete dish:', error)
       toast.error(error instanceof Error ? error.message : 'Не вдалося видалити страву')
+    } finally {
+      setIsDeleting(null)
     }
   }
 
   const handleSubmitForReview = async (dishId: string) => {
+    setIsSubmitting(dishId)
     try {
       const response = await apiClient.patch(`/dishes/${dishId}/status`, {
         action: 'submit_for_review'
@@ -89,6 +96,8 @@ export default function UserDishesPage() {
     } catch (error) {
       console.error('Failed to submit dish for review:', error)
       toast.error(error instanceof Error ? error.message : 'Не вдалося відправити страву на модерацію')
+    } finally {
+      setIsSubmitting(null)
     }
   }
 
@@ -365,7 +374,7 @@ export default function UserDishesPage() {
                           Переглянути
                         </Button>
                       </Link>
-                      <Link href={`/dishes/edit/${dish.id}`} className="flex-1">
+                      <Link href={`/dishes/${dish.id}/edit`} className="flex-1">
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -382,9 +391,10 @@ export default function UserDishesPage() {
                         variant="primary"
                         size="sm"
                         onClick={() => handleSubmitForReview(dish.id)}
-                        leftIcon={<CheckCircle className="w-4 h-4" />}
+                        disabled={isSubmitting === dish.id}
+                        leftIcon={isSubmitting === dish.id ? <LoadingSpinner size="sm" /> : <CheckCircle className="w-4 h-4" />}
                       >
-                        Відправити на модерацію
+                        {isSubmitting === dish.id ? 'Відправка...' : 'Відправити на модерацію'}
                       </Button>
                     )}
                     
@@ -393,9 +403,10 @@ export default function UserDishesPage() {
                         variant="primary"
                         size="sm"
                         onClick={() => handleSubmitForReview(dish.id)}
-                        leftIcon={<CheckCircle className="w-4 h-4" />}
+                        disabled={isSubmitting === dish.id}
+                        leftIcon={isSubmitting === dish.id ? <LoadingSpinner size="sm" /> : <CheckCircle className="w-4 h-4" />}
                       >
-                        Відправити повторно
+                        {isSubmitting === dish.id ? 'Відправка...' : 'Відправити повторно'}
                       </Button>
                     )}
                     
@@ -403,10 +414,11 @@ export default function UserDishesPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleDeleteDish(dish.id)}
-                      leftIcon={<Trash2 className="w-4 h-4" />}
+                      disabled={isDeleting === dish.id}
+                      leftIcon={isDeleting === dish.id ? <LoadingSpinner size="sm" /> : <Trash2 className="w-4 h-4" />}
                       className="text-red-600 border-red-300 hover:bg-red-50"
                     >
-                      Видалити
+                      {isDeleting === dish.id ? 'Видалення...' : 'Видалити'}
                     </Button>
                   </div>
                 </CardContent>

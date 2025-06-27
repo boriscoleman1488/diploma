@@ -15,9 +15,11 @@ import { CommentService } from './services/commentService.js'
 import { RatingService } from './services/ratingService.js'
 import { CollectionService } from './services/collectionService.js'
 import { EmailService } from './services/emailService.js'
+import AIService from './services/aiService.js'
 
 import authRoutes from './routes/auth.js'
 import edamamRoutes from './routes/edamam/index.js'
+import aiRoutes from './routes/ai/index.js'
 
 import userRoutes from './routes/users/index.js'
 import userAdminRoutes from './routes/users/admin.js'
@@ -49,7 +51,8 @@ console.log('Environment variables check:', {
   EDAMAM_APP_FOOD_ID: process.env.EDAMAM_APP_FOOD_ID ? `${process.env.EDAMAM_APP_FOOD_ID.substring(0, 4)}...` : 'missing',
   EDAMAM_APP_FOOD_KEY: process.env.EDAMAM_APP_FOOD_KEY ? `${process.env.EDAMAM_APP_FOOD_KEY.substring(0, 4)}...` : 'missing',
   EDAMAM_APP_NUTRITION_ID: process.env.EDAMAM_APP_NUTRITION_ID ? `${process.env.EDAMAM_APP_NUTRITION_ID.substring(0, 4)}...` : 'missing',
-  EDAMAM_APP_NUTRITION_KEY: process.env.EDAMAM_APP_NUTRITION_KEY ? `${process.env.EDAMAM_APP_NUTRITION_KEY.substring(0, 4)}...` : 'missing'
+  EDAMAM_APP_NUTRITION_KEY: process.env.EDAMAM_APP_NUTRITION_KEY ? `${process.env.EDAMAM_APP_NUTRITION_KEY.substring(0, 4)}...` : 'missing',
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'configured' : 'missing'
 })
 
 // Simple logger configuration without deprecated features
@@ -106,7 +109,7 @@ await fastify.register(fastifyRateLimit, {
 // Register multipart support for file uploads
 await fastify.register(fastifyMultipart, {
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 10 * 1024 * 1024, // 10MB limit to match dish-images bucket
     files: 1 // Only allow 1 file at a time
   }
 })
@@ -137,6 +140,9 @@ const edamamService = new EdamamService({
   nutritionAppKey: process.env.EDAMAM_APP_NUTRITION_KEY
 })
 
+// Create AI service
+const aiService = new AIService(fastify.log)
+
 fastify.decorate('emailService', emailService)
 fastify.decorate('authService', authService)
 fastify.decorate('categoryService', categoryService)
@@ -146,9 +152,11 @@ fastify.decorate('edamam', edamamService)
 fastify.decorate('commentService', commentService)
 fastify.decorate('ratingService', ratingService)
 fastify.decorate('collectionService', collectionService)
+fastify.decorate('aiService', aiService)
 
 await fastify.register(authRoutes, { prefix: '/api/auth' })
 await fastify.register(edamamRoutes, { prefix: '/api/edamam' })
+await fastify.register(aiRoutes, { prefix: '/api/ai' })
 
 // User routes
 await fastify.register(userRoutes, { prefix: '/api/users' })
@@ -181,7 +189,8 @@ fastify.get('/', async (request, reply) => {
       comments: '/api/comments',
       ratings: '/api/ratings',
       collections: '/api/collections',
-      edamam: '/api/edamam'
+      edamam: '/api/edamam',
+      ai: '/api/ai'
     }
   }
 })
@@ -195,7 +204,8 @@ fastify.get('/health', async (request, reply) => {
       database: 'unknown',
       storage: 'unknown',
       edamam_food: 'unknown',
-      edamam_nutrition: 'unknown'
+      edamam_nutrition: 'unknown',
+      gemini: 'unknown'
     }
   }
 
@@ -241,6 +251,17 @@ fastify.get('/health', async (request, reply) => {
     health.services.edamam_nutrition = 'unhealthy'
   }
 
+  try {
+    // Перевіряємо OpenAI API
+    if (process.env.GEMINI_API_KEY) {
+      health.services.gemini = 'healthy'
+    } else {
+      health.services.gemini = 'not_configured'
+    }
+  } catch (error) {
+    health.services.gemini = 'unhealthy'
+  }
+
   const isHealthy = Object.values(health.services).every(status => 
     status === 'healthy' || status === 'not_configured'
   )
@@ -269,7 +290,9 @@ fastify.setNotFoundHandler((request, reply) => {
       'GET /api/ratings/:dishId',
       'GET /api/collections',
       'GET /api/edamam/search',
-      'POST /api/edamam/analyze-nutrition'
+      'POST /api/edamam/analyze-nutrition',
+      'POST /api/ai/search-ingredients',
+      'POST /api/ai/recipe-suggestions'
     ]
   })
 })
@@ -312,6 +335,44 @@ async function ensureAvatarsBucket() {
   }
 }
 
+// Function to ensure dish-images bucket exists
+async function ensureDishImagesBucket() {
+  try {
+    const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets()
+    
+    if (listError) {
+      console.log('⚠️ Не вдалося перевірити buckets:', listError.message)
+      return false
+    }
+
+    const dishImagesBucket = buckets.find(bucket => bucket.id === 'dish-images')
+    
+    if (!dishImagesBucket) {
+      console.log('📦 Створюємо bucket "dish-images"...')
+      
+      const { data: newBucket, error: createError } = await supabaseAdmin.storage.createBucket('dish-images', {
+        public: true,
+        fileSizeLimit: 10485760, // 10MB
+        allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+      })
+      
+      if (createError) {
+        console.log('❌ Помилка створення bucket "dish-images":', createError.message)
+        return false
+      }
+      
+      console.log('✅ Bucket "dish-images" створено успішно')
+      return true
+    } else {
+      console.log('✅ Bucket "dish-images" вже існує')
+      return true
+    }
+  } catch (error) {
+    console.log('❌ Помилка при роботі з bucket:', error.message)
+    return false
+  }
+}
+
 const start = async () => {
   try {
     await fastify.listen({
@@ -328,6 +389,9 @@ const start = async () => {
         
         // Перевіряємо та створюємо bucket "avatars" якщо потрібно
         await ensureAvatarsBucket()
+        
+        // Перевіряємо та створюємо bucket "dish-images" якщо потрібно
+        await ensureDishImagesBucket()
       } else {
         console.log('⚠️ Supabase Storage недоступно:', error?.message)
       }
@@ -346,6 +410,13 @@ const start = async () => {
       console.log('✅ Edamam Nutrition Analysis API налаштовано')
     } else {
       console.log('⚠️ Edamam Nutrition Analysis API не налаштовано. Додайте EDAMAM_APP_NUTRITION_ID та EDAMAM_APP_NUTRITION_KEY до .env файлу')
+    }
+
+    // Тестуємо Gemini API при запуску
+    if (process.env.GEMINI_API_KEY) {
+      console.log('✅ Gemini API налаштовано')
+    } else {
+      console.log('⚠️ Gemini API не налаштовано. Додайте GEMINI_API_KEY до .env файлу')
     }
   } catch (err) {
     console.error('Помилка запуску сервера:', err)

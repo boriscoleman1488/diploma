@@ -140,16 +140,6 @@ export function RatingSection({ dishId, className = '', onRatingChange }: Rating
               <Heart className="w-4 h-4 mr-1 text-red-500" />
               <span className="font-medium">{stats.likes}</span>
             </div>
-            
-            {stats.total > 0 && (
-              <>
-                <span>•</span>
-                <div className="flex items-center">
-                  <TrendingUp className="w-4 h-4 mr-1 text-green-500" />
-                  <span>{Math.round(stats.ratio * 100)}% позитивних</span>
-                </div>
-              </>
-            )}
           </div>
         )}
       </div>

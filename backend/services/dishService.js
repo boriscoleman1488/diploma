@@ -227,7 +227,7 @@ export class DishService {
                 .from('dishes')
                 .select(`
                     *,
-                    profiles:user_id(full_name, email, profile_tag),
+                    profiles:user_id(full_name, email, profile_tag, avatar_url),
                     dish_category_relations(
                         dish_categories(id, name)
                     ),
@@ -240,11 +240,70 @@ export class DishService {
                 .order('created_at', { ascending: false })
 
             if (error) {
-                this.logger.error('Dishes fetch error', { error: error.message })
+                this.logger.error('Public dishes fetch error', { error: error.message })
                 return {
                     success: false,
                     error: 'Database error',
                     message: 'Unable to fetch dishes'
+                }
+            }
+
+            const processedDishes = (dishes || []).map(dish => ({
+                ...dish,
+                categories: dish.dish_category_relations?.map(rel => rel.dish_categories) || [],
+                ratings: dish.dish_ratings || [],
+                comments_count: dish.dish_comments?.length || 0,
+                ingredients: dish.dish_ingredients?.sort((a, b) => a.order_index - b.order_index) || [],
+                steps: dish.dish_steps?.sort((a, b) => a.step_number - b.step_number) || []
+            }))
+
+            processedDishes.forEach(dish => {
+                delete dish.dish_category_relations
+                delete dish.dish_ratings
+                delete dish.dish_comments
+                delete dish.dish_ingredients
+                delete dish.dish_steps
+            })
+
+            return {
+                success: true,
+                dishes: processedDishes,
+                total: processedDishes.length
+            }
+        } catch (error) {
+            this.logger.error('Public dishes fetch error', { error: error.message })
+            return {
+                success: false,
+                error: 'Internal server error',
+                message: 'Unable to fetch dishes'
+            }
+        }
+    }
+
+    async getUserDishes(userId) {
+        try {
+            const { data: dishes, error } = await this.supabase
+                .from('dishes')
+                .select(`
+                    *,
+                    profiles:user_id(full_name, email, profile_tag),
+                    dish_category_relations(
+                        dish_categories(id, name)
+                    ),
+                    dish_ratings(rating_type),
+                    dish_comments(id),
+                    dish_ingredients(*),
+                    dish_steps(*)
+                `)
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+
+            if (error) {
+                this.logger.error('User dishes fetch error', { error: error.message })
+                return {
+                    success: false,
+                    error: 'Database error',
+                    message: 'Unable to fetch user dishes'
                 }
             }
 
@@ -271,11 +330,11 @@ export class DishService {
                 total: processedDishes.length
             }
         } catch (error) {
-            this.logger.error('Dishes fetch error', { error: error.message })
+            this.logger.error('User dishes fetch error', { error: error.message })
             return {
                 success: false,
                 error: 'Internal server error',
-                message: 'Unable to fetch dishes'
+                message: 'Unable to fetch user dishes'
             }
         }
     }
@@ -618,22 +677,100 @@ export class DishService {
                 }
             }
 
-            await this.supabase
+            this.logger.info('Starting dish deletion - cleaning up related records', { dishId, userId })
+
+            // Delete dish comments first - using admin client to bypass RLS
+            const { error: commentsError } = await this.supabaseAdmin
+                .from('dish_comments')
+                .delete()
+                .eq('dish_id', dishId)
+
+            if (commentsError) {
+                this.logger.error('Failed to delete dish comments', { dishId, error: commentsError.message })
+                return {
+                    success: false,
+                    error: 'Database error',
+                    message: 'Unable to delete dish comments'
+                }
+            }
+
+            // Delete dish ratings - using admin client to bypass RLS
+            const { error: ratingsError } = await this.supabaseAdmin
+                .from('dish_ratings')
+                .delete()
+                .eq('dish_id', dishId)
+
+            if (ratingsError) {
+                this.logger.error('Failed to delete dish ratings', { dishId, error: ratingsError.message })
+                return {
+                    success: false,
+                    error: 'Database error',
+                    message: 'Unable to delete dish ratings'
+                }
+            }
+
+            // Delete dish collection items - using admin client to bypass RLS
+            const { error: collectionItemsError } = await this.supabaseAdmin
+                .from('dish_collection_items')
+                .delete()
+                .eq('dish_id', dishId)
+
+            if (collectionItemsError) {
+                this.logger.error('Failed to delete dish collection items', { dishId, error: collectionItemsError.message })
+                return {
+                    success: false,
+                    error: 'Database error',
+                    message: 'Unable to delete dish from collections'
+                }
+            }
+
+            // Delete dish ingredients - using admin client to bypass RLS
+            const { error: ingredientsError } = await this.supabaseAdmin
                 .from('dish_ingredients')
                 .delete()
                 .eq('dish_id', dishId)
 
-            await this.supabase
+            if (ingredientsError) {
+                this.logger.error('Failed to delete dish ingredients', { dishId, error: ingredientsError.message })
+                return {
+                    success: false,
+                    error: 'Database error',
+                    message: 'Unable to delete dish ingredients'
+                }
+            }
+
+            // Delete dish steps - using admin client to bypass RLS
+            const { error: stepsError } = await this.supabaseAdmin
                 .from('dish_steps')
                 .delete()
                 .eq('dish_id', dishId)
 
-            await this.supabase
+            if (stepsError) {
+                this.logger.error('Failed to delete dish steps', { dishId, error: stepsError.message })
+                return {
+                    success: false,
+                    error: 'Database error',
+                    message: 'Unable to delete dish steps'
+                }
+            }
+
+            // Delete dish category relations - using admin client to bypass RLS
+            const { error: categoryRelationsError } = await this.supabaseAdmin
                 .from('dish_category_relations')
                 .delete()
                 .eq('dish_id', dishId)
 
-            const { error: deleteError } = await this.supabase
+            if (categoryRelationsError) {
+                this.logger.error('Failed to delete dish category relations', { dishId, error: categoryRelationsError.message })
+                return {
+                    success: false,
+                    error: 'Database error',
+                    message: 'Unable to delete dish category relations'
+                }
+            }
+
+            // Finally, delete the dish itself - using admin client to bypass RLS
+            const { error: deleteError } = await this.supabaseAdmin
                 .from('dishes')
                 .delete()
                 .eq('id', dishId)

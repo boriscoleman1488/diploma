@@ -511,7 +511,7 @@ export class UserService {
                 .select('id, email')
                 .eq('id', userId)
                 .single()
-
+    
             if (checkError || !existingUser) {
                 return this._handleError(
                     new Error('User not found'),
@@ -519,10 +519,136 @@ export class UserService {
                     { userId }
                 )
             }
-
+    
+            // Видаляємо всі пов'язані дані в правильному порядку
+            // 1. Видаляємо коментарі користувача
+            const { error: commentsError } = await this.supabase
+                .from('comments')
+                .delete()
+                .eq('user_id', userId)
+    
+            if (commentsError) {
+                this.logger.warn('Failed to delete user comments', { 
+                    error: commentsError.message, 
+                    userId 
+                })
+            }
+    
+            // 2. Видаляємо рейтинги користувача
+            const { error: ratingsError } = await this.supabase
+                .from('ratings')
+                .delete()
+                .eq('user_id', userId)
+    
+            if (ratingsError) {
+                this.logger.warn('Failed to delete user ratings', { 
+                    error: ratingsError.message, 
+                    userId 
+                })
+            }
+    
+            // 3. Видаляємо зв'язки колекцій з стравами
+            const { error: collectionDishesError } = await this.supabase
+                .from('collection_dishes')
+                .delete()
+                .in('collection_id', 
+                    this.supabase
+                        .from('collections')
+                        .select('id')
+                        .eq('user_id', userId)
+                )
+    
+            if (collectionDishesError) {
+                this.logger.warn('Failed to delete collection dishes', { 
+                    error: collectionDishesError.message, 
+                    userId 
+                })
+            }
+    
+            // 4. Видаляємо колекції користувача
+            const { error: collectionsError } = await this.supabase
+                .from('collections')
+                .delete()
+                .eq('user_id', userId)
+    
+            if (collectionsError) {
+                this.logger.warn('Failed to delete user collections', { 
+                    error: collectionsError.message, 
+                    userId 
+                })
+            }
+    
+            // 5. Видаляємо зв'язки категорій зі стравами користувача
+            const { error: dishCategoriesError } = await this.supabase
+                .from('dish_categories')
+                .delete()
+                .in('dish_id', 
+                    this.supabase
+                        .from('dishes')
+                        .select('id')
+                        .eq('user_id', userId)
+                )
+    
+            if (dishCategoriesError) {
+                this.logger.warn('Failed to delete dish categories', { 
+                    error: dishCategoriesError.message, 
+                    userId 
+                })
+            }
+    
+            // 6. Видаляємо інгредієнти страв користувача
+            const { error: dishIngredientsError } = await this.supabase
+                .from('dish_ingredients')
+                .delete()
+                .in('dish_id', 
+                    this.supabase
+                        .from('dishes')
+                        .select('id')
+                        .eq('user_id', userId)
+                )
+    
+            if (dishIngredientsError) {
+                this.logger.warn('Failed to delete dish ingredients', { 
+                    error: dishIngredientsError.message, 
+                    userId 
+                })
+            }
+    
+            // 7. Видаляємо кроки страв користувача
+            const { error: dishStepsError } = await this.supabase
+                .from('dish_steps')
+                .delete()
+                .in('dish_id', 
+                    this.supabase
+                        .from('dishes')
+                        .select('id')
+                        .eq('user_id', userId)
+                )
+    
+            if (dishStepsError) {
+                this.logger.warn('Failed to delete dish steps', { 
+                    error: dishStepsError.message, 
+                    userId 
+                })
+            }
+    
+            // 8. Видаляємо страви користувача
+            const { error: dishesError } = await this.supabase
+                .from('dishes')
+                .delete()
+                .eq('user_id', userId)
+    
+            if (dishesError) {
+                this.logger.warn('Failed to delete user dishes', { 
+                    error: dishesError.message, 
+                    userId 
+                })
+            }
+    
+            // 9. Видаляємо користувача з auth (якщо є supabaseAdmin)
             if (supabaseAdmin) {
                 const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
-
+    
                 if (authError) {
                     this.logger.error('Failed to delete user from auth', { 
                         error: authError.message, 
@@ -532,27 +658,30 @@ export class UserService {
                     return this._handleError(authError, 'Unable to delete user account', { userId })
                 }
             }
-
+    
+            // 10. Нарешті видаляємо профіль користувача
             const { error: profileError } = await this.supabase
                 .from('profiles')
                 .delete()
                 .eq('id', userId)
-
+    
             if (profileError && profileError.code !== 'PGRST116') {
-                this.logger.warn('Profile cleanup failed but user was deleted from auth', { 
+                this.logger.error('Profile deletion failed', { 
                     error: profileError.message, 
                     userId 
                 })
+                return this._handleError(profileError, 'Database error deleting user', { userId })
             }
             
-            this.logger.info('User deleted successfully by admin', { 
+            this.logger.info('User and all related data deleted successfully by admin', { 
                 userId, 
                 userEmail: existingUser.email 
             })
-            return this._handleSuccess({}, 'User deleted successfully')
+            return this._handleSuccess({}, 'Користувача та всі пов\'язані дані успішно видалено')
             
         } catch (error) {
-            return this._handleError(error, this.ERRORS.INTERNAL_ERROR, { userId })
+            this.logger.error('Error in deleteUserByAdmin', { error: error.message, userId })
+            return this._handleError(error, 'Database error deleting user', { userId })
         }
     }
 

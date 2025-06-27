@@ -12,8 +12,7 @@ interface Collection {
   id: string
   name: string
   description?: string
-  collection_type: 'custom' | 'system'
-  system_type?: 'my_dishes' | 'liked' | 'published' | 'private'
+  collection_type: 'custom'
 }
 
 interface AddToCollectionButtonProps {
@@ -36,11 +35,11 @@ export function AddToCollectionButton({ dishId, className = '' }: AddToCollectio
     try {
       const response = await apiClient.get('/collections')
       if (response.success && response.collections) {
-        // Filter out system collections except for 'liked'
-        const filteredCollections = response.collections.filter(
-          collection => collection.collection_type !== 'system' || collection.system_type === 'liked'
+        // Only use custom collections
+        const customCollections = response.collections.filter(
+          collection => collection.collection_type === 'custom'
         )
-        setCollections(filteredCollections)
+        setCollections(customCollections)
       }
     } catch (error) {
       console.error('Failed to fetch collections:', error)
