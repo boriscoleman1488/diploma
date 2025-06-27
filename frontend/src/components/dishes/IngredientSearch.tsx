@@ -11,6 +11,7 @@ import { debounce } from '@/lib/utils'
 interface EdamamFood {
   foodId: string
   label: string
+  originalLabel?: string
   category?: string
   image?: string
   nutrients?: {
@@ -51,6 +52,7 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
 
     setIsSearching(true)
     try {
+      // Викликаємо backend endpoint, який використовує Edamam API з перекладом
       const response = await apiClient.get(`/edamam/search?query=${encodeURIComponent(query)}&limit=10`)
       
       if (response.success && response.foods) {
@@ -119,7 +121,7 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Введіть назву інгредієнта (наприклад: помідор, курка, рис)"
+              placeholder="Введіть назву інгредієнта українською (наприклад: помідор, курка, рис)"
               leftIcon={isSearching ? <LoadingSpinner size="sm" /> : <Search className="w-4 h-4" />}
               rightIcon={
                 selectedFood && (
