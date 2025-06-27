@@ -12,13 +12,17 @@ class ApiClient {
   constructor(baseURL: string) {
     this.baseURL = baseURL
     
-    // Try to restore session from localStorage on initialization
-    this.restoreSession()
+    // Only try to restore session on client-side
+    if (typeof window !== 'undefined') {
+      this.restoreSession()
+    }
   }
 
   // Restore session from localStorage if available
   private restoreSession() {
     try {
+      if (typeof window === 'undefined') return
+      
       const authStorage = localStorage.getItem('auth-storage')
       if (authStorage) {
         const parsedStorage = JSON.parse(authStorage)
@@ -128,8 +132,10 @@ class ApiClient {
         this.session = data.session
         
         // Update the auth store
-        const { useAuthStore } = await import('@/store/authStore')
-        useAuthStore.getState().setSession(data.session)
+        if (typeof window !== 'undefined') {
+          const { useAuthStore } = await import('@/store/authStore')
+          useAuthStore.getState().setSession(data.session)
+        }
         
         return true
       }
@@ -139,8 +145,10 @@ class ApiClient {
       console.error('Token refresh error:', error)
       
       // Refresh failed, logout user
-      const { useAuthStore } = await import('@/store/authStore')
-      useAuthStore.getState().logout()
+      if (typeof window !== 'undefined') {
+        const { useAuthStore } = await import('@/store/authStore')
+        useAuthStore.getState().logout()
+      }
       
       return false
     }

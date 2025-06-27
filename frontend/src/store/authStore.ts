@@ -3,6 +3,9 @@ import { persist } from 'zustand/middleware'
 import { AuthState, User, AuthSession, LoginCredentials, RegisterData, AuthResponse } from '@/types/auth'
 import { apiClient } from '@/lib/api'
 
+// Helper to check if we're in a browser environment
+const isBrowser = typeof window !== 'undefined'
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -103,10 +106,14 @@ export const useAuthStore = create<AuthState>()(
           apiClient.setSession(null)
           
           // Clear localStorage
-          localStorage.removeItem('auth-storage')
+          if (isBrowser) {
+            localStorage.removeItem('auth-storage')
+          }
           
           // Redirect to login
-          window.location.href = '/auth/login'
+          if (isBrowser) {
+            window.location.href = '/auth/login'
+          }
         }
       },
 
@@ -213,6 +220,7 @@ export const useAuthStore = create<AuthState>()(
       storage: {
         getItem: (name) => {
           try {
+            if (!isBrowser) return null;
             const value = localStorage.getItem(name);
             return value ? JSON.parse(value) : null;
           } catch (error) {
@@ -222,6 +230,7 @@ export const useAuthStore = create<AuthState>()(
         },
         setItem: (name, value) => {
           try {
+            if (!isBrowser) return;
             localStorage.setItem(name, JSON.stringify(value));
           } catch (error) {
             console.error('Error storing auth data in localStorage:', error);
@@ -229,6 +238,7 @@ export const useAuthStore = create<AuthState>()(
         },
         removeItem: (name) => {
           try {
+            if (!isBrowser) return;
             localStorage.removeItem(name);
           } catch (error) {
             console.error('Error removing auth data from localStorage:', error);

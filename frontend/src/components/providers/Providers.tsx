@@ -4,6 +4,9 @@ import { useEffect } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import { apiClient } from '@/lib/api'
 
+// Helper to check if we're in a browser environment
+const isBrowser = typeof window !== 'undefined'
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const { session, isAuthenticated, verifyToken } = useAuthStore()
 
@@ -23,7 +26,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   // Set up periodic token refresh
   useEffect(() => {
-    if (!session?.access_token) return
+    if (!isBrowser || !session?.access_token) return
 
     const checkTokenExpiry = () => {
       const now = Date.now() / 1000
