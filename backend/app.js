@@ -35,19 +35,8 @@ import ratingAdminRoutes from './routes/ratings/admin.js'
 import collectionRoutes from './routes/collections/index.js'
 import collectionAdminRoutes from './routes/collections/admin.js'
 
-// Додайте це в початок файлу
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error)
-  // Не завершуйте процес для production
-})
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason)
-})
-
 dotenv.config()
 
-// Log environment variables for debugging (without exposing sensitive data)
 console.log('Environment variables check:', {
   EDAMAM_APP_FOOD_ID: process.env.EDAMAM_APP_FOOD_ID ? `${process.env.EDAMAM_APP_FOOD_ID.substring(0, 4)}...` : 'missing',
   EDAMAM_APP_FOOD_KEY: process.env.EDAMAM_APP_FOOD_KEY ? `${process.env.EDAMAM_APP_FOOD_KEY.substring(0, 4)}...` : 'missing',
@@ -56,7 +45,6 @@ console.log('Environment variables check:', {
   GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'configured' : 'missing'
 })
 
-// Simple logger configuration without deprecated features
 const fastify = Fastify({
   logger: process.env.NODE_ENV === 'production' 
     ? {
