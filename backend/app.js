@@ -83,7 +83,6 @@ await fastify.register(fastifyCors, {
   optionsSuccessStatus: 204
 })
 
-// Додайте хук для логування CORS запитів
 fastify.addHook('onRequest', async (request, reply) => {
   if (request.method === 'OPTIONS') {
     fastify.log.info(`CORS preflight request: ${request.method} ${request.url} from ${request.headers.origin}`)
@@ -95,11 +94,10 @@ await fastify.register(fastifyRateLimit, {
   timeWindow: '1 minute'
 })
 
-// Register multipart support for file uploads
 await fastify.register(fastifyMultipart, {
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit to match dish-images bucket
-    files: 1 // Only allow 1 file at a time
+    fileSize: 10 * 1024 * 1024,
+    files: 1
   }
 })
 
@@ -125,17 +123,13 @@ const translationService = new TranslationService({
 })
 
 const edamamService = new EdamamService({
-  // Food Database API credentials
   foodAppId: process.env.EDAMAM_APP_FOOD_ID,
   foodAppKey: process.env.EDAMAM_APP_FOOD_KEY,
-  // Nutrition Analysis API credentials
   nutritionAppId: process.env.EDAMAM_APP_NUTRITION_ID,
   nutritionAppKey: process.env.EDAMAM_APP_NUTRITION_KEY,
-  // Add translation service
   translationService: translationService
 })
 
-// Create AI service
 const aiService = new AIService(fastify.log)
 
 fastify.decorate('emailService', emailService)
@@ -191,80 +185,7 @@ fastify.get('/', async (request, reply) => {
   }
 })
 
-// Health check endpoint
-fastify.get('/health', async (request, reply) => {
-  const health = {
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    services: {
-      database: 'unknown',
-      storage: 'unknown',
-      edamam_food: 'unknown',
-      edamam_nutrition: 'unknown',
-      gemini: 'unknown'
-    }
-  }
 
-  try {
-    // Перевіряємо підключення до бази даних
-    const { data, error } = await supabaseClient
-      .from('profiles')
-      .select('id')
-      .limit(1)
-    
-    health.services.database = error ? 'unhealthy' : 'healthy'
-  } catch (error) {
-    health.services.database = 'unhealthy'
-  }
-
-  try {
-    // Перевіряємо підключення до Supabase Storage
-    const { data: buckets, error } = await supabaseClient.storage.listBuckets()
-    health.services.storage = error ? 'unhealthy' : 'healthy'
-  } catch (error) {
-    health.services.storage = 'unhealthy'
-  }
-
-  try {
-    // Перевіряємо Edamam Food API
-    if (edamamService && process.env.EDAMAM_APP_FOOD_ID && process.env.EDAMAM_APP_FOOD_KEY) {
-      health.services.edamam_food = 'healthy'
-    } else {
-      health.services.edamam_food = 'not_configured'
-    }
-  } catch (error) {
-    health.services.edamam_food = 'unhealthy'
-  }
-
-  try {
-    // Перевіряємо Edamam Nutrition API
-    if (edamamService && process.env.EDAMAM_APP_NUTRITION_ID && process.env.EDAMAM_APP_NUTRITION_KEY) {
-      health.services.edamam_nutrition = 'healthy'
-    } else {
-      health.services.edamam_nutrition = 'not_configured'
-    }
-  } catch (error) {
-    health.services.edamam_nutrition = 'unhealthy'
-  }
-
-  try {
-    // Перевіряємо OpenAI API
-    if (process.env.GEMINI_API_KEY) {
-      health.services.gemini = 'healthy'
-    } else {
-      health.services.gemini = 'not_configured'
-    }
-  } catch (error) {
-    health.services.gemini = 'unhealthy'
-  }
-
-  const isHealthy = Object.values(health.services).every(status => 
-    status === 'healthy' || status === 'not_configured'
-  )
-  health.status = isHealthy ? 'healthy' : 'degraded'
-
-  return health
-})
 
 // 404 handler
 fastify.setNotFoundHandler((request, reply) => {
@@ -293,7 +214,6 @@ fastify.setNotFoundHandler((request, reply) => {
   })
 })
 
-// Function to ensure avatars bucket exists
 async function ensureAvatarsBucket() {
   try {
     const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets()
@@ -331,7 +251,6 @@ async function ensureAvatarsBucket() {
   }
 }
 
-// Function to ensure dish-images bucket exists
 async function ensureDishImagesBucket() {
   try {
     const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets()
@@ -377,16 +296,13 @@ const start = async () => {
     })
     console.log(`🚀 Сервер запущено на http://localhost:${config.port}`)
     
-    // Тестуємо Supabase Storage при запуску
     try {
       const { data: buckets, error } = await supabaseClient.storage.listBuckets()
       if (!error && buckets) {
         console.log('✅ Supabase Storage підключено успішно')
         
-        // Перевіряємо та створюємо bucket "avatars" якщо потрібно
         await ensureAvatarsBucket()
         
-        // Перевіряємо та створюємо bucket "dish-images" якщо потрібно
         await ensureDishImagesBucket()
       } else {
         console.log('⚠️ Supabase Storage недоступно:', error?.message)
@@ -395,7 +311,6 @@ const start = async () => {
       console.log('⚠️ Помилка підключення до Supabase Storage:', storageError.message)
     }
 
-    // Тестуємо Edamam APIs при запуску
     if (process.env.EDAMAM_APP_FOOD_ID && process.env.EDAMAM_APP_FOOD_KEY) {
       console.log('✅ Edamam Food Database API налаштовано')
     } else {
@@ -408,7 +323,6 @@ const start = async () => {
       console.log('⚠️ Edamam Nutrition Analysis API не налаштовано. Додайте EDAMAM_APP_NUTRITION_ID та EDAMAM_APP_NUTRITION_KEY до .env файлу')
     }
 
-    // Тестуємо Gemini API при запуску
     if (process.env.GEMINI_API_KEY) {
       console.log('✅ Gemini API налаштовано')
     } else {
