@@ -11,10 +11,39 @@ class ApiClient {
 
   constructor(baseURL: string) {
     this.baseURL = baseURL
+    
+    // Try to restore session from localStorage on initialization
+    this.restoreSession()
+  }
+
+  // Restore session from localStorage if available
+  private restoreSession() {
+    try {
+      const authStorage = localStorage.getItem('auth-storage')
+      if (authStorage) {
+        const parsedStorage = JSON.parse(authStorage)
+        if (parsedStorage.state && parsedStorage.state.session) {
+          this.session = parsedStorage.state.session
+          console.log('Session restored from localStorage')
+        }
+      }
+    } catch (error) {
+      console.error('Failed to restore session from localStorage:', error)
+    }
   }
 
   setSession(session: AuthSession | null) {
     this.session = session
+    
+    // Log session state for debugging
+    if (session) {
+      console.log('Session set in ApiClient', { 
+        tokenLength: session.access_token.length,
+        expiresAt: new Date(session.expires_at * 1000).toISOString()
+      })
+    } else {
+      console.log('Session cleared in ApiClient')
+    }
   }
 
   private getAuthHeaders(includeContentType: boolean = true): HeadersInit {

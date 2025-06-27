@@ -30,13 +30,17 @@ export function AuthGuard({
       try {
         // If we have a session, verify it
         if (session?.access_token) {
+          console.log('Verifying token in AuthGuard...')
           const isValid = await verifyToken()
           if (!isValid) {
+            console.log('Token verification failed, redirecting to login')
             router.push(redirectTo)
             return
           }
+          console.log('Token verification successful')
         } else if (!isAuthenticated) {
           // No session and not authenticated, redirect to login
+          console.log('No session found, redirecting to login')
           router.push(redirectTo)
           return
         }
@@ -49,8 +53,21 @@ export function AuthGuard({
       }
     }
 
-    checkAuth()
-  }, [isAuthenticated, requireAuth, redirectTo, router, verifyToken, session])
+    // Only run the check if we're not already loading
+    if (!isLoading) {
+      checkAuth()
+    } else {
+      // If we're already loading, wait for it to finish
+      const checkInterval = setInterval(() => {
+        if (!useAuthStore.getState().isLoading) {
+          clearInterval(checkInterval)
+          checkAuth()
+        }
+      }, 100)
+      
+      return () => clearInterval(checkInterval)
+    }
+  }, [isAuthenticated, requireAuth, redirectTo, router, verifyToken, session, isLoading])
 
   if (isLoading || isChecking) {
     return (

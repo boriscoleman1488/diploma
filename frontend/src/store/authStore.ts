@@ -209,6 +209,32 @@ export const useAuthStore = create<AuthState>()(
         session: state.session,
         isAuthenticated: state.isAuthenticated,
       }),
+      // Add storage configuration to ensure proper persistence
+      storage: {
+        getItem: (name) => {
+          try {
+            const value = localStorage.getItem(name);
+            return value ? JSON.parse(value) : null;
+          } catch (error) {
+            console.error('Error retrieving auth data from localStorage:', error);
+            return null;
+          }
+        },
+        setItem: (name, value) => {
+          try {
+            localStorage.setItem(name, JSON.stringify(value));
+          } catch (error) {
+            console.error('Error storing auth data in localStorage:', error);
+          }
+        },
+        removeItem: (name) => {
+          try {
+            localStorage.removeItem(name);
+          } catch (error) {
+            console.error('Error removing auth data from localStorage:', error);
+          }
+        }
+      }
     }
   )
 )

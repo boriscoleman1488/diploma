@@ -38,8 +38,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Check every 5 minutes
-    const interval = setInterval(checkTokenExpiry, 5 * 60 * 1000)
+    // Check every minute instead of every 5 minutes for more reliable token refresh
+    const interval = setInterval(checkTokenExpiry, 60 * 1000)
+    
+    // Run an initial check immediately
+    checkTokenExpiry()
 
     return () => clearInterval(interval)
   }, [session, verifyToken])
