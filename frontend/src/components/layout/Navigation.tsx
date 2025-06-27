@@ -12,11 +12,8 @@ import { apiClient } from '@/lib/api'
 
 const navigation = [
   { name: 'Профіль', href: '/profile', icon: User },
-  { name: 'Категорії', href: '/categories', icon: Grid3X3 },
   { name: 'Страви', href: '/dishes', icon: ChefHat },
-  { name: 'Колекції', href: '/collections', icon: BookOpen },
   { name: 'AI-шеф', href: '/ai-chef', icon: Sparkles },
-  { name: 'Налаштування', href: '/profile/settings', icon: Settings },
 ]
 
 export function Navigation() {
