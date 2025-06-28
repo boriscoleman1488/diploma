@@ -1,7 +1,7 @@
 import { AuthSession } from '@/types/auth'
 
-// Use Next.js proxy for all environments to avoid CORS issues
-const API_BASE_URL = '/api'
+// Use the backend URL for API requests
+const API_BASE_URL = 'http://localhost:3000/api'
 
 class ApiClient {
   private baseURL: string
@@ -205,11 +205,7 @@ class ApiClient {
         await this.refreshTokenIfNeeded()
       }
 
-      const response = await fetch(`${this.baseURL}${endpoint}`, {
-        ...options,
-        // Remove mode and credentials for same-origin requests
-        credentials: 'same-origin'
-      })
+      const response = await fetch(`${this.baseURL}${endpoint}`, options)
       return await this.handleResponse<T>(response)
     } catch (error) {
       // If token was refreshed, retry the request once (but not for auth endpoints)
@@ -223,8 +219,7 @@ class ApiClient {
           headers: {
             ...options.headers,
             ...this.getAuthHeaders(!!options.body)
-          },
-          credentials: 'same-origin' as RequestCredentials
+          }
         }
         return this.makeRequest<T>(endpoint, newOptions, retryCount + 1)
       }
