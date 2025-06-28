@@ -6,6 +6,7 @@ export class TranslationService {
     this.projectId = config.projectId
     
     this.isConfigured = !!this.apiKey
+    this.isWorking = false // Track if API is actually working
     
     if (this.isConfigured) {
       try {
@@ -14,6 +15,8 @@ export class TranslationService {
           projectId: this.projectId
         })
         console.log('Google Translate API initialized successfully')
+        // Test the API with a simple call to verify it's working
+        this.testApiConnection()
       } catch (error) {
         console.error('Failed to initialize Google Translate API:', error)
         this.isConfigured = false
@@ -24,11 +27,137 @@ export class TranslationService {
     
     // Кеш для перекладів, щоб не робити повторні запити
     this.translationCache = new Map()
+    
+    // Статичний словник для основних інгредієнтів
+    this.staticDictionary = {
+      // Фрукти
+      'яблуко': 'apple',
+      'банан': 'banana',
+      'апельсин': 'orange',
+      'лимон': 'lemon',
+      'груша': 'pear',
+      'виноград': 'grapes',
+      'полуниця': 'strawberry',
+      'вишня': 'cherry',
+      'персик': 'peach',
+      'абрикос': 'apricot',
+      
+      // Овочі
+      'помідор': 'tomato',
+      'огірок': 'cucumber',
+      'цибуля': 'onion',
+      'часник': 'garlic',
+      'картопля': 'potato',
+      'морква': 'carrot',
+      'капуста': 'cabbage',
+      'перець': 'pepper',
+      'баклажан': 'eggplant',
+      'кабачок': 'zucchini',
+      'буряк': 'beetroot',
+      'редис': 'radish',
+      'селера': 'celery',
+      'броколі': 'broccoli',
+      'цвітна капуста': 'cauliflower',
+      'шпинат': 'spinach',
+      'салат': 'lettuce',
+      
+      // М'ясо та риба
+      'курка': 'chicken',
+      'куряче філе': 'chicken breast',
+      'свинина': 'pork',
+      'яловичина': 'beef',
+      'баранина': 'lamb',
+      'риба': 'fish',
+      'лосось': 'salmon',
+      'тунець': 'tuna',
+      'креветки': 'shrimp',
+      
+      // Молочні продукти
+      'молоко': 'milk',
+      'сир': 'cheese',
+      'масло': 'butter',
+      'йогурт': 'yogurt',
+      'сметана': 'sour cream',
+      'вершки': 'cream',
+      
+      // Зернові та бобові
+      'рис': 'rice',
+      'гречка': 'buckwheat',
+      'овес': 'oats',
+      'пшениця': 'wheat',
+      'ячмінь': 'barley',
+      'квасоля': 'beans',
+      'горох': 'peas',
+      'сочевиця': 'lentils',
+      'нут': 'chickpeas',
+      
+      // Інше
+      'яйце': 'egg',
+      'хліб': 'bread',
+      'олія': 'oil',
+      'оливкова олія': 'olive oil',
+      'сіль': 'salt',
+      'цукор': 'sugar',
+      'борошно': 'flour',
+      'мед': 'honey',
+      'оцет': 'vinegar',
+      'горіхи': 'nuts',
+      'мигдаль': 'almonds',
+      'волоські горіхи': 'walnuts'
+    }
+  }
+
+  async testApiConnection() {
+    if (!this.isConfigured) return
+    
+    try {
+      // Test with a simple word
+      await this.translate.translate('test', { to: 'uk' })
+      this.isWorking = true
+      console.log('Google Translate API is working correctly')
+    } catch (error) {
+      console.error('Google Translate API test failed:', error.message)
+      this.isWorking = false
+      
+      if (error.code === 403) {
+        console.error('Translation API blocked (403). Please check:')
+        console.error('1. Cloud Translation API is enabled in Google Cloud Console')
+        console.error('2. API key has correct permissions')
+        console.error('3. Billing is enabled for the project')
+        console.error('4. API key is valid and not restricted')
+      }
+    }
+  }
+
+  // Використовувати статичний словник як основний метод перекладу
+  translateWithDictionary(text, targetLanguage = 'en') {
+    const lowerText = text.toLowerCase().trim()
+    
+    if (targetLanguage === 'en') {
+      // Українська -> Англійська
+      return this.staticDictionary[lowerText] || text
+    } else if (targetLanguage === 'uk') {
+      // Англійська -> Українська (зворотний пошук)
+      const entry = Object.entries(this.staticDictionary).find(([uk, en]) => 
+        en.toLowerCase() === lowerText
+      )
+      return entry ? entry[0] : text
+    }
+    
+    return text
   }
 
   async translateToEnglish(text, sourceLanguage = 'uk') {
-    if (!this.isConfigured) {
-      console.warn('Google Translate API not configured, returning original text')
+    // Спочатку спробувати статичний словник
+    const staticTranslation = this.translateWithDictionary(text, 'en')
+    if (staticTranslation !== text) {
+      console.log(`Static dictionary translation: "${text}" -> "${staticTranslation}"`)
+      return staticTranslation
+    }
+
+    // Якщо API не працює, повернути оригінальний текст
+    if (!this.isConfigured || !this.isWorking) {
+      console.warn('Google Translate API not available, using original text:', text)
       return text
     }
 
@@ -50,14 +179,28 @@ export class TranslationService {
       console.log(`Translation result: "${translation}"`)
       return translation
     } catch (error) {
-      console.error('Translation error:', error)
+      console.error('Translation error:', error.message)
+      
+      // Якщо помилка 403, позначити API як неробочий
+      if (error.code === 403) {
+        this.isWorking = false
+        console.error('Translation API access denied. Falling back to original text.')
+      }
+      
       return text // Повернути оригінальний текст при помилці
     }
   }
 
   async translateToUkrainian(text, sourceLanguage = 'en') {
-    if (!this.isConfigured) {
-      console.warn('Google Translate API not configured, returning original text')
+    // Спочатку спробувати статичний словник
+    const staticTranslation = this.translateWithDictionary(text, 'uk')
+    if (staticTranslation !== text) {
+      console.log(`Static dictionary translation: "${text}" -> "${staticTranslation}"`)
+      return staticTranslation
+    }
+
+    if (!this.isConfigured || !this.isWorking) {
+      console.warn('Google Translate API not available, using original text:', text)
       return text
     }
 
@@ -77,15 +220,40 @@ export class TranslationService {
       console.log(`Translation result: "${translation}"`)
       return translation
     } catch (error) {
-      console.error('Translation error:', error)
+      console.error('Translation error:', error.message)
+      
+      if (error.code === 403) {
+        this.isWorking = false
+        console.error('Translation API access denied. Falling back to original text.')
+      }
+      
       return text
     }
   }
 
   // Визначити мову тексту
   async detectLanguage(text) {
-    if (!this.isConfigured) {
-      console.warn('Google Translate API not configured, assuming Ukrainian')
+    // Простий алгоритм визначення мови на основі символів
+    const cyrillicPattern = /[а-яё]/i
+    const latinPattern = /[a-z]/i
+    
+    const hasCyrillic = cyrillicPattern.test(text)
+    const hasLatin = latinPattern.test(text)
+    
+    // Якщо є кирилиця, вважаємо українською
+    if (hasCyrillic && !hasLatin) {
+      console.log(`Detected language for "${text}": uk (cyrillic characters)`)
+      return 'uk'
+    }
+    
+    // Якщо тільки латиниця, вважаємо англійською
+    if (hasLatin && !hasCyrillic) {
+      console.log(`Detected language for "${text}": en (latin characters)`)
+      return 'en'
+    }
+
+    if (!this.isConfigured || !this.isWorking) {
+      console.warn('Google Translate API not available for language detection, assuming Ukrainian')
       return 'uk' // За замовчуванням українська
     }
 
@@ -94,8 +262,18 @@ export class TranslationService {
       console.log(`Detected language for "${text}": ${detection.language}`)
       return detection.language
     } catch (error) {
-      console.error('Language detection error:', error)
+      console.error('Language detection error:', error.message)
+      
+      if (error.code === 403) {
+        this.isWorking = false
+      }
+      
       return 'uk'
     }
+  }
+
+  // Перевірити чи працює API
+  get isApiWorking() {
+    return this.isConfigured && this.isWorking
   }
 }
