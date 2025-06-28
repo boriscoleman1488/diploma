@@ -168,3 +168,17 @@ export function compressImage(file: File, maxWidth: number = 800, quality: numbe
     img.src = URL.createObjectURL(file)
   })
 }
+
+// Function to format plural forms for Ukrainian language
+export function formatPlural(count: number, forms: [string, string, string]): string {
+  const remainder10 = count % 10;
+  const remainder100 = count % 100;
+  
+  if (remainder10 === 1 && remainder100 !== 11) {
+    return forms[0]; // singular form
+  } else if (remainder10 >= 2 && remainder10 <= 4 && (remainder100 < 10 || remainder100 >= 20)) {
+    return forms[1]; // few form
+  } else {
+    return forms[2]; // many form
+  }
+}

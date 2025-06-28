@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { t } from '@/lib/translations'
 import { apiClient } from '@/lib/api'
 
 interface AdminGuardProps {
