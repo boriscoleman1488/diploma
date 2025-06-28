@@ -38,30 +38,71 @@ export class EdamamService {
     }
 
     try {
-      const url = `${this.foodDatabaseUrl}/parser?app_id=${this.foodAppId}&app_key=${this.foodAppKey}&ingr=${encodeURIComponent(query)}&limit=${limit}`
-
+      // Перекласти запит на англійську для Edamam API
+      let translatedQuery = query;
+      
+      if (this.translationService && this.translationService.isConfigured) {
+        try {
+          // Визначити мову запиту
+          const detectedLanguage = await this.translationService.detectLanguage(query);
+          
+          // Якщо не англійська, перекласти
+          if (detectedLanguage !== 'en') {
+            translatedQuery = await this.translationService.translateToEnglish(query, detectedLanguage);
+            console.log(`Translated query: "${query}" -> "${translatedQuery}"`);
+          }
+        } catch (translationError) {
+          console.error('Translation error during search:', translationError);
+          // Продовжуємо з оригінальним запитом при помилці перекладу
+        }
+      }
+      
+      const url = `${this.foodDatabaseUrl}/parser?app_id=${this.foodAppId}&app_key=${this.foodAppKey}&ingr=${encodeURIComponent(translatedQuery)}&limit=${limit}`
+      
       const response = await fetch(url)
       const data = await response.json()
-
+      
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Неправильні credentials для Edamam Food Database API. Перевірте EDAMAM_APP_FOOD_ID та EDAMAM_APP_FOOD_KEY')
-        }
-        throw new Error(`Edamam Food Database API error: ${data.message || 'Unknown error'}`)
+        throw new Error(data.message || 'Edamam API error')
       }
-
+      
+      const foods = []
+      
+      // Обробити результати
+      if (data.parsed && data.parsed.length > 0) {
+        for (const item of data.parsed) {
+          const food = item.food
+          
+          // Перекласти назву назад на українську для відображення
+          let displayLabel = food.label
+          if (this.translationService && this.translationService.isConfigured) {
+            try {
+              displayLabel = await this.translationService.translateToUkrainian(food.label)
+              console.log(`Translated food label: "${food.label}" -> "${displayLabel}"`)
+            } catch (error) {
+              console.error('Failed to translate label back to Ukrainian:', error)
+            }
+          }
+          
+          foods.push({
+            foodId: food.foodId,
+            label: displayLabel, // Українська назва для відображення
+            originalLabel: food.label, // Англійська назва для збереження
+            category: food.category,
+            image: food.image,
+            nutrients: food.nutrients
+          })
+        }
+      }
+      
       return {
         success: true,
-        foods: data.parsed?.map(item => ({
-          foodId: item.food.foodId,
-          label: item.food.label,
-          category: item.food.category,
-          image: item.food.image,
-          nutrients: item.food.nutrients
-        })) || []
+        foods: foods,
+        query: translatedQuery,
+        originalQuery: query
       }
-
     } catch (error) {
+      console.error('Edamam search error:', error)
       return {
         success: false,
         error: error.message
@@ -174,69 +215,6 @@ export class EdamamService {
     } catch (error) {
       console.error('Translation failed for ingredient:', name, error)
       return name
-    }
-  }
-
-  async searchFood(query, limit = 20) {
-    if (!this.isFoodApiConfigured) {
-      return {
-        success: false,
-        error: 'Edamam Food Database API не налаштовано. Додайте EDAMAM_APP_FOOD_ID та EDAMAM_APP_FOOD_KEY до .env файлу'
-      }
-    }
-
-    try {
-      // Перекласти запит на англійську для Edamam API
-      const translatedQuery = await this.normalizeIngredientName(query)
-      
-      const url = `${this.foodDatabaseUrl}/parser?app_id=${this.foodAppId}&app_key=${this.foodAppKey}&ingr=${encodeURIComponent(translatedQuery)}&limit=${limit}`
-      
-      const response = await fetch(url)
-      const data = await response.json()
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Edamam API error')
-      }
-      
-      const foods = []
-      
-      // Обробити результати
-      if (data.parsed && data.parsed.length > 0) {
-        for (const item of data.parsed) {
-          const food = item.food
-          
-          // Перекласти назву назад на українську для відображення
-          let displayLabel = food.label
-          if (this.translationService && this.translationService.isConfigured) {
-            try {
-              displayLabel = await this.translationService.translateToUkrainian(food.label)
-            } catch (error) {
-              console.error('Failed to translate label back to Ukrainian:', error)
-            }
-          }
-          
-          foods.push({
-            foodId: food.foodId,
-            label: displayLabel, // Українська назва для відображення
-            originalLabel: food.label, // Англійська назва для збереження
-            category: food.category,
-            image: food.image,
-            nutrients: food.nutrients
-          })
-        }
-      }
-      
-      return {
-        success: true,
-        foods: foods,
-        query: translatedQuery,
-        originalQuery: query
-      }
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message
-      }
     }
   }
 
