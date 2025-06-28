@@ -108,6 +108,10 @@ class ApiClient {
 
   private async performTokenRefresh(): Promise<boolean> {
     try {
+      // Add error handling with timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
       const response = await fetch(`${this.baseURL}/auth/refresh`, {
         method: 'POST',
         headers: {
@@ -116,7 +120,10 @@ class ApiClient {
         body: JSON.stringify({
           refresh_token: this.session?.refresh_token
         }),
-      })
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error('Token refresh failed')
@@ -205,7 +212,19 @@ class ApiClient {
         await this.refreshTokenIfNeeded()
       }
 
-      const response = await fetch(`${this.baseURL}${endpoint}`, options)
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      const requestOptions = {
+        ...options,
+        signal: controller.signal
+      };
+      
+      const response = await fetch(`${this.baseURL}${endpoint}`, requestOptions);
+      
+      clearTimeout(timeoutId);
+      
       return await this.handleResponse<T>(response)
     } catch (error) {
       // If token was refreshed, retry the request once (but not for auth endpoints)
@@ -229,6 +248,12 @@ class ApiClient {
         if (error.message === 'TOKEN_REFRESHED' && this.isAuthEndpoint(endpoint)) {
           // For auth endpoints, treat TOKEN_REFRESHED as a regular auth error
           throw new Error('Помилка автентифікації')
+        }
+        
+        // Handle AbortError (timeout) specially
+        if (error.name === 'AbortError') {
+          console.error(`API Request timeout (${options.method} ${endpoint})`)
+          throw new Error('Запит перервано через таймаут. Перевірте з\'єднання з сервером.')
         }
         
         // Use console.warn for expected "not found" scenarios instead of console.error

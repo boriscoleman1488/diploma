@@ -292,7 +292,7 @@ const start = async () => {
   try {
     await fastify.listen({
       port: config.port,
-      host: '0.0.0.0'
+      host: '127.0.0.1' // Changed from 0.0.0.0 to 127.0.0.1 for better localhost connectivity
     })
     console.log(`🚀 Сервер запущено на http://localhost:${config.port}`)
     
