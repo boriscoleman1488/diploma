@@ -26,6 +26,9 @@ export class EdamamService {
     
     // Додати translation service
     this.translationService = config.translationService
+    
+    // Максимальна кількість інгредієнтів для аналізу
+    this.MAX_INGREDIENTS = 20
   }
 
   // Food Database API methods
@@ -40,6 +43,7 @@ export class EdamamService {
     try {
       // Перекласти запит на англійську для Edamam API
       let translatedQuery = query;
+      let originalQuery = query;
       
       if (this.translationService && this.translationService.isConfigured) {
         try {
@@ -99,7 +103,7 @@ export class EdamamService {
         success: true,
         foods: foods,
         query: translatedQuery,
-        originalQuery: query
+        originalQuery: originalQuery
       }
     } catch (error) {
       console.error('Edamam search error:', error)
@@ -310,9 +314,19 @@ export class EdamamService {
       if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
         throw new Error('Ingredients array is required')
       }
+      
+      // Обмеження кількості інгредієнтів до максимально допустимої
+      let ingredientsToAnalyze = ingredients;
+      let limitApplied = false;
+      
+      if (ingredients.length > this.MAX_INGREDIENTS) {
+        console.warn(`Too many ingredients (${ingredients.length}), limiting to ${this.MAX_INGREDIENTS}`)
+        ingredientsToAnalyze = ingredients.slice(0, this.MAX_INGREDIENTS);
+        limitApplied = true;
+      }
 
       // Check if all ingredients have edamam_food_id for structured analysis
-      const allHaveFoodId = ingredients.every(ingredient => ingredient.edamam_food_id)
+      const allHaveFoodId = ingredientsToAnalyze.every(ingredient => ingredient.edamam_food_id)
       
       let requestBody
       
@@ -320,7 +334,7 @@ export class EdamamService {
         console.log('Using structured ingredient data (Food Database API)')
         
         // Use structured ingredient data for better accuracy
-        const structuredIngredients = ingredients.map(ingredient => ({
+        const structuredIngredients = ingredientsToAnalyze.map(ingredient => ({
           quantity: parseFloat(ingredient.amount),
           measureURI: this.getMeasureURI(ingredient.unit),
           foodId: ingredient.edamam_food_id
@@ -356,17 +370,30 @@ export class EdamamService {
               response: data
             })
             // Fall back to text-based analysis
-            return this.analyzeNutritionWithText(ingredients)
+            return this.analyzeNutritionWithText(ingredientsToAnalyze)
+          }
+          if (response.status === 429) {
+            throw new Error('Перевищено ліміт запитів. Спробуйте пізніше')
           }
           throw new Error(`Edamam Food Database API error (${response.status}): ${data.message || 'Unknown error'}`)
         }
 
         // Process structured response
-        return this.processNutritionResponse(data)
+        const result = this.processNutritionResponse(data);
+        
+        // Додаємо інформацію про обмеження кількості інгредієнтів
+        if (limitApplied) {
+          result.limitApplied = true;
+          result.originalCount = ingredients.length;
+          result.analyzedCount = ingredientsToAnalyze.length;
+          result.message = `Аналіз обмежено до ${this.MAX_INGREDIENTS} інгредієнтів із ${ingredients.length}`;
+        }
+        
+        return result;
         
       } else {
         console.log('Using text-based ingredient parsing (some ingredients missing edamam_food_id)')
-        return this.analyzeNutritionWithText(ingredients)
+        return this.analyzeNutritionWithText(ingredientsToAnalyze, limitApplied, ingredients.length)
       }
 
     } catch (error) {
@@ -379,7 +406,7 @@ export class EdamamService {
   }
 
   // Fallback method for text-based nutrition analysis
-  async analyzeNutritionWithText(ingredients) {
+  async analyzeNutritionWithText(ingredients, limitApplied = false, originalCount = 0) {
     try {
       // Convert ingredients to Edamam format with better normalization
       const edamamIngredients = ingredients.map(ingredient => {
@@ -432,10 +459,23 @@ export class EdamamService {
         if (response.status === 429) {
           throw new Error('Перевищено ліміт запитів. Спробуйте пізніше')
         }
+        if (response.status === 555) {
+          throw new Error('Низька якість даних. Спробуйте додати більше деталей до інгредієнтів')
+        }
         throw new Error(`Edamam Nutrition Analysis API error (${response.status}): ${data.message || data.error || 'Unknown error'}`)
       }
 
-      return this.processNutritionResponse(data)
+      const result = this.processNutritionResponse(data);
+      
+      // Додаємо інформацію про обмеження кількості інгредієнтів
+      if (limitApplied) {
+        result.limitApplied = true;
+        result.originalCount = originalCount;
+        result.analyzedCount = ingredients.length;
+        result.message = `Аналіз обмежено до ${this.MAX_INGREDIENTS} інгредієнтів із ${originalCount}`;
+      }
+      
+      return result;
 
     } catch (error) {
       throw error
@@ -562,6 +602,14 @@ export class EdamamService {
             unit: nutrition.macros.sodium.unit
           }
         }
+      }
+      
+      // Передаємо інформацію про обмеження кількості інгредієнтів, якщо вона є
+      if (nutritionResult.limitApplied) {
+        adjustedNutrition.limitApplied = nutritionResult.limitApplied;
+        adjustedNutrition.originalCount = nutritionResult.originalCount;
+        adjustedNutrition.analyzedCount = nutritionResult.analyzedCount;
+        adjustedNutrition.message = nutritionResult.message;
       }
 
       return {
