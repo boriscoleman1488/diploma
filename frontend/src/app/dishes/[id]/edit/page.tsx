@@ -231,8 +231,6 @@ export default function EditDishPage({ params }: EditDishPageProps) {
     }
   }
 
-  const isApproved = dish?.status === 'approved'
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -274,16 +272,21 @@ export default function EditDishPage({ params }: EditDishPageProps) {
           <h1 className="text-3xl font-bold text-gray-900 mt-4">Редагувати страву</h1>
           <p className="text-gray-600 mt-2">Внесіть зміни до вашої страви</p>
           
-          {!isApproved && (
+          {dish.status === 'rejected' && (
             <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <div className="flex items-start">
                 <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" />
                 <div>
                   <h4 className="text-sm font-medium text-yellow-800">
-                    Страва не опублікована
+                    Страву відхилено
                   </h4>
+                  {dish.rejection_reason && (
+                    <p className="text-sm text-yellow-700 mt-1">
+                      <strong>Причина:</strong> {dish.rejection_reason}
+                    </p>
+                  )}
                   <p className="text-sm text-yellow-700 mt-1">
-                    Ви можете редагувати страву, але вона не буде доступна для публічного перегляду, поки не буде схвалена модератором.
+                    Ви можете відредагувати страву та відправити її на повторний розгляд.
                   </p>
                 </div>
               </div>
@@ -634,8 +637,7 @@ export default function EditDishPage({ params }: EditDishPageProps) {
             </Link>
             <Button 
               type="submit" 
-              disabled={isSaving || dish.status !== 'approved'}
-              title={dish.status !== 'approved' ? 'Редагування доступне тільки для схвалених страв' : ''}
+              disabled={isSaving}
             >
               {isSaving ? (
                 <>
@@ -650,22 +652,6 @@ export default function EditDishPage({ params }: EditDishPageProps) {
               )}
             </Button>
           </div>
-          
-          {dish.status !== 'approved' && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
-              <div className="flex items-start">
-                <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-sm font-medium text-yellow-800">
-                    Редагування недоступне
-                  </h4>
-                  <p className="text-sm text-yellow-700 mt-1">
-                    Редагування страви доступне тільки після її схвалення модератором. Поточний статус: {dish.status === 'pending' ? 'на розгляді' : dish.status === 'rejected' ? 'відхилено' : 'чернетка'}.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </form>
       </div>
     </div>

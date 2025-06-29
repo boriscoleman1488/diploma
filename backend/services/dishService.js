@@ -388,9 +388,9 @@ export class DishService {
 
     async getDishByIdForUser(dishId, userId) {
         try {
-            // Validate that the dish exists and belongs to the user
-            await this._validateDishExists(dishId, userId)
-
+            // No need to validate ownership here - we'll let the query handle that
+            // This allows us to get proper error messages from the database
+            
             const { data: dish, error } = await this.supabase
                 .from('dishes')
                 .select(`
@@ -412,7 +412,7 @@ export class DishService {
                 return {
                     success: false,
                     error: 'Dish not found',
-                    message: 'Unable to fetch dish or you do not have permission to access it'
+                    message: 'Dish not found or you do not have permission to access it'
                 }
             }
 
