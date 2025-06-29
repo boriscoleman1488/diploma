@@ -82,9 +82,48 @@ export class AIService {
         }
       }
 
-      const url = `https://api.edamam.com/api/food-database/v2/parser?app_id=${this.edamamFoodAppId}&app_key=${this.edamamFoodAppKey}&ingr=${encodeURIComponent(query)}&limit=${limit}`
+      // Translate query to English for better Edamam API results
+      let translatedQuery = query;
+      
+      // Try to use DeepL for translation if API key is available
+      if (process.env.DEEPL_API_KEY) {
+        try {
+          // Detect if query is not in English
+          const isNonEnglish = /[а-яіїєґ]/i.test(query);
+          
+          if (isNonEnglish) {
+            // Use DeepL API directly
+            const deeplUrl = 'https://api-free.deepl.com/v2/translate';
+            const deeplResponse = await fetch(deeplUrl, {
+              method: 'POST',
+              headers: {
+                'Authorization': `DeepL-Auth-Key ${process.env.DEEPL_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                text: [query],
+                target_lang: 'EN',
+                source_lang: 'UK'
+              })
+            });
+            
+            if (deeplResponse.ok) {
+              const deeplData = await deeplResponse.json();
+              translatedQuery = deeplData.translations[0].text;
+              this.logger.info(`Translated query: "${query}" -> "${translatedQuery}"`);
+            } else {
+              this.logger.error('DeepL API error:', await deeplResponse.text());
+            }
+          }
+        } catch (translationError) {
+          this.logger.error('Translation error during search:', translationError);
+          // Continue with original query if translation fails
+        }
+      }
 
-      this.logger.info('Searching ingredients with Edamam API', { query, limit })
+      const url = `https://api.edamam.com/api/food-database/v2/parser?app_id=${this.edamamFoodAppId}&app_key=${this.edamamFoodAppKey}&ingr=${encodeURIComponent(translatedQuery)}&limit=${limit}`
+
+      this.logger.info('Searching ingredients with Edamam API', { query, translatedQuery, limit })
       const response = await fetch(url)
       const data = await response.json()
 
@@ -156,7 +195,9 @@ export class AIService {
       this.logger.info('Ingredients search successful', { count: foods.length })
       return {
         success: true,
-        foods
+        foods,
+        query: translatedQuery,
+        originalQuery: query
       }
     } catch (error) {
       this.logger.error('Error searching ingredients', { error: error.message })
