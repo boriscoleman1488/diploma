@@ -303,7 +303,7 @@ export class UserService {
             const fileExtension = mimetype.split('/')[1]
             const uniqueFilename = `${userId}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
 
-            // Upload to Supabase Storage
+            // Use supabaseAdmin to bypass RLS
             const { data: uploadData, error: uploadError } = await this.supabase.storage
                 .from('avatars')
                 .upload(uniqueFilename, fileBuffer, {

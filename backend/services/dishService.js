@@ -86,7 +86,8 @@ export class DishService {
             const fileExtension = mimetype.split('/')[1]
             const uniqueFilename = `${userId}-dish-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
 
-            const { data: uploadData, error: uploadError } = await this.supabase.storage
+            // Use supabaseAdmin to bypass RLS
+            const { data: uploadData, error: uploadError } = await this.supabaseAdmin.storage
                 .from('dish-images')
                 .upload(uniqueFilename, fileBuffer, {
                     contentType: mimetype,
@@ -107,7 +108,7 @@ export class DishService {
             }
 
             // Get public URL
-            const { data: urlData } = this.supabase.storage
+            const { data: urlData } = this.supabaseAdmin.storage
                 .from('dish-images')
                 .getPublicUrl(uniqueFilename)
 
@@ -160,8 +161,8 @@ export class DishService {
             const fileExtension = mimetype.split('/')[1]
             const uniqueFilename = `${userId}-step-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
 
-            // Upload to Supabase Storage
-            const { data: uploadData, error: uploadError } = await this.supabase.storage
+            // Upload to Supabase Storage using admin client to bypass RLS
+            const { data: uploadData, error: uploadError } = await this.supabaseAdmin.storage
                 .from('dish-images')
                 .upload(uniqueFilename, fileBuffer, {
                     contentType: mimetype,
@@ -182,7 +183,7 @@ export class DishService {
             }
 
             // Get public URL
-            const { data: urlData } = this.supabase.storage
+            const { data: urlData } = this.supabaseAdmin.storage
                 .from('dish-images')
                 .getPublicUrl(uniqueFilename)
 
