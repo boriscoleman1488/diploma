@@ -542,15 +542,6 @@ export default function AiChefPage() {
     }
   }
 
-  const handleClearChat = () => {
-    if (currentSession) {
-      // Don't clear the session, just clear the messages in the UI
-      setMessages([])
-    } else {
-      setMessages([])
-    }
-  }
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       searchIngredients()
@@ -891,16 +882,6 @@ export default function AiChefPage() {
                   )}
                   
                   <div className="flex items-center space-x-2">
-                    {messages.length > 0 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleClearChat}
-                        leftIcon={<Trash2 className="w-4 h-4" />}
-                      >
-                        Очистити чат
-                      </Button>
-                    )}
                     
                     {currentSession && (
                       <div className="relative">
