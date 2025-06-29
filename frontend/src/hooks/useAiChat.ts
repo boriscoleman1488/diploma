@@ -57,7 +57,7 @@ export function useAiChat() {
 
   // Fetch chat sessions
   const fetchChatSessions = async () => {
-    setIsLoadingSessions(true)
+    setIsLoadingSessions(false)
     try {
       const response = await apiClient.get('/ai/chat/sessions')
       if (response.success && response.sessions) {
