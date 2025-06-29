@@ -227,7 +227,7 @@ export class DishService {
                 .from('dishes')
                 .select(`
                     *,
-                    profiles:user_id(full_name, email, profile_tag, avatar_url),
+                    profiles:user_id(full_name, profile_tag, avatar_url),
                     dish_category_relations(
                         dish_categories(id, name)
                     ),
@@ -345,7 +345,7 @@ export class DishService {
                 .from('dishes')
                 .select(`
                     *,
-                    profiles:user_id(full_name, email, profile_tag, avatar_url),
+                    profiles:user_id(full_name, profile_tag, avatar_url),
                     dish_category_relations(
                         dish_categories(id, name)
                     ),
