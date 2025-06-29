@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { User, Settings, LogOut, Menu, X, Shield, Grid3X3, ChefHat, BookOpen, Sparkles } from 'lucide-react'
+import { User, Settings, LogOut, Menu, X, Shield, ChefHat, BookOpen, Sparkles, MessageCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
@@ -14,6 +14,7 @@ const navigation = [
   { name: 'Профіль', href: '/profile', icon: User },
   { name: 'Страви', href: '/dishes', icon: ChefHat },
   { name: 'AI-шеф', href: '/ai-chef', icon: Sparkles },
+  { name: 'Колекції', href: '/collections', icon: BookOpen },
 ]
 
 export function Navigation() {
