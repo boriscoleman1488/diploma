@@ -32,6 +32,8 @@ import ReactMarkdown from 'react-markdown'
 interface Ingredient {
   name: string
   foodId?: string
+  amount?: number
+  unit?: string
 }
 
 interface EdamamFood {
@@ -82,6 +84,8 @@ export default function AiChefPage() {
   const [showSessionMenu, setShowSessionMenu] = useState(false)
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
   const [isLoadingSessions, setIsLoadingSessions] = useState(false)
+  const [userInput, setUserInput] = useState('')
+  const [isSubmittingUserInput, setIsSubmittingUserInput] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { isAuthenticated, user } = useAuthStore()
 
@@ -267,7 +271,9 @@ export default function AiChefPage() {
     
     setSelectedIngredients([...selectedIngredients, {
       name: food.label,
-      foodId: food.foodId
+      foodId: food.foodId,
+      amount: 100,
+      unit: 'г'
     }])
     
     setSearchQuery('')
@@ -285,7 +291,9 @@ export default function AiChefPage() {
     }
     
     setSelectedIngredients([...selectedIngredients, {
-      name: searchQuery.trim()
+      name: searchQuery.trim(),
+      amount: 100,
+      unit: 'г'
     }])
     
     setSearchQuery('')
@@ -296,6 +304,18 @@ export default function AiChefPage() {
   const handleRemoveIngredient = (index: number) => {
     const newIngredients = [...selectedIngredients]
     newIngredients.splice(index, 1)
+    setSelectedIngredients(newIngredients)
+  }
+
+  const handleUpdateIngredientAmount = (index: number, amount: number) => {
+    const newIngredients = [...selectedIngredients]
+    newIngredients[index] = { ...newIngredients[index], amount }
+    setSelectedIngredients(newIngredients)
+  }
+
+  const handleUpdateIngredientUnit = (index: number, unit: string) => {
+    const newIngredients = [...selectedIngredients]
+    newIngredients[index] = { ...newIngredients[index], unit }
     setSelectedIngredients(newIngredients)
   }
 
@@ -342,7 +362,7 @@ export default function AiChefPage() {
     }
     
     // Add user message to chat
-    const ingredientsList = selectedIngredients.map(ing => ing.name).join(', ')
+    const ingredientsList = selectedIngredients.map(ing => `${ing.name} (${ing.amount} ${ing.unit})`).join(', ')
     const userMessage = `Що я можу приготувати з: ${ingredientsList}${preferences ? `. Мої вподобання: ${preferences}` : ''}`
     
     try {
@@ -451,6 +471,77 @@ export default function AiChefPage() {
     }
   }
 
+  const handleSendUserMessage = async () => {
+    if (!userInput.trim() || !currentSession) return
+    
+    setIsSubmittingUserInput(true)
+    
+    try {
+      // Generate AI response
+      const response = await apiClient.post('/ai/chat/generate-response', {
+        sessionId: currentSession.id,
+        userMessage: userInput.trim(),
+        previousMessages: messages.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }))
+      })
+      
+      if (response.success) {
+        // Add both messages to the state
+        const newUserMessage = {
+          id: response.userMessage.id,
+          role: 'user',
+          content: userInput.trim(),
+          timestamp: new Date(response.userMessage.created_at),
+          session_id: currentSession.id,
+          created_at: response.userMessage.created_at
+        }
+        
+        const newAssistantMessage = {
+          id: response.aiMessage.id,
+          role: 'assistant',
+          content: response.aiMessage.content,
+          timestamp: new Date(response.aiMessage.created_at),
+          session_id: currentSession.id,
+          created_at: response.aiMessage.created_at
+        }
+        
+        setMessages(prev => [...prev, newUserMessage, newAssistantMessage])
+        setUserInput('')
+      } else {
+        toast.error('Не вдалося отримати відповідь')
+        
+        // If we have error message and user message, still add them
+        if (response.userMessage && response.errorMessage) {
+          const newUserMessage = {
+            id: response.userMessage.id,
+            role: 'user',
+            content: userInput.trim(),
+            timestamp: new Date(response.userMessage.created_at),
+            session_id: currentSession.id,
+            created_at: response.userMessage.created_at
+          }
+          
+          const errorMessage = {
+            id: response.aiMessage?.id || Date.now().toString(),
+            role: 'assistant',
+            content: response.errorMessage || 'На жаль, сталася помилка. Спробуйте ще раз пізніше.',
+            timestamp: new Date(),
+            session_id: currentSession.id
+          }
+          
+          setMessages(prev => [...prev, newUserMessage, errorMessage])
+        }
+      }
+    } catch (error) {
+      console.error('Failed to generate response:', error)
+      toast.error('Помилка отримання відповіді')
+    } finally {
+      setIsSubmittingUserInput(false)
+    }
+  }
+
   const handleClearChat = () => {
     if (currentSession) {
       // Don't clear the session, just clear the messages in the UI
@@ -463,6 +554,13 @@ export default function AiChefPage() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       searchIngredients()
+    }
+  }
+
+  const handleUserInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendUserMessage()
     }
   }
 
@@ -666,15 +764,45 @@ export default function AiChefPage() {
                       {selectedIngredients.map((ingredient, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                          className="p-2 bg-gray-50 rounded-lg"
                         >
-                          <span className="text-gray-900">{ingredient.name}</span>
-                          <button
-                            onClick={() => handleRemoveIngredient(index)}
-                            className="text-gray-400 hover:text-gray-600"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-gray-900 font-medium">{ingredient.name}</span>
+                            <button
+                              onClick={() => handleRemoveIngredient(index)}
+                              className="text-gray-400 hover:text-gray-600"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <div className="w-1/2">
+                              <Input
+                                type="number"
+                                value={ingredient.amount || 100}
+                                onChange={(e) => handleUpdateIngredientAmount(index, Number(e.target.value))}
+                                min={1}
+                                className="text-sm"
+                              />
+                            </div>
+                            <div className="w-1/2">
+                              <select
+                                value={ingredient.unit || 'г'}
+                                onChange={(e) => handleUpdateIngredientUnit(index, e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                              >
+                                <option value="г">г</option>
+                                <option value="кг">кг</option>
+                                <option value="мл">мл</option>
+                                <option value="л">л</option>
+                                <option value="шт">шт</option>
+                                <option value="ст.л.">ст.л.</option>
+                                <option value="ч.л.">ч.л.</option>
+                                <option value="склянка">склянка</option>
+                                <option value="пучок">пучок</option>
+                              </select>
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -851,6 +979,28 @@ export default function AiChefPage() {
                   </div>
                 )}
               </CardContent>
+              
+              {/* User input field */}
+              {currentSession && (
+                <div className="p-4 border-t border-gray-200">
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      placeholder="Напишіть повідомлення..."
+                      value={userInput}
+                      onChange={(e) => setUserInput(e.target.value)}
+                      onKeyDown={handleUserInputKeyDown}
+                      disabled={isSubmittingUserInput}
+                    />
+                    <Button
+                      onClick={handleSendUserMessage}
+                      disabled={!userInput.trim() || isSubmittingUserInput}
+                      leftIcon={isSubmittingUserInput ? <LoadingSpinner size="sm" /> : <Send className="w-4 h-4" />}
+                    >
+                      Надіслати
+                    </Button>
+                  </div>
+                </div>
+              )}
             </Card>
           </div>
         </div>
