@@ -44,7 +44,6 @@ export class TranslationService {
       
       // Овочі
       'помідор': 'tomato',
-      'огірок': 'cucumber',
       'цибуля': 'onion',
       'часник': 'garlic',
       'картопля': 'potato',
