@@ -56,8 +56,13 @@ export function useAiChat() {
   const [isSubmittingUserInput, setIsSubmittingUserInput] = useState(false)
 
   // Fetch chat sessions
+<<<<<<< HEAD
   const fetchChatSessions = useCallback(async () => {
     setIsLoadingSessions(true)
+=======
+  const fetchChatSessions = async () => {
+    setIsLoadingSessions(false)
+>>>>>>> 60d28e7c8eb59b207e84a30523573b1fc1ea32a2
     try {
       const response = await apiClient.get('/ai/chat/sessions')
       if (response.success && response.sessions) {
