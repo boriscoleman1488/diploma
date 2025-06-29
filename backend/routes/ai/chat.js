@@ -199,13 +199,13 @@ export default async function aiChatRoutes(fastify, options) {
       }
       
       // Delete the session (messages will be deleted via cascade)
-      const { error } = await fastify.supabase
+      const { error: deleteError } = await fastify.supabase
         .from('ai_chat_sessions')
         .delete()
         .eq('id', sessionId)
       
-      if (error) {
-        fastify.log.error('Error deleting chat session', { error: error.message, sessionId })
+      if (deleteError) {
+        fastify.log.error('Error deleting chat session', { error: deleteError.message, sessionId })
         return reply.code(500).send({
           success: false,
           error: 'Failed to delete chat session',
@@ -306,8 +306,7 @@ export default async function aiChatRoutes(fastify, options) {
         required: ['content'],
         properties: {
           content: { type: 'string' },
-          role: { type: 'string', enum: ['user', 'assistant'], default: 'user' },
-          metadata: { type: 'object' }
+          role: { type: 'string', enum: ['user', 'assistant'], default: 'user' }
         }
       }
     }
@@ -315,7 +314,7 @@ export default async function aiChatRoutes(fastify, options) {
     try {
       const { sessionId } = request.params
       const userId = request.user.id
-      const { content, role = 'user', metadata = {} } = request.body
+      const { content, role = 'user' } = request.body
       
       // First check if the session belongs to the user
       const { data: existingSession, error: checkError } = await fastify.supabase
@@ -339,8 +338,7 @@ export default async function aiChatRoutes(fastify, options) {
         .insert({
           session_id: sessionId,
           role,
-          content,
-          metadata
+          content
         })
         .select()
         .single()
@@ -523,8 +521,7 @@ export default async function aiChatRoutes(fastify, options) {
           .insert({
             session_id: sessionId,
             role: 'assistant',
-            content: errorMessage,
-            metadata: { error: true }
+            content: errorMessage
           })
           .select()
           .single()
