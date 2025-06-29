@@ -153,6 +153,10 @@ export default function AiChefPage() {
       amount: 100,
       unit: 'г'
     })
+    
+    // Clear search after adding
+    setSearchQuery('')
+    setShowSearchResults(false)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -300,6 +304,9 @@ export default function AiChefPage() {
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="font-medium text-gray-900">{food.label}</p>
+                              {food.originalLabel && food.originalLabel !== food.label && (
+                                <p className="text-xs text-gray-500">Оригінальна назва: {food.originalLabel}</p>
+                              )}
                               {food.category && (
                                 <p className="text-sm text-gray-500">{food.category}</p>
                               )}

@@ -93,13 +93,65 @@ export class AIService {
         throw new Error(`Edamam API error: ${data.message || 'Unknown error'}`)
       }
 
-      const foods = data.parsed?.map(item => ({
-        foodId: item.food.foodId,
-        label: item.food.label,
-        category: item.food.category,
-        image: item.food.image,
-        nutrients: item.food.nutrients
-      })) || []
+      // Get the translation service from the request
+      const translationService = process.env.DEEPL_API_KEY ? 
+        { translateToUkrainian: async (text) => {
+          try {
+            // Use DeepL API directly here
+            const deeplUrl = 'https://api-free.deepl.com/v2/translate';
+            const deeplResponse = await fetch(deeplUrl, {
+              method: 'POST',
+              headers: {
+                'Authorization': `DeepL-Auth-Key ${process.env.DEEPL_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                text: [text],
+                target_lang: 'UK',
+                source_lang: 'EN'
+              })
+            });
+            
+            if (!deeplResponse.ok) {
+              throw new Error(`DeepL API error: ${deeplResponse.statusText}`);
+            }
+            
+            const deeplData = await deeplResponse.json();
+            return deeplData.translations[0].text;
+          } catch (error) {
+            console.error('Translation error:', error);
+            return text; // Return original text if translation fails
+          }
+        }} : null;
+
+      // Process and translate the foods
+      const foods = [];
+      
+      if (data.parsed && data.parsed.length > 0) {
+        for (const item of data.parsed) {
+          const food = item.food;
+          
+          // Translate the food label to Ukrainian
+          let ukrainianLabel = food.label;
+          if (translationService) {
+            try {
+              ukrainianLabel = await translationService.translateToUkrainian(food.label);
+              this.logger.info(`Translated food label: "${food.label}" -> "${ukrainianLabel}"`);
+            } catch (error) {
+              this.logger.error('Failed to translate food label:', error);
+            }
+          }
+          
+          foods.push({
+            foodId: food.foodId,
+            label: ukrainianLabel, // Ukrainian label for display
+            originalLabel: food.label, // Keep original English label
+            category: food.category,
+            image: food.image,
+            nutrients: food.nutrients
+          });
+        }
+      }
 
       this.logger.info('Ingredients search successful', { count: foods.length })
       return {

@@ -13,6 +13,7 @@ export interface Ingredient {
 export interface EdamamFood {
   foodId: string
   label: string
+  originalLabel?: string
   category?: string
   image?: string
   nutrients?: {
