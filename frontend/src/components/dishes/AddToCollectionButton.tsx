@@ -12,7 +12,6 @@ interface Collection {
   id: string
   name: string
   description?: string
-  collection_type: 'custom'
 }
 
 interface AddToCollectionButtonProps {
@@ -35,11 +34,7 @@ export function AddToCollectionButton({ dishId, className = '' }: AddToCollectio
     try {
       const response = await apiClient.get('/collections')
       if (response.success && response.collections) {
-        // Only use custom collections
-        const customCollections = response.collections.filter(
-          collection => collection.collection_type === 'custom'
-        )
-        setCollections(customCollections)
+        setCollections(response.collections)
       }
     } catch (error) {
       console.error('Failed to fetch collections:', error)

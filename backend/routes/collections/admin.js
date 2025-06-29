@@ -10,11 +10,10 @@ export default async function collectionAdminRoutes(fastify, options) {
         schema: getAllCollectionsForAdminSchema
     }, async (request, reply) => {
         try {
-            const { page = 1, limit = 20, collection_type, user_id } = request.query
+            const { page = 1, limit = 20, user_id } = request.query
             const result = await fastify.collectionService.getAllCollectionsForAdmin({
                 page,
                 limit,
-                collection_type,
                 user_id
             })
 

@@ -2,7 +2,6 @@ export interface Collection {
   id: string
   name: string
   description?: string
-  collection_type: 'custom' | 'system'
   system_type?: 'my_dishes' | 'liked' | 'published' | 'private'
   is_public: boolean
   created_at: string

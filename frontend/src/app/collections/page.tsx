@@ -31,7 +31,6 @@ interface Collection {
   id: string
   name: string
   description?: string
-  collection_type: 'custom'
   created_at: string
   updated_at: string
   dish_collection_items?: Array<{
@@ -184,12 +183,8 @@ export default function CollectionsPage() {
     try {
       const response = await apiClient.get('/collections')
       if (response.success && response.collections) {
-        // Filter to only include custom collections
-        const customCollections = response.collections.filter(
-          collection => collection.collection_type === 'custom'
-        )
-        setCollections(customCollections)
-        setFilteredCollections(customCollections)
+        setCollections(response.collections)
+        setFilteredCollections(response.collections)
       }
     } catch (error) {
       console.error('Failed to fetch collections:', error)

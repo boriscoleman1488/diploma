@@ -113,7 +113,6 @@ export class CollectionService {
                     user_id: userId,
                     name,
                     description,
-                    collection_type: 'custom',
                 })
                 .select()
                 .single()
@@ -150,23 +149,7 @@ export class CollectionService {
                 }
             }
             
-            // Check if it's a system collection
-            if (collection.collection_type === 'system') {
-                return {
-                    success: false,
-                    error: CollectionService.ERRORS.SYSTEM_COLLECTION,
-                    message: 'System collections cannot be modified'
-                }
-            }
             
-            // Update the collection
-            // В методі createCollection видалити:
-            // const { name, description, is_public = false } = collectionData
-            // is_public
-            
-            // В методі updateCollection видалити:
-            // const { name, description, is_public } = collectionData
-            // if (is_public !== undefined) updateData.is_public = is_public
             const updateData = {}
             
             if (name !== undefined) updateData.name = name
@@ -198,7 +181,7 @@ export class CollectionService {
                 user_id: userId,
                 name: collection.name,
                 description: collection.description,
-                collection_type: collection.system_type,
+
             }))
 
             const { data: newCollections, error } = await this.supabase
@@ -435,14 +418,7 @@ export class CollectionService {
                 }
             }
             
-            // Check if it's a system collection
-            if (collection.collection_type === 'system') {
-                return {
-                    success: false,
-                    error: CollectionService.ERRORS.SYSTEM_COLLECTION,
-                    message: 'System collections cannot be deleted'
-                }
-            }
+
             
             // First delete all items in the collection
             const { error: itemsError } = await this.supabase
@@ -477,7 +453,6 @@ export class CollectionService {
                 .from('dish_collections')
                 .select('id, system_type')
                 .eq('user_id', userId)
-                .eq('collection_type', 'system')
                 
             if (collectionsError || !systemCollections) {
                 return this._handleError('Get system collections', collectionsError)
@@ -515,7 +490,6 @@ export class CollectionService {
                 .from('dish_collections')
                 .select('id, system_type')
                 .eq('user_id', userId)
-                .eq('collection_type', 'system')
 
             if (systemCollections && systemCollections.length > 0) {
                 // Remove from all system collections first

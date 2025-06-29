@@ -119,7 +119,6 @@ export const getAllCollectionsForAdminSchema = {
         properties: {
             page: { type: 'integer', minimum: 1, default: 1 },
             limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
-            collection_type: { type: 'string' },
             user_id: { type: 'string', format: 'uuid' }
         }
     }
