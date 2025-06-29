@@ -5,9 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { Avatar } from '@/components/ui/Avatar'
-import { apiClient } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
+import { useAiChat } from '@/hooks/useAiChat'
 import { 
   ChefHat, 
   Search, 
@@ -18,76 +17,62 @@ import {
   Bot,
   Sparkles,
   X,
-  Save,
-  History,
-  Clock,
   Edit,
   MoreVertical,
-  Folder
+  Folder,
+  History,
+  Clock
 } from 'lucide-react'
-import toast from 'react-hot-toast'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 
-interface Ingredient {
-  name: string
-  foodId?: string
-  amount?: number
-  unit?: string
-}
-
-interface EdamamFood {
-  foodId: string
-  label: string
-  category?: string
-  image?: string
-  nutrients?: {
-    ENERC_KCAL?: number
-    PROCNT?: number
-    FAT?: number
-    CHOCDF?: number
-  }
-}
-
-interface Message {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: Date
-  session_id?: string
-  created_at?: string
-}
-
-interface ChatSession {
-  id: string
-  title: string
-  created_at: string
-  updated_at: string
-}
-
 export default function AiChefPage() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<EdamamFood[]>([])
-  const [isSearching, setIsSearching] = useState(false)
-  const [selectedIngredients, setSelectedIngredients] = useState<Ingredient[]>([])
-  const [preferences, setPreferences] = useState('')
-  const [messages, setMessages] = useState<Message[]>([])
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [showSearchResults, setShowSearchResults] = useState(false)
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>([])
-  const [currentSession, setCurrentSession] = useState<ChatSession | null>(null)
+  const { isAuthenticated } = useAuthStore()
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  
   const [showSessions, setShowSessions] = useState(false)
-  const [isCreatingSession, setIsCreatingSession] = useState(false)
-  const [newSessionTitle, setNewSessionTitle] = useState('')
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editedTitle, setEditedTitle] = useState('')
   const [showSessionMenu, setShowSessionMenu] = useState(false)
-  const [isLoadingMessages, setIsLoadingMessages] = useState(false)
-  const [isLoadingSessions, setIsLoadingSessions] = useState(false)
-  const [userInput, setUserInput] = useState('')
-  const [isSubmittingUserInput, setIsSubmittingUserInput] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { isAuthenticated, user } = useAuthStore()
+  const [newSessionTitle, setNewSessionTitle] = useState('')
+  const [isCreatingSession, setIsCreatingSession] = useState(false)
+  
+  const {
+    searchQuery,
+    searchResults,
+    isSearching,
+    selectedIngredients,
+    preferences,
+    messages,
+    isGenerating,
+    showSearchResults,
+    chatSessions,
+    currentSession,
+    isLoadingMessages,
+    isLoadingSessions,
+    userInput,
+    isSubmittingUserInput,
+    
+    setSearchQuery,
+    setPreferences,
+    setShowSearchResults,
+    setUserInput,
+    
+    fetchChatSessions,
+    createNewSession,
+    loadChatSession,
+    updateSessionTitle,
+    deleteSession,
+    searchIngredients,
+    addIngredient,
+    removeIngredient,
+    updateIngredientAmount,
+    updateIngredientUnit,
+    clearAllIngredients,
+    generateRecipe,
+    sendUserMessage,
+    startNewChat
+  } = useAiChat()
 
   // Scroll to bottom of messages
   useEffect(() => {
@@ -101,450 +86,73 @@ export default function AiChefPage() {
     if (isAuthenticated) {
       fetchChatSessions()
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, fetchChatSessions])
 
-  const fetchChatSessions = async () => {
-    if (!isAuthenticated) return
-    
-    setIsLoadingSessions(true)
-    try {
-      const response = await apiClient.get('/ai/chat/sessions')
-      if (response.success && response.sessions) {
-        setChatSessions(response.sessions)
-      }
-    } catch (error) {
-      console.error('Failed to fetch chat sessions:', error)
-      toast.error('Не вдалося завантажити сесії чату')
-    } finally {
-      setIsLoadingSessions(false)
-    }
-  }
-
-  const createNewSession = async () => {
-    if (!isAuthenticated) return
-    
+  const handleCreateNewSession = async () => {
     setIsCreatingSession(true)
-    try {
-      const title = newSessionTitle.trim() || 'Новий чат'
-      const response = await apiClient.post('/ai/chat/sessions', { title })
-      
-      if (response.success && response.session) {
-        setChatSessions(prev => [response.session, ...prev])
-        setCurrentSession(response.session)
-        setMessages([])
-        setNewSessionTitle('')
-        setShowSessions(false)
-      } else {
-        toast.error('Не вдалося створити нову сесію чату')
-      }
-    } catch (error) {
-      console.error('Failed to create new chat session:', error)
-      toast.error('Не вдалося створити нову сесію чату')
-    } finally {
-      setIsCreatingSession(false)
+    const session = await createNewSession(newSessionTitle)
+    if (session) {
+      setNewSessionTitle('')
+      setShowSessions(false)
+    }
+    setIsCreatingSession(false)
+  }
+
+  const handleLoadChatSession = async (session: any) => {
+    const success = await loadChatSession(session)
+    if (success) {
+      setShowSessions(false)
     }
   }
 
-  const loadChatSession = async (session: ChatSession) => {
-    setIsLoadingMessages(true)
-    try {
-      const response = await apiClient.get(`/ai/chat/sessions/${session.id}/messages`)
-      
-      if (response.success) {
-        setCurrentSession(session)
-        
-        // Convert API messages to our Message format
-        const formattedMessages = response.messages.map((msg: any) => ({
-          id: msg.id,
-          role: msg.role,
-          content: msg.content,
-          timestamp: new Date(msg.created_at),
-          session_id: msg.session_id,
-          created_at: msg.created_at
-        }))
-        
-        setMessages(formattedMessages)
-        setShowSessions(false)
-      } else {
-        toast.error('Не вдалося завантажити повідомлення чату')
-      }
-    } catch (error) {
-      console.error('Failed to load chat session:', error)
-      toast.error('Не вдалося завантажити сесію чату')
-    } finally {
-      setIsLoadingMessages(false)
-    }
-  }
-
-  const updateSessionTitle = async () => {
+  const handleUpdateSessionTitle = async () => {
     if (!currentSession || !editedTitle.trim()) return
     
-    try {
-      const response = await apiClient.patch(`/ai/chat/sessions/${currentSession.id}`, {
-        title: editedTitle.trim()
-      })
-      
-      if (response.success && response.session) {
-        // Update current session
-        setCurrentSession(response.session)
-        
-        // Update in sessions list
-        setChatSessions(prev => 
-          prev.map(session => 
-            session.id === response.session.id ? response.session : session
-          )
-        )
-        
-        setIsEditingTitle(false)
-        toast.success('Назву чату оновлено')
-      } else {
-        toast.error('Не вдалося оновити назву чату')
-      }
-    } catch (error) {
-      console.error('Failed to update session title:', error)
-      toast.error('Не вдалося оновити назву чату')
+    const success = await updateSessionTitle(currentSession.id, editedTitle)
+    if (success) {
+      setIsEditingTitle(false)
     }
   }
 
-  const deleteSession = async () => {
+  const handleDeleteSession = async () => {
     if (!currentSession) return
     
     if (!confirm('Ви впевнені, що хочете видалити цей чат? Ця дія незворотна.')) {
       return
     }
     
-    try {
-      const response = await apiClient.delete(`/ai/chat/sessions/${currentSession.id}`)
-      
-      if (response.success) {
-        toast.success('Чат видалено')
-        
-        // Update sessions list
-        setChatSessions(prev => prev.filter(session => session.id !== currentSession.id))
-        
-        // Clear current session and messages
-        setCurrentSession(null)
-        setMessages([])
-        setShowSessionMenu(false)
-      } else {
-        toast.error('Не вдалося видалити чат')
-      }
-    } catch (error) {
-      console.error('Failed to delete session:', error)
-      toast.error('Не вдалося видалити чат')
+    const success = await deleteSession(currentSession.id)
+    if (success) {
+      setShowSessionMenu(false)
     }
   }
 
-  const searchIngredients = async () => {
-    if (!searchQuery.trim()) return
-    
-    setIsSearching(true)
-    setShowSearchResults(true)
-    
-    try {
-      const response = await apiClient.post('/ai/search-ingredients', {
-        query: searchQuery.trim(),
-        limit: 10
-      })
-      
-      if (response.success && response.foods) {
-        setSearchResults(response.foods)
-      } else {
-        setSearchResults([])
-        toast.error('Не вдалося знайти інгредієнти')
-      }
-    } catch (error) {
-      console.error('Failed to search ingredients:', error)
-      toast.error('Помилка пошуку інгредієнтів')
-      setSearchResults([])
-    } finally {
-      setIsSearching(false)
-    }
+  const handleSearchIngredients = async () => {
+    await searchIngredients(searchQuery)
   }
 
-  const handleAddIngredient = (food: EdamamFood) => {
-    // Check if ingredient already exists
-    if (selectedIngredients.some(ing => ing.foodId === food.foodId)) {
-      toast.error('Цей інгредієнт вже додано')
-      return
-    }
-    
-    setSelectedIngredients([...selectedIngredients, {
+  const handleAddIngredient = (food: any) => {
+    addIngredient({
       name: food.label,
       foodId: food.foodId,
       amount: 100,
       unit: 'г'
-    }])
-    
-    setSearchQuery('')
-    setSearchResults([])
-    setShowSearchResults(false)
+    })
   }
 
   const handleAddCustomIngredient = () => {
     if (!searchQuery.trim()) return
     
-    // Check if ingredient already exists
-    if (selectedIngredients.some(ing => ing.name.toLowerCase() === searchQuery.trim().toLowerCase())) {
-      toast.error('Цей інгредієнт вже додано')
-      return
-    }
-    
-    setSelectedIngredients([...selectedIngredients, {
+    addIngredient({
       name: searchQuery.trim(),
       amount: 100,
       unit: 'г'
-    }])
-    
-    setSearchQuery('')
-    setSearchResults([])
-    setShowSearchResults(false)
-  }
-
-  const handleRemoveIngredient = (index: number) => {
-    const newIngredients = [...selectedIngredients]
-    newIngredients.splice(index, 1)
-    setSelectedIngredients(newIngredients)
-  }
-
-  const handleUpdateIngredientAmount = (index: number, amount: number) => {
-    const newIngredients = [...selectedIngredients]
-    newIngredients[index] = { ...newIngredients[index], amount }
-    setSelectedIngredients(newIngredients)
-  }
-
-  const handleUpdateIngredientUnit = (index: number, unit: string) => {
-    const newIngredients = [...selectedIngredients]
-    newIngredients[index] = { ...newIngredients[index], unit }
-    setSelectedIngredients(newIngredients)
-  }
-
-  const handleClearAll = () => {
-    setSelectedIngredients([])
-    setPreferences('')
-    setSearchQuery('')
-    setSearchResults([])
-    setShowSearchResults(false)
-  }
-
-  const handleGetRecipes = async () => {
-    if (selectedIngredients.length === 0) {
-      toast.error('Додайте хоча б один інгредієнт')
-      return
-    }
-    
-    setIsGenerating(true)
-    
-    // Create a new session if none exists
-    let sessionId = currentSession?.id
-    
-    if (!sessionId) {
-      try {
-        const sessionResponse = await apiClient.post('/ai/chat/sessions', {
-          title: selectedIngredients.map(ing => ing.name).join(', ').substring(0, 50)
-        })
-        
-        if (sessionResponse.success && sessionResponse.session) {
-          sessionId = sessionResponse.session.id
-          setCurrentSession(sessionResponse.session)
-          setChatSessions(prev => [sessionResponse.session, ...prev])
-        } else {
-          toast.error('Не вдалося створити сесію чату')
-          setIsGenerating(false)
-          return
-        }
-      } catch (error) {
-        console.error('Failed to create chat session:', error)
-        toast.error('Не вдалося створити сесію чату')
-        setIsGenerating(false)
-        return
-      }
-    }
-    
-    // Add user message to chat
-    const ingredientsList = selectedIngredients.map(ing => `${ing.name} (${ing.amount} ${ing.unit})`).join(', ')
-    const userMessage = `Що я можу приготувати з: ${ingredientsList}${preferences ? `. Мої вподобання: ${preferences}` : ''}`
-    
-    try {
-      // Generate AI response
-      const response = await apiClient.post('/ai/chat/generate-response', {
-        sessionId,
-        userMessage,
-        previousMessages: messages.map(msg => ({
-          role: msg.role,
-          content: msg.content
-        }))
-      })
-      
-      if (response.success) {
-        // Add both messages to the state
-        const newUserMessage = {
-          id: response.userMessage.id,
-          role: 'user',
-          content: userMessage,
-          timestamp: new Date(response.userMessage.created_at),
-          session_id: sessionId,
-          created_at: response.userMessage.created_at
-        }
-        
-        const newAssistantMessage = {
-          id: response.aiMessage.id,
-          role: 'assistant',
-          content: response.aiMessage.content,
-          timestamp: new Date(response.aiMessage.created_at),
-          session_id: sessionId,
-          created_at: response.aiMessage.created_at
-        }
-        
-        setMessages(prev => [...prev, newUserMessage, newAssistantMessage])
-      } else {
-        toast.error('Не вдалося отримати відповідь')
-        
-        // If we have error message and user message, still add them
-        if (response.userMessage && response.errorMessage) {
-          const newUserMessage = {
-            id: response.userMessage.id,
-            role: 'user',
-            content: userMessage,
-            timestamp: new Date(response.userMessage.created_at),
-            session_id: sessionId,
-            created_at: response.userMessage.created_at
-          }
-          
-          const errorMessage = {
-            id: response.aiMessage?.id || Date.now().toString(),
-            role: 'assistant',
-            content: response.errorMessage || 'На жаль, сталася помилка. Спробуйте ще раз пізніше.',
-            timestamp: new Date(),
-            session_id: sessionId
-          }
-          
-          setMessages(prev => [...prev, newUserMessage, errorMessage])
-        }
-      }
-    } catch (error) {
-      console.error('Failed to generate response:', error)
-      toast.error('Помилка отримання відповіді')
-      
-      // Add user message and error message
-      if (sessionId) {
-        try {
-          // Save user message manually
-          const userMsgResponse = await apiClient.post(`/ai/chat/sessions/${sessionId}/messages`, {
-            content: userMessage,
-            role: 'user'
-          })
-          
-          if (userMsgResponse.success) {
-            const newUserMessage = {
-              id: userMsgResponse.message.id,
-              role: 'user',
-              content: userMessage,
-              timestamp: new Date(userMsgResponse.message.created_at),
-              session_id: sessionId,
-              created_at: userMsgResponse.message.created_at
-            }
-            
-            const errorMessage = {
-              id: Date.now().toString(),
-              role: 'assistant',
-              content: 'На жаль, сталася помилка при генерації відповіді. Будь ласка, спробуйте пізніше.',
-              timestamp: new Date(),
-              session_id: sessionId
-            }
-            
-            setMessages(prev => [...prev, newUserMessage, errorMessage])
-            
-            // Save error message
-            await apiClient.post(`/ai/chat/sessions/${sessionId}/messages`, {
-              content: errorMessage.content,
-              role: 'assistant',
-              metadata: { error: true }
-            })
-          }
-        } catch (msgError) {
-          console.error('Failed to save error message:', msgError)
-        }
-      }
-    } finally {
-      setIsGenerating(false)
-    }
-  }
-
-  const handleSendUserMessage = async () => {
-    if (!userInput.trim() || !currentSession) return
-    
-    setIsSubmittingUserInput(true)
-    
-    try {
-      // Generate AI response
-      const response = await apiClient.post('/ai/chat/generate-response', {
-        sessionId: currentSession.id,
-        userMessage: userInput.trim(),
-        previousMessages: messages.map(msg => ({
-          role: msg.role,
-          content: msg.content
-        }))
-      })
-      
-      if (response.success) {
-        // Add both messages to the state
-        const newUserMessage = {
-          id: response.userMessage.id,
-          role: 'user',
-          content: userInput.trim(),
-          timestamp: new Date(response.userMessage.created_at),
-          session_id: currentSession.id,
-          created_at: response.userMessage.created_at
-        }
-        
-        const newAssistantMessage = {
-          id: response.aiMessage.id,
-          role: 'assistant',
-          content: response.aiMessage.content,
-          timestamp: new Date(response.aiMessage.created_at),
-          session_id: currentSession.id,
-          created_at: response.aiMessage.created_at
-        }
-        
-        setMessages(prev => [...prev, newUserMessage, newAssistantMessage])
-        setUserInput('')
-      } else {
-        toast.error('Не вдалося отримати відповідь')
-        
-        // If we have error message and user message, still add them
-        if (response.userMessage && response.errorMessage) {
-          const newUserMessage = {
-            id: response.userMessage.id,
-            role: 'user',
-            content: userInput.trim(),
-            timestamp: new Date(response.userMessage.created_at),
-            session_id: currentSession.id,
-            created_at: response.userMessage.created_at
-          }
-          
-          const errorMessage = {
-            id: response.aiMessage?.id || Date.now().toString(),
-            role: 'assistant',
-            content: response.errorMessage || 'На жаль, сталася помилка. Спробуйте ще раз пізніше.',
-            timestamp: new Date(),
-            session_id: currentSession.id
-          }
-          
-          setMessages(prev => [...prev, newUserMessage, errorMessage])
-        }
-      }
-    } catch (error) {
-      console.error('Failed to generate response:', error)
-      toast.error('Помилка отримання відповіді')
-    } finally {
-      setIsSubmittingUserInput(false)
-    }
+    })
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      searchIngredients()
+      handleSearchIngredients()
     }
   }
 
@@ -555,11 +163,8 @@ export default function AiChefPage() {
     }
   }
 
-  const handleStartNewChat = () => {
-    setCurrentSession(null)
-    setMessages([])
-    setSelectedIngredients([])
-    setPreferences('')
+  const handleSendUserMessage = async () => {
+    await sendUserMessage(userInput)
   }
 
   if (!isAuthenticated) {
@@ -614,7 +219,7 @@ export default function AiChefPage() {
                 {currentSession && (
                   <Button
                     variant="secondary"
-                    onClick={handleStartNewChat}
+                    onClick={startNewChat}
                     leftIcon={<Plus className="w-4 h-4" />}
                     className="bg-white text-primary-600 hover:bg-primary-50"
                   >
@@ -650,7 +255,7 @@ export default function AiChefPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={searchIngredients}
+                      onClick={handleSearchIngredients}
                       disabled={!searchQuery.trim() || isSearching}
                     >
                       Пошук
@@ -735,7 +340,7 @@ export default function AiChefPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleClearAll}
+                        onClick={clearAllIngredients}
                         leftIcon={<Trash2 className="w-3 h-3" />}
                       >
                         Очистити все
@@ -760,7 +365,7 @@ export default function AiChefPage() {
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-gray-900 font-medium">{ingredient.name}</span>
                             <button
-                              onClick={() => handleRemoveIngredient(index)}
+                              onClick={() => removeIngredient(index)}
                               className="text-gray-400 hover:text-gray-600"
                             >
                               <X className="w-4 h-4" />
@@ -771,7 +376,7 @@ export default function AiChefPage() {
                               <Input
                                 type="number"
                                 value={ingredient.amount || 100}
-                                onChange={(e) => handleUpdateIngredientAmount(index, Number(e.target.value))}
+                                onChange={(e) => updateIngredientAmount(index, Number(e.target.value))}
                                 min={1}
                                 className="text-sm"
                               />
@@ -779,7 +384,7 @@ export default function AiChefPage() {
                             <div className="w-1/2">
                               <select
                                 value={ingredient.unit || 'г'}
-                                onChange={(e) => handleUpdateIngredientUnit(index, e.target.value)}
+                                onChange={(e) => updateIngredientUnit(index, e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                               >
                                 <option value="г">г</option>
@@ -814,7 +419,7 @@ export default function AiChefPage() {
 
                 {/* Generate Button */}
                 <Button
-                  onClick={handleGetRecipes}
+                  onClick={generateRecipe}
                   disabled={selectedIngredients.length === 0 || isGenerating}
                   leftIcon={isGenerating ? <LoadingSpinner size="sm" /> : <Sparkles className="w-4 h-4" />}
                   className="w-full"
@@ -842,7 +447,7 @@ export default function AiChefPage() {
                           />
                           <Button
                             size="sm"
-                            onClick={updateSessionTitle}
+                            onClick={handleUpdateSessionTitle}
                             disabled={!editedTitle.trim()}
                           >
                             Зберегти
@@ -882,7 +487,6 @@ export default function AiChefPage() {
                   )}
                   
                   <div className="flex items-center space-x-2">
-                    
                     {currentSession && (
                       <div className="relative">
                         <Button
@@ -908,7 +512,7 @@ export default function AiChefPage() {
                               Перейменувати
                             </button>
                             <button
-                              onClick={deleteSession}
+                              onClick={handleDeleteSession}
                               className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
@@ -1015,7 +619,7 @@ export default function AiChefPage() {
                     onChange={(e) => setNewSessionTitle(e.target.value)}
                   />
                   <Button
-                    onClick={createNewSession}
+                    onClick={handleCreateNewSession}
                     disabled={isCreatingSession}
                     leftIcon={isCreatingSession ? <LoadingSpinner size="sm" /> : <Plus className="w-4 h-4" />}
                   >
@@ -1049,7 +653,7 @@ export default function AiChefPage() {
                       className={`p-3 rounded-lg border hover:bg-gray-50 cursor-pointer transition-colors ${
                         currentSession?.id === session.id ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
                       }`}
-                      onClick={() => loadChatSession(session)}
+                      onClick={() => handleLoadChatSession(session)}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
