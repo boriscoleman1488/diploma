@@ -1,27 +1,4 @@
 export class CollectionService {
-    static SYSTEM_COLLECTIONS = [
-        {
-            name: 'My Dishes',
-            description: 'All dishes created by you',
-            system_type: 'my_dishes'
-        },
-        {
-            name: 'Liked Dishes',
-            description: 'Dishes you have liked',
-            system_type: 'liked'
-        },
-        {
-            name: 'Published Dishes',
-            description: 'Your approved and published dishes',
-            system_type: 'published'
-        },
-        {
-            name: 'Private Dishes',
-            description: 'Your draft, pending, and rejected dishes',
-            system_type: 'private'
-        }
-    ]
-
     constructor(supabase, logger) {
         this.supabase = supabase
         this.logger = logger
@@ -103,7 +80,7 @@ export class CollectionService {
             .from('dish_collections')
             .select('id')
             .eq('user_id', userId)
-            .eq('collection_type', systemType)
+            .eq('system_type', systemType)
             .single()
 
         if (error) {
@@ -183,11 +160,17 @@ export class CollectionService {
             }
             
             // Update the collection
-            const { name, description } = collectionData
+            // В методі createCollection видалити:
+            // const { name, description, is_public = false } = collectionData
+            // is_public
+            
+            // В методі updateCollection видалити:
+            // const { name, description, is_public } = collectionData
+            // if (is_public !== undefined) updateData.is_public = is_public
             const updateData = {}
             
             if (name !== undefined) updateData.name = name
-            if (description !== undefined) updateData.description = description
+            if (description !== undefined) updateData.description = descriptionc
             
             const { data: updatedCollection, error } = await this.supabase
                 .from('dish_collections')
@@ -492,16 +475,16 @@ export class CollectionService {
 
             const { data: systemCollections, error: collectionsError } = await this.supabase
                 .from('dish_collections')
-                .select('id, collection_type')
+                .select('id, system_type')
                 .eq('user_id', userId)
-                .in('collection_type', ['my_dishes', 'published', 'private', 'liked'])
+                .eq('collection_type', 'system')
                 
             if (collectionsError || !systemCollections) {
                 return this._handleError('Get system collections', collectionsError)
             }
     
             const itemsToAdd = systemCollections
-                .filter(collection => this._shouldAddToSystemCollection(collection.collection_type, dishStatus))
+                .filter(collection => this._shouldAddToSystemCollection(collection.system_type, dishStatus))
                 .map(collection => ({
                     collection_id: collection.id,
                     dish_id: dishId,
@@ -511,10 +494,9 @@ export class CollectionService {
             if (itemsToAdd.length > 0) {
                 const { error } = await this.supabase
                     .from('dish_collection_items')
-                    .upsert(itemsToAdd, {
-                        onConflict: 'collection_id,dish_id,user_id',
-                        ignoreDuplicates: true
-                    })
+                    .insert(itemsToAdd)
+                    .on_conflict(['collection_id', 'dish_id', 'user_id'])
+                    .ignore()
     
                 if (error) {
                     return this._handleError('Add dish to system collections', error)
@@ -531,9 +513,9 @@ export class CollectionService {
         try {
             const { data: systemCollections } = await this.supabase
                 .from('dish_collections')
-                .select('id, collection_type')
+                .select('id, system_type')
                 .eq('user_id', userId)
-                .in('collection_type', ['my_dishes', 'published', 'private', 'liked'])
+                .eq('collection_type', 'system')
 
             if (systemCollections && systemCollections.length > 0) {
                 // Remove from all system collections first
