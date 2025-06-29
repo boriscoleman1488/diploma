@@ -227,11 +227,6 @@ export default function ProfilePage() {
                   Налаштування профілю
                 </Button>
               </Link>
-              <Link href="/profile/settings" className="block">
-                <Button variant="outline" className="w-full justify-start" leftIcon={<User className="w-4 h-4" />}>
-                  Змінити пароль
-                </Button>
-              </Link>
               {!user?.emailConfirmed && (
                 <Button variant="outline" className="w-full justify-start" leftIcon={<Mail className="w-4 h-4" />}>
                   Підтвердити електронну пошту

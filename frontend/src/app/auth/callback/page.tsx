@@ -54,10 +54,6 @@ export default function AuthCallbackPage() {
         setMessage(error instanceof Error ? error.message : 'Помилка підтвердження')
         toast.error('Помилка підтвердження електронної пошти')
         
-        // Redirect to login after a delay
-        setTimeout(() => {
-          router.push('/auth/login')
-        }, 3000)
       }
     }
 

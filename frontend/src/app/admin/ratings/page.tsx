@@ -357,20 +357,6 @@ export default function AdminRatingsPage() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <TrendingUp className="w-6 h-6 text-blue-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Всього рейтингів</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
                 <div className="p-2 bg-green-100 rounded-lg">
                   <Heart className="w-6 h-6 text-green-600" />
                 </div>

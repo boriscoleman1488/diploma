@@ -514,7 +514,7 @@ export default function HomePage() {
               Відкрийте світ смаків
             </h1>
             <p className="text-xl text-primary-100 mb-8 max-w-2xl mx-auto">
-              Знайдіть ідеальні рецепти від нашої спільноти кулінарів. 
+              Знайдіть ідеальні страви від нашої спільноти кулінарів. 
               Готуйте, діліться та насолоджуйтеся!
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -548,7 +548,7 @@ export default function HomePage() {
                 className="border-white text-white hover:bg-white hover:text-primary-600"
                 onClick={() => document.getElementById('search-input')?.focus()}
               >
-                Знайти рецепти
+                Знайти страви
               </Button>
             </div>
           </div>
@@ -641,7 +641,7 @@ export default function HomePage() {
             <p className="text-gray-600 mb-6">
               {searchQuery || selectedCategory 
                 ? 'Спробуйте змінити критерії пошуку'
-                : 'Станьте першим, хто поділиться своїм рецептом!'
+                : 'Станьте першим, хто поділиться своєю стравою!'
               }
             </p>
             {!searchQuery && !selectedCategory && isAuthenticated && (

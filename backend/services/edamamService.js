@@ -162,38 +162,9 @@ export class EdamamService {
   // Helper function to normalize ingredient names to English
   async normalizeIngredientName(name) {
     // Спочатку спробувати статичний словник для швидкості
-    const staticTranslations = {
-      'яблуко': 'apple',
-      'рис': 'rice',
-      'курка': 'chicken',
-      'куряче філе': 'chicken breast',
-      'помідор': 'tomato',
-      'цибуля': 'onion',
-      'часник': 'garlic',
-      'картопля': 'potato',
-      'морква': 'carrot',
-      'капуста': 'cabbage',
-      'огірок': 'cucumber',
-      'перець': 'pepper',
-      'молоко': 'milk',
-      'яйце': 'egg',
-      'хліб': 'bread',
-      'масло': 'butter',
-      'олія': 'oil',
-      'сіль': 'salt',
-      'цукор': 'sugar',
-      'борошно': 'flour',
-      'м\'ясо': 'meat',
-      'риба': 'fish',
-      'сир': 'cheese'
-    }
     
     const lowerName = name.toLowerCase().trim()
     
-    // Якщо є в статичному словнику
-    if (staticTranslations[lowerName]) {
-      return staticTranslations[lowerName]
-    }
     
     // Якщо немає translation service, повернути як є
     if (!this.translationService || !this.translationService.isConfigured) {

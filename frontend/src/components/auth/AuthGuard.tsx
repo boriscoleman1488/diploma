@@ -14,7 +14,7 @@ interface AuthGuardProps {
 export function AuthGuard({ 
   children, 
   requireAuth = true, 
-  redirectTo = '/auth/login' 
+  redirectTo = '' 
 }: AuthGuardProps) {
   const [isChecking, setIsChecking] = useState(true)
   const { isAuthenticated, isLoading, verifyToken, session } = useAuthStore()

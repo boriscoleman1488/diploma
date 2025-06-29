@@ -180,12 +180,12 @@ export default function AiChefPage() {
         
         setMessages(prev => [...prev, newAssistantMessage])
       } else {
-        toast.error('Не вдалося отримати рецепти')
+        toast.error('Не вдалося отримати страви')
         
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: 'На жаль, не вдалося згенерувати рецепти. Спробуйте інші інгредієнти або перевірте з`єднання.',
+          content: 'На жаль, не вдалося згенерувати страви. Спробуйте інші інгредієнти або перевірте з`єднання.',
           timestamp: new Date()
         }
         
@@ -193,12 +193,12 @@ export default function AiChefPage() {
       }
     } catch (error) {
       console.error('Failed to get recipe suggestions:', error)
-      toast.error('Помилка отримання рецептів')
+      toast.error('Помилка отримання страв')
       
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'На жаль, сталася помилка при генерації рецептів. Будь ласка, спробуйте пізніше.',
+        content: 'На жаль, сталася помилка при генерації страв. Будь ласка, спробуйте пізніше.',
         timestamp: new Date()
       }
       
@@ -255,7 +255,7 @@ export default function AiChefPage() {
                   AI-шеф
                 </h1>
                 <p className="text-primary-100 mt-1">
-                  Отримайте рецепти на основі інгредієнтів, які у вас є
+                  Отримайте страви на основі інгредієнтів, які у вас є
                 </p>
               </div>
             </div>
@@ -383,7 +383,7 @@ export default function AiChefPage() {
                     <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-lg">
                       <Search className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                       <p className="text-sm text-gray-500">
-                        Додайте інгредієнти для пошуку рецептів
+                        Додайте інгредієнти для пошуку страв
                       </p>
                     </div>
                   ) : (
@@ -425,7 +425,7 @@ export default function AiChefPage() {
                   leftIcon={isGenerating ? <LoadingSpinner size="sm" /> : <Sparkles className="w-4 h-4" />}
                   className="w-full"
                 >
-                  {isGenerating ? 'Генерація рецептів...' : 'Отримати рецепти'}
+                  {isGenerating ? 'Генерація страв...' : 'Отримати страви'}
                 </Button>
               </CardContent>
             </Card>
@@ -460,7 +460,7 @@ export default function AiChefPage() {
                       Ваш персональний AI-шеф
                     </h3>
                     <p className="text-gray-500 max-w-md">
-                      Додайте інгредієнти та отримайте рецепти, які можна приготувати з того, що у вас є.
+                      Додайте інгредієнти та отримайте страви, які можна приготувати з того, що у вас є.
                     </p>
                   </div>
                 ) : (

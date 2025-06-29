@@ -13,11 +13,9 @@ import {
   Search, 
   Eye, 
   Trash2,
-  Filter,
+  Check,
   Calendar,
-  User,
   ChefHat,
-  AlertTriangle,
   CheckCircle,
   X
 } from 'lucide-react'
@@ -184,6 +182,15 @@ function CommentDetailsModal({ comment, isOpen, onClose, onDelete, isUpdating }:
                   className="text-red-600 border-red-300 hover:bg-red-50"
                 >
                   Видалити
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleDelete}
+                  disabled={isUpdating}
+                  leftIcon={<Check className="w-5 h-5" />}
+                  className="text-green-600 border-green-300 hover:bg-green-50"
+                >
+                  Відновити
                 </Button>
               </div>
             </CardContent>

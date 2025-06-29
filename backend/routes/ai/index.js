@@ -85,7 +85,7 @@ export default async function aiRoutes(fastify, options) {
         return reply.code(400).send({
           success: false,
           error: result.error,
-          message: result.message || result.error || 'Не вдалося згенерувати рецепти'
+          message: result.message || result.error || 'Не вдалося згенерувати страви'
         })
       }
 
@@ -98,7 +98,7 @@ export default async function aiRoutes(fastify, options) {
       return reply.code(500).send({
         success: false,
         error: error.message || 'Internal server error',
-        message: error.message || 'Помилка генерації рецептів'
+        message: error.message || 'Помилка генерації страв'
       })
     }
   })

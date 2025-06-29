@@ -123,11 +123,6 @@ export function UserDetailsModal({
                   <dd className="mt-1 text-sm text-gray-900 flex items-center">
                     <Mail className="w-4 h-4 mr-2" />
                     {user.email}
-                    {user.email_confirmed_at ? (
-                      <CheckCircle className="w-4 h-4 ml-2 text-green-600" />
-                    ) : (
-                      <XCircle className="w-4 h-4 ml-2 text-red-600" />
-                    )}
                   </dd>
                 </div>
                 <div>

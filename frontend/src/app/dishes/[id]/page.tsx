@@ -118,8 +118,8 @@ export default function DishDetailPage({ params }: { params: { id: string } }) {
 
   const handleShare = async () => {
     const shareData = {
-      title: dish?.title || 'Рецепт страви',
-      text: dish?.description || 'Перегляньте цей рецепт',
+      title: dish?.title || 'Страва',
+      text: dish?.description || 'Перегляньте цю страву',
       url: window.location.href
     }
 
@@ -479,7 +479,7 @@ export default function DishDetailPage({ params }: { params: { id: string } }) {
                 leftIcon={<Share2 className="w-4 h-4" />}
                 onClick={handleShare}
               >
-                Поділитися рецептом
+                Поділитися стравою
               </Button>
             </CardContent>
           </Card>

@@ -6,13 +6,13 @@ export class AIService {
     this.geminiApiKey = process.env.GEMINI_API_KEY
     this.edamamFoodAppId = process.env.EDAMAM_APP_FOOD_ID
     this.edamamFoodAppKey = process.env.EDAMAM_APP_FOOD_KEY
-    
+
     if (this.geminiApiKey) {
       try {
         this.gemini = new GoogleGenerativeAI(this.geminiApiKey)
         this.logger.info('Gemini AI initialized successfully')
       } catch (error) {
-        this.logger.error('Failed to initialize Gemini AI', { 
+        this.logger.error('Failed to initialize Gemini AI', {
           error: error.message,
           stack: error.stack
         })
@@ -36,7 +36,7 @@ export class AIService {
       const model = this.gemini.getGenerativeModel({ model: 'gemini-1.5-flash' })
       const result = await model.generateContent('Test')
       const response = await result.response
-      
+
       if (response.text()) {
         this.logger.info('Gemini API key is valid')
         return {
@@ -50,11 +50,11 @@ export class AIService {
         }
       }
     } catch (error) {
-      this.logger.error('Error validating Gemini API key', { 
+      this.logger.error('Error validating Gemini API key', {
         error: error.message,
         stack: error.stack
       })
-      
+
       let errorMessage = 'Помилка при перевірці API ключа'
       if (error.message.includes('API_KEY_INVALID')) {
         errorMessage = 'Невірний формат API ключа'
@@ -63,7 +63,7 @@ export class AIService {
       } else if (error.message.includes('RESOURCE_EXHAUSTED')) {
         errorMessage = 'Перевищено ліміт запитів'
       }
-      
+
       return {
         success: false,
         error: errorMessage,
@@ -83,16 +83,16 @@ export class AIService {
       }
 
       const url = `https://api.edamam.com/api/food-database/v2/parser?app_id=${this.edamamFoodAppId}&app_key=${this.edamamFoodAppKey}&ingr=${encodeURIComponent(query)}&limit=${limit}`
-      
+
       this.logger.info('Searching ingredients with Edamam API', { query, limit })
       const response = await fetch(url)
       const data = await response.json()
-      
+
       if (!response.ok) {
         this.logger.error('Edamam API error', { status: response.status, message: data.message })
         throw new Error(`Edamam API error: ${data.message || 'Unknown error'}`)
       }
-      
+
       const foods = data.parsed?.map(item => ({
         foodId: item.food.foodId,
         label: item.food.label,
@@ -125,38 +125,37 @@ export class AIService {
         }
       }
 
-      this.logger.info('Getting recipe suggestions with Gemini', { 
+      this.logger.info('Getting recipe suggestions with Gemini', {
         ingredientsCount: ingredients.length,
         hasPreferences: !!preferences
       })
 
       // System instruction according to the new documentation
-      const systemInstruction = `Ти корисний кулінарний помічник, який пропонує рецепти на основі доступних інгредієнтів. 
-Зосередься на практичних, легких для виконання рецептах, які використовують надані інгредієнти.
-Форматуй свою відповідь у markdown з чіткими розділами:
-1. Назва рецепту (як заголовок)
-2. Короткий опис
-3. Список інгредієнтів (з кількістю)
-4. Покрокові інструкції
-5. Час приготування та рівень складності
+      const systemInstruction = `Ти корисний кулінарний помічник, який пропонує страву на основі доступних інгредієнтів. 
+                                Зосередься на практичних, легких для виконання страв, які використовують надані інгредієнти.
+                                Форматуй свою відповідь у markdown з чіткими розділами:
+                                1. Назва страви (як заголовок)
+                                2. Короткий опис
+                                3. Список інгредієнтів (з кількістю)
+                                4. Покрокові інструкції
+                                5. Час приготування та рівень складності
 
-Якщо у користувача є дієтичні переваги або обмеження, адаптуй свої пропозиції відповідно.
-Якщо список інгредієнтів дуже обмежений, запропонуй прості рецепти або порекомендуй кілька додаткових інгредієнтів.`
+                                Якщо у користувача є дієтичні переваги або обмеження, адаптуй свої пропозиції відповідно.
+                                Якщо список інгредієнтів дуже обмежений, запропонуй прості страви або порекомендуй кілька додаткових інгредієнтів.`
 
       const userMessage = `У мене є ці інгредієнти: ${ingredients.join(', ')}. ${preferences ? `Мої переваги: ${preferences}.` : ''} Що я можу приготувати?`
 
-      // Using the new API according to documentation
-      const model = this.gemini.getGenerativeModel({ 
-        model: 'gemini-1.5-flash',
+      const model = this.gemini.getGenerativeModel({
+        model: 'gemini-2.5-flash',
         systemInstruction: systemInstruction
       })
-      
+
       const result = await model.generateContent(userMessage)
       const response = await result.response
       const suggestion = response.text()
 
-      this.logger.info('Gemini recipe suggestion generated successfully', { 
-        responseLength: suggestion.length 
+      this.logger.info('Gemini recipe suggestion generated successfully', {
+        responseLength: suggestion.length
       })
 
       return {
@@ -165,7 +164,7 @@ export class AIService {
       }
     } catch (error) {
       // Detailed error logging
-      this.logger.error('Error getting recipe suggestions from Gemini', { 
+      this.logger.error('Error getting recipe suggestions from Gemini', {
         error: error.message,
         stack: error.stack,
         name: error.name,
@@ -185,7 +184,7 @@ export class AIService {
 
   getFallbackSuggestion(ingredients, preferences = '') {
     this.logger.info('Using fallback suggestion due to missing Gemini API key')
-    
+
     return {
       success: false,
       error: 'AI чат тимчасово не працює. Спробуйте пізніше.'

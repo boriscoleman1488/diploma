@@ -118,7 +118,7 @@ export class UserService {
                 const tagExists = await this._checkProfileTagExists(profile_tag, userId)
                 if (tagExists) {
                     return this._handleError(
-                        new Error('This profile tag is already taken by another user'),
+                        new Error('Цей тег профілю вже зайнятий іншим користувачем'),
                         this.ERRORS.TAG_EXISTS
                     )
                 }

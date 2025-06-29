@@ -321,19 +321,19 @@ export function NutritionAnalysis({
                       <div className="flex justify-between py-1">
                         <span className="text-gray-600">Клітковина:</span>
                         <span className="font-medium">
-                          {nutrition.macrosPerServing?.fiber.quantity || nutrition.macros.fiber.quantity} {nutrition.macros.fiber.unit}
+                          {nutrition.macrosPerServing?.fiber.quantity || nutrition.macros.fiber.quantity} г
                         </span>
                       </div>
                       <div className="flex justify-between py-1">
                         <span className="text-gray-600">Цукор:</span>
                         <span className="font-medium">
-                          {nutrition.macrosPerServing?.sugar.quantity || nutrition.macros.sugar.quantity} {nutrition.macros.sugar.unit}
+                          {nutrition.macrosPerServing?.sugar.quantity || nutrition.macros.sugar.quantity} г
                         </span>
                       </div>
                       <div className="flex justify-between py-1">
                         <span className="text-gray-600">Натрій:</span>
                         <span className="font-medium">
-                          {nutrition.macrosPerServing?.sodium.quantity || nutrition.macros.sodium.quantity} {nutrition.macros.sodium.unit}
+                          {nutrition.macrosPerServing?.sodium.quantity || nutrition.macros.sodium.quantity} мг
                         </span>
                       </div>
                     </div>
