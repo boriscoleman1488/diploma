@@ -128,6 +128,7 @@ export default function AiChefPage() {
   }
 
   const handleSearchIngredients = async () => {
+    if (!searchQuery.trim()) return
     await searchIngredients(searchQuery)
   }
 
@@ -148,6 +149,10 @@ export default function AiChefPage() {
       amount: 100,
       unit: 'г'
     })
+    
+    // Clear search after adding
+    setSearchQuery('')
+    setShowSearchResults(false)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -164,6 +169,7 @@ export default function AiChefPage() {
   }
 
   const handleSendUserMessage = async () => {
+    if (!userInput.trim()) return
     await sendUserMessage(userInput)
   }
 
@@ -252,14 +258,15 @@ export default function AiChefPage() {
                   />
                   
                   <div className="flex space-x-2 mt-2">
-                    {/* <Button
+                    <Button
                       variant="outline"
                       size="sm"
                       onClick={handleSearchIngredients}
                       disabled={!searchQuery.trim() || isSearching}
+                      leftIcon={<Search className="w-4 h-4" />}
                     >
                       Пошук
-                    </Button> */}
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
@@ -267,7 +274,7 @@ export default function AiChefPage() {
                       disabled={!searchQuery.trim()}
                       leftIcon={<Plus className="w-4 h-4" />}
                     >
-                      Пошук
+                      Додати вручну
                     </Button>
                   </div>
                   

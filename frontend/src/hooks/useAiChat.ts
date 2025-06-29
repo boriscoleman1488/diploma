@@ -56,7 +56,6 @@ export function useAiChat() {
   const [isSubmittingUserInput, setIsSubmittingUserInput] = useState(false)
 
   // Fetch chat sessions
-
   const fetchChatSessions = useCallback(async () => {
     setIsLoadingSessions(true)
     try {
@@ -418,8 +417,7 @@ export function useAiChat() {
             // Save error message
             await apiClient.post(`/ai/chat/sessions/${sessionId}/messages`, {
               content: errorMessage.content,
-              role: 'assistant',
-              metadata: { error: true }
+              role: 'assistant'
             })
           }
         } catch (msgError) {
