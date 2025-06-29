@@ -178,6 +178,7 @@ export class EdamamService {
     try {
       // Визначити мову
       const detectedLanguage = await this.translationService.detectLanguage(name)
+      console.log(`Detected language for "${name}": ${detectedLanguage}`)
       
       // Якщо вже англійська, повернути як є
       if (detectedLanguage === 'en') {
@@ -186,6 +187,7 @@ export class EdamamService {
       
       // Перекласти на англійську
       const translatedName = await this.translationService.translateToEnglish(name, detectedLanguage)
+      console.log(`Translated ingredient: "${name}" -> "${translatedName}"`)
       return translatedName
     } catch (error) {
       console.error('Translation failed for ingredient:', name, error)
@@ -194,11 +196,11 @@ export class EdamamService {
   }
 
   // Helper function to normalize ingredient strings
-  normalizeIngredientString(ingredient) {
+  async normalizeIngredientString(ingredient) {
     const { name, amount, unit } = ingredient
     
     // Normalize ingredient name to English
-    const normalizedName = this.normalizeIngredientName(name)
+    const normalizedName = await this.normalizeIngredientName(name)
     
     // Convert units to more standard forms that Edamam recognizes
     const unitMapping = {
@@ -316,17 +318,19 @@ export class EdamamService {
     }
   }
 
-  // Fallback method for text-based nutrition analysis
+  // Nutrition analysis with text-based ingredients
   async analyzeNutritionWithText(ingredients, limitApplied = false, originalCount = 0) {
     try {
-      // Convert ingredients to Edamam format with better normalization
-      const edamamIngredients = ingredients.map(ingredient => {
-        return this.normalizeIngredientString(ingredient)
-      })
+      // Prepare normalized ingredient strings
+      const normalizedIngredients = await Promise.all(
+        ingredients.map(async ingredient => {
+          return await this.normalizeIngredientString(ingredient);
+        })
+      );
 
       console.log('Sending request to Edamam Nutrition Analysis API:', {
         url: this.nutritionAnalysisUrl,
-        ingredients: edamamIngredients,
+        ingredients: normalizedIngredients,
         originalIngredients: ingredients
       })
 
@@ -334,7 +338,7 @@ export class EdamamService {
 
       const requestBody = {
         title: "Recipe Nutrition Analysis",
-        ingr: edamamIngredients
+        ingr: normalizedIngredients
       }
 
       console.log('Request body:', JSON.stringify(requestBody, null, 2))
@@ -359,7 +363,7 @@ export class EdamamService {
         }
         if (response.status === 422) {
           console.error('Unprocessable ingredients:', {
-            ingredients: edamamIngredients,
+            ingredients: normalizedIngredients,
             response: data
           })
           throw new Error(`Не вдалося розпізнати інгредієнти. Спробуйте використати англійські назви (наприклад: "apple", "rice") та стандартні одиниці виміру (g, kg, ml, l)`)
