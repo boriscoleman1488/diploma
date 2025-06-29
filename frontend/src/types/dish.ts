@@ -80,7 +80,9 @@ export interface DishCategory {
 }
 
 export interface DishRating {
-  rating_type: number
+  id?: string
+  rating: number
+  user_id?: string
 }
 
 export interface CreateDishData {

@@ -231,7 +231,7 @@ export class DishService {
                     dish_category_relations(
                         dish_categories(id, name)
                     ),
-                    dish_ratings(rating_type),
+                    dish_ratings(id, rating),
                     dish_comments(id)
                 `)
                 .eq('status', this.DISH_STATUS.APPROVED)
@@ -284,7 +284,7 @@ export class DishService {
                     dish_category_relations(
                         dish_categories(id, name)
                     ),
-                    dish_ratings(rating_type),
+                    dish_ratings(id, rating),
                     dish_comments(id),
                     dish_ingredients(*),
                     dish_steps(*)
@@ -343,7 +343,7 @@ export class DishService {
                     dish_category_relations(
                         dish_categories(id, name)
                     ),
-                    dish_ratings(rating_type, user_id),
+                    dish_ratings(id, rating, user_id),
                     dish_ingredients(*),
                     dish_steps(*)
                 `)
@@ -806,7 +806,7 @@ export class DishService {
                 dish_category_relations(
                     dish_categories(id, name)
                 ),
-                dish_ratings(rating_type),
+                dish_ratings(id, rating),
                 dish_comments(id)
             `)
                 .in('status', ['pending', 'approved', 'rejected'])
@@ -859,7 +859,7 @@ export class DishService {
                 dish_category_relations(
                     dish_categories(id, name)
                 ),
-                dish_ratings(rating_type, profiles!user_id(full_name, profile_tag)),
+                dish_ratings(id, rating, profiles!user_id(full_name, profile_tag)),
                 dish_comments(content, created_at, profiles!user_id(full_name, profile_tag))
             `)
                 .eq('id', dishId)
