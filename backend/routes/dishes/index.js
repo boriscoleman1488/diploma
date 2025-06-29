@@ -98,7 +98,7 @@ export default async function dishRoutes(fastify, options) {
             fastify.log.error('Get user dish for edit error', { error: error.message })
             return reply.code(500).send({
                 error: 'Internal server error',
-                message: 'Unable to fetch dish for editing'
+                message: error.message
             })
         }
     })
