@@ -75,10 +75,8 @@ export interface DishStep {
 }
 
 export interface DishCategory {
-  dish_categories: {
-    id: string
-    name: string
-  }
+  id: string
+  name: string
 }
 
 export interface DishRating {

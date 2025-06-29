@@ -232,9 +232,7 @@ export class DishService {
                         dish_categories(id, name)
                     ),
                     dish_ratings(rating_type),
-                    dish_comments(id),
-                    dish_ingredients(*),
-                    dish_steps(*)
+                    dish_comments(id)
                 `)
                 .eq('status', this.DISH_STATUS.APPROVED)
                 .order('created_at', { ascending: false })
@@ -252,17 +250,13 @@ export class DishService {
                 ...dish,
                 categories: dish.dish_category_relations?.map(rel => rel.dish_categories) || [],
                 ratings: dish.dish_ratings || [],
-                comments_count: dish.dish_comments?.length || 0,
-                ingredients: dish.dish_ingredients || [],
-                steps: dish.dish_steps?.sort((a, b) => a.step_number - b.step_number) || []
+                comments_count: dish.dish_comments?.length || 0
             }))
 
             processedDishes.forEach(dish => {
                 delete dish.dish_category_relations
                 delete dish.dish_ratings
                 delete dish.dish_comments
-                delete dish.dish_ingredients
-                delete dish.dish_steps
             })
 
             return {
