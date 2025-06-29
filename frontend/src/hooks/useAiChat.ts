@@ -7,6 +7,7 @@ export interface Ingredient {
   foodId?: string
   amount?: number
   unit?: string
+  edamam_food_id?: string
 }
 
 export interface EdamamFood {
