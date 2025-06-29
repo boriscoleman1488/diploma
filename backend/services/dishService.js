@@ -386,6 +386,63 @@ export class DishService {
         }
     }
 
+    async getDishByIdForUser(dishId, userId) {
+        try {
+            // Validate that the dish exists and belongs to the user
+            await this._validateDishExists(dishId, userId)
+
+            const { data: dish, error } = await this.supabase
+                .from('dishes')
+                .select(`
+                    *,
+                    profiles:user_id(full_name, profile_tag, avatar_url),
+                    dish_category_relations(
+                        dish_categories(id, name)
+                    ),
+                    dish_ratings(id, rating, user_id),
+                    dish_ingredients(*),
+                    dish_steps(*)
+                `)
+                .eq('id', dishId)
+                .eq('user_id', userId)
+                .single()
+
+            if (error) {
+                this.logger.error('User dish fetch error', { error: error.message, dishId, userId })
+                return {
+                    success: false,
+                    error: 'Dish not found',
+                    message: 'Unable to fetch dish or you do not have permission to access it'
+                }
+            }
+
+            const processedDish = {
+                ...dish,
+                categories: dish.dish_category_relations?.map(rel => rel.dish_categories) || [],
+                ratings: dish.dish_ratings || [],
+                ingredients: dish.dish_ingredients || [],
+                steps: dish.dish_steps?.sort((a, b) => a.step_number - b.step_number) || []
+            }
+
+            delete processedDish.dish_category_relations
+            delete processedDish.dish_ratings
+            delete processedDish.dish_ingredients
+            delete processedDish.dish_steps
+
+            return {
+                success: true,
+                dish: processedDish
+            }
+        } catch (error) {
+            this.logger.error('User dish fetch error', { error: error.message, dishId, userId })
+            return {
+                success: false,
+                error: 'Internal server error',
+                message: error.message || 'Unable to fetch dish'
+            }
+        }
+    }
+
     async _createDishRelations(dishId, { category_ids, ingredients, steps }) {
         const operations = []
 
