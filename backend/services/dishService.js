@@ -351,21 +351,11 @@ export class DishService {
                 .single()
 
             if (error) {
-                // Check for specific Supabase error codes
-                if (error.code === 'PGRST116' || error.message.includes('JSON object requested, multiple (or no) rows returned')) {
-                    this.logger.info('Dish not found or not approved', { dishId, error: error.message })
-                    return {
-                        success: false,
-                        error: 'Dish not found',
-                        message: 'The requested dish was not found or is not publicly available'
-                    }
-                }
-                
-                this.logger.error('Dish fetch error', { dishId, error: error.message })
+                this.logger.error('Dish fetch error', { error: error.message })
                 return {
                     success: false,
-                    error: 'Database error',
-                    message: 'Unable to fetch dish details'
+                    error: 'Dish not found',
+                    message: error.message
                 }
             }
 
@@ -387,11 +377,11 @@ export class DishService {
                 dish: processedDish
             }
         } catch (error) {
-            this.logger.error('Dish fetch error', { dishId, error: error.message })
+            this.logger.error('Dish fetch error', { error: error.message })
             return {
                 success: false,
                 error: 'Internal server error',
-                message: 'Unable to fetch dish details'
+                message: error.message
             }
         }
     }
@@ -415,21 +405,11 @@ export class DishService {
                 .single()
 
             if (error) {
-                // Check for specific Supabase error codes
-                if (error.code === 'PGRST116' || error.message.includes('JSON object requested, multiple (or no) rows returned')) {
-                    this.logger.info('User dish not found', { dishId, userId, error: error.message })
-                    return {
-                        success: false,
-                        error: 'Dish not found',
-                        message: 'Dish not found or you do not have permission to access it'
-                    }
-                }
-                
                 this.logger.error('User dish fetch error', { error: error.message, dishId, userId })
                 return {
                     success: false,
-                    error: 'Database error',
-                    message: 'Unable to fetch dish details'
+                    error: 'Dish not found',
+                    message: 'Dish not found or you do not have permission to access it'
                 }
             }
 
