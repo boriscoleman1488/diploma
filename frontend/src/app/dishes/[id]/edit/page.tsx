@@ -24,7 +24,8 @@ import {
   Search, 
   Clock, 
   Users, 
-  Camera 
+  Camera,
+  AlertTriangle
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -116,11 +117,12 @@ export default function EditDishPage({ params }: EditDishPageProps) {
 
   const fetchDish = async () => {
     try {
-      const response = await apiClient.get(`/dishes/${id}`)
+      // Use the new edit endpoint that allows users to fetch their own dishes regardless of status
+      const response = await apiClient.get(`/dishes/${id}/edit`)
       if (response.success && response.dish) {
         const dishData = response.dish
-        console.log('Завантажені дані страви:', dishData) // Додано логування
-        console.log('URL головного зображення:', dishData.main_image_url) // Додано логування
+        console.log('Завантажені дані страви:', dishData)
+        console.log('URL головного зображення:', dishData.main_image_url)
         
         setDish(dishData)
         setMainImageUrl(dishData.main_image_url || '')
@@ -150,7 +152,7 @@ export default function EditDishPage({ params }: EditDishPageProps) {
           main_image_url: dishData.main_image_url || ''
         })
         
-        console.log('mainImageUrl встановлено:', dishData.main_image_url || '') // Додано логування
+        console.log('mainImageUrl встановлено:', dishData.main_image_url || '')
       } else {
         toast.error('Страву не знайдено')
         router.push('/profile/dishes')
@@ -229,6 +231,8 @@ export default function EditDishPage({ params }: EditDishPageProps) {
     }
   }
 
+  const isApproved = dish?.status === 'approved'
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -269,6 +273,22 @@ export default function EditDishPage({ params }: EditDishPageProps) {
           </Link>
           <h1 className="text-3xl font-bold text-gray-900 mt-4">Редагувати страву</h1>
           <p className="text-gray-600 mt-2">Внесіть зміни до вашої страви</p>
+          
+          {!isApproved && (
+            <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start">
+                <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-medium text-yellow-800">
+                    Страва не опублікована
+                  </h4>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    Ви можете редагувати страву, але вона не буде доступна для публічного перегляду, поки не буде схвалена модератором.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -612,7 +632,11 @@ export default function EditDishPage({ params }: EditDishPageProps) {
                 Скасувати
               </Button>
             </Link>
-            <Button type="submit" disabled={isSaving}>
+            <Button 
+              type="submit" 
+              disabled={isSaving || dish.status !== 'approved'}
+              title={dish.status !== 'approved' ? 'Редагування доступне тільки для схвалених страв' : ''}
+            >
               {isSaving ? (
                 <>
                   <LoadingSpinner size="sm" className="mr-2" />
@@ -626,6 +650,22 @@ export default function EditDishPage({ params }: EditDishPageProps) {
               )}
             </Button>
           </div>
+          
+          {dish.status !== 'approved' && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+              <div className="flex items-start">
+                <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-medium text-yellow-800">
+                    Редагування недоступне
+                  </h4>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    Редагування страви доступне тільки після її схвалення модератором. Поточний статус: {dish.status === 'pending' ? 'на розгляді' : dish.status === 'rejected' ? 'відхилено' : 'чернетка'}.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </form>
       </div>
     </div>

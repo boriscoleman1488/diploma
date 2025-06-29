@@ -68,6 +68,41 @@ export default async function dishRoutes(fastify, options) {
         }
     })
 
+    // New route for fetching user's own dish for editing
+    fastify.get('/:dishId/edit', {
+        schema: getDishSchema,
+        preHandler: [authenticateUser]
+    }, async (request, reply) => {
+        try {
+            const { dishId } = request.params
+            const userId = request.user.id
+
+            const result = await fastify.dishService.getDishByIdForUser(dishId, userId)
+
+            if (!result.success) {
+                const statusCode = result.error === 'Dish not found' || 
+                                 result.message?.includes('not found') || 
+                                 result.message?.includes('permission') ? 404 : 400
+                
+                return reply.code(statusCode).send({
+                    error: result.error,
+                    message: result.message
+                })
+            }
+
+            return {
+                success: true,
+                dish: result.dish
+            }
+        } catch (error) {
+            fastify.log.error('Get user dish for edit error', { error: error.message })
+            return reply.code(500).send({
+                error: 'Internal server error',
+                message: 'Unable to fetch dish for editing'
+            })
+        }
+    })
+
     fastify.post('/', {
         schema: createDishSchema,
         preHandler: [authenticateUser]
