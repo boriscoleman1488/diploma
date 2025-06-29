@@ -116,11 +116,12 @@ export default function EditDishPage({ params }: EditDishPageProps) {
 
   const fetchDish = async () => {
     try {
-      const response = await apiClient.get(`/dishes/${id}`)
+      // Use the new edit endpoint that allows users to fetch their own dishes regardless of status
+      const response = await apiClient.get(`/dishes/${id}/edit`)
       if (response.success && response.dish) {
         const dishData = response.dish
-        console.log('Завантажені дані страви:', dishData) // Додано логування
-        console.log('URL головного зображення:', dishData.main_image_url) // Додано логування
+        console.log('Завантажені дані страви:', dishData)
+        console.log('URL головного зображення:', dishData.main_image_url)
         
         setDish(dishData)
         setMainImageUrl(dishData.main_image_url || '')
@@ -150,7 +151,7 @@ export default function EditDishPage({ params }: EditDishPageProps) {
           main_image_url: dishData.main_image_url || ''
         })
         
-        console.log('mainImageUrl встановлено:', dishData.main_image_url || '') // Додано логування
+        console.log('mainImageUrl встановлено:', dishData.main_image_url || '')
       } else {
         toast.error('Страву не знайдено')
         router.push('/profile/dishes')
