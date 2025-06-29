@@ -4,7 +4,6 @@ export interface ChatSession {
   title: string
   created_at: string
   updated_at: string
-  is_archived: boolean
 }
 
 export interface ChatMessage {
@@ -22,7 +21,6 @@ export interface CreateSessionRequest {
 
 export interface UpdateSessionRequest {
   title?: string
-  is_archived?: boolean
 }
 
 export interface CreateMessageRequest {

@@ -23,7 +23,6 @@ import {
   Clock,
   Edit,
   MoreVertical,
-  Archive,
   Folder
 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -62,7 +61,6 @@ interface ChatSession {
   title: string
   created_at: string
   updated_at: string
-  is_archived: boolean
 }
 
 export default function AiChefPage() {
@@ -201,33 +199,6 @@ export default function AiChefPage() {
     } catch (error) {
       console.error('Failed to update session title:', error)
       toast.error('Не вдалося оновити назву чату')
-    }
-  }
-
-  const archiveSession = async () => {
-    if (!currentSession) return
-    
-    try {
-      const response = await apiClient.patch(`/ai/chat/sessions/${currentSession.id}`, {
-        is_archived: true
-      })
-      
-      if (response.success) {
-        toast.success('Чат архівовано')
-        
-        // Update sessions list
-        setChatSessions(prev => prev.filter(session => session.id !== currentSession.id))
-        
-        // Clear current session and messages
-        setCurrentSession(null)
-        setMessages([])
-        setShowSessionMenu(false)
-      } else {
-        toast.error('Не вдалося архівувати чат')
-      }
-    } catch (error) {
-      console.error('Failed to archive session:', error)
-      toast.error('Не вдалося архівувати чат')
     }
   }
 
@@ -826,13 +797,6 @@ export default function AiChefPage() {
                             >
                               <Edit className="w-4 h-4 mr-2" />
                               Перейменувати
-                            </button>
-                            <button
-                              onClick={archiveSession}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                            >
-                              <Archive className="w-4 h-4 mr-2" />
-                              Архівувати
                             </button>
                             <button
                               onClick={deleteSession}

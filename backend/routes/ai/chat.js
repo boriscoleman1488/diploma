@@ -7,25 +7,18 @@ export default async function aiChatRoutes(fastify, options) {
     schema: {
       querystring: {
         type: 'object',
-        properties: {
-          archived: { type: 'boolean' }
-        }
+        properties: {}
       }
     }
   }, async (request, reply) => {
     try {
       const userId = request.user.id
-      const { archived } = request.query
       
       let query = fastify.supabase
         .from('ai_chat_sessions')
         .select('*')
         .eq('user_id', userId)
         .order('updated_at', { ascending: false })
-      
-      if (archived !== undefined) {
-        query = query.eq('is_archived', archived)
-      }
       
       const { data: sessions, error } = await query
       
@@ -114,8 +107,7 @@ export default async function aiChatRoutes(fastify, options) {
       body: {
         type: 'object',
         properties: {
-          title: { type: 'string' },
-          is_archived: { type: 'boolean' }
+          title: { type: 'string' }
         }
       }
     }
@@ -126,7 +118,6 @@ export default async function aiChatRoutes(fastify, options) {
       const updates = {}
       
       if (request.body.title !== undefined) updates.title = request.body.title
-      if (request.body.is_archived !== undefined) updates.is_archived = request.body.is_archived
       
       // First check if the session belongs to the user
       const { data: existingSession, error: checkError } = await fastify.supabase
