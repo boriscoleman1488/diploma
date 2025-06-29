@@ -169,9 +169,14 @@ export class EdamamService {
     
     const lowerName = name.toLowerCase().trim()
     
+    // Перевірити статичний словник
+    if (this.translationService && this.translationService.staticDictionary[lowerName]) {
+      return this.translationService.staticDictionary[lowerName];
+    }
     
     // Якщо немає translation service, повернути як є
     if (!this.translationService || !this.translationService.isConfigured) {
+      console.warn('Translation service not available, using original text:', name)
       return name
     }
     
@@ -298,16 +303,8 @@ export class EdamamService {
         limitApplied = true;
       }
 
-      // Check if all ingredients have edamam_food_id for structured analysis
-      const allHaveFoodId = ingredientsToAnalyze.every(ingredient => ingredient.edamam_food_id)
-      
-      if (allHaveFoodId) {
-        console.log('Using text-based ingredient parsing since Food Database API has issues with multiple ingredients')
-        return this.analyzeNutritionWithText(ingredientsToAnalyze, limitApplied, ingredients.length)
-      } else {
-        console.log('Using text-based ingredient parsing (some ingredients missing edamam_food_id)')
-        return this.analyzeNutritionWithText(ingredientsToAnalyze, limitApplied, ingredients.length)
-      }
+      // Використовуємо text-based аналіз для всіх інгредієнтів
+      return this.analyzeNutritionWithText(ingredientsToAnalyze, limitApplied, ingredients.length)
 
     } catch (error) {
       console.error('Nutrition analysis error:', error)
@@ -378,6 +375,11 @@ export class EdamamService {
           throw new Error('Низька якість даних. Спробуйте додати більше деталей до інгредієнтів')
         }
         throw new Error(`Edamam Nutrition Analysis API error (${response.status}): ${data.message || data.error || 'Unknown error'}`)
+      }
+
+      // Перевірка на порожні дані
+      if (!data.calories && (!data.totalNutrients || Object.keys(data.totalNutrients).length === 0)) {
+        throw new Error('API повернув порожні дані. Можливо, інгредієнти не розпізнано. Спробуйте використати англійські назви інгредієнтів (наприклад: "apple" замість "яблуко", "rice" замість "рис")')
       }
 
       const result = this.processNutritionResponse(data);
