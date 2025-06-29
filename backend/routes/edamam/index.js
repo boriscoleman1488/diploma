@@ -151,7 +151,11 @@ export default async function edamamRoutes(fastify, options) {
 
       return {
         success: true,
-        nutrition: result.nutrition
+        nutrition: result.nutrition,
+        limitApplied: result.nutrition.limitApplied,
+        originalCount: result.nutrition.originalCount,
+        analyzedCount: result.nutrition.analyzedCount,
+        message: result.nutrition.message
       }
     } catch (error) {
       fastify.log.error('Nutrition analysis error', { error: error.message })
@@ -211,7 +215,11 @@ export default async function edamamRoutes(fastify, options) {
 
       return {
         success: true,
-        nutrition: result.nutrition
+        nutrition: result.nutrition,
+        limitApplied: result.limitApplied,
+        originalCount: result.originalCount,
+        analyzedCount: result.analyzedCount,
+        message: result.message
       }
     } catch (error) {
       fastify.log.error('Ingredients analysis error', { error: error.message })

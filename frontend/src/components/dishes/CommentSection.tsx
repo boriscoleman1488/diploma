@@ -21,6 +21,8 @@ import toast from 'react-hot-toast'
 
 interface Comment {
   id: string
+  dish_id: string
+  user_id: string
   content: string
   created_at: string
   updated_at: string
@@ -46,6 +48,7 @@ export function CommentSection({ dishId, className = '' }: CommentSectionProps) 
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [isDeleting, setIsDeleting] = useState<string | null>(null)
   const [showDropdown, setShowDropdown] = useState<string | null>(null)
   const { isAuthenticated, user } = useAuthStore()
 
@@ -132,6 +135,7 @@ export function CommentSection({ dishId, className = '' }: CommentSectionProps) 
       return
     }
 
+    setIsDeleting(commentId)
     try {
       const response = await apiClient.delete(`/comments/${commentId}`)
       if (response.success) {
@@ -144,6 +148,7 @@ export function CommentSection({ dishId, className = '' }: CommentSectionProps) 
       console.error('Failed to delete comment:', error)
       toast.error(error instanceof Error ? error.message : 'Не вдалося видалити коментар')
     } finally {
+      setIsDeleting(null)
       setShowDropdown(null)
     }
   }
@@ -162,10 +167,23 @@ export function CommentSection({ dishId, className = '' }: CommentSectionProps) 
   }, [dishId])
 
   useEffect(() => {
-    const handleClickOutside = () => setShowDropdown(null)
-    document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
-  }, [])
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showDropdown && !event.target) return;
+      
+      const dropdownElement = document.getElementById(`dropdown-${showDropdown}`);
+      const triggerElement = document.getElementById(`dropdown-trigger-${showDropdown}`);
+      
+      if (dropdownElement && triggerElement) {
+        if (!dropdownElement.contains(event.target as Node) && 
+            !triggerElement.contains(event.target as Node)) {
+          setShowDropdown(null);
+        }
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showDropdown]);
 
   return (
     <div className={className}>
@@ -243,6 +261,7 @@ export function CommentSection({ dishId, className = '' }: CommentSectionProps) 
                     {isAuthenticated && canEditComment(comment) && (
                       <div className="relative">
                         <button
+                          id={`dropdown-trigger-${comment.id}`}
                           onClick={(e) => {
                             e.stopPropagation()
                             setShowDropdown(showDropdown === comment.id ? null : comment.id)
@@ -253,7 +272,10 @@ export function CommentSection({ dishId, className = '' }: CommentSectionProps) 
                         </button>
                         
                         {showDropdown === comment.id && (
-                          <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
+                          <div 
+                            id={`dropdown-${comment.id}`}
+                            className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]"
+                          >
                             <button
                               onClick={() => handleEditComment(comment.id, comment.content)}
                               className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
@@ -263,10 +285,15 @@ export function CommentSection({ dishId, className = '' }: CommentSectionProps) 
                             </button>
                             <button
                               onClick={() => handleDeleteComment(comment.id)}
+                              disabled={isDeleting === comment.id}
                               className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center"
                             >
-                              <Trash2 className="w-3 h-3 mr-2" />
-                              Видалити
+                              {isDeleting === comment.id ? (
+                                <LoadingSpinner size="sm" className="mr-2" />
+                              ) : (
+                                <Trash2 className="w-3 h-3 mr-2" />
+                              )}
+                              {isDeleting === comment.id ? 'Видалення...' : 'Видалити'}
                             </button>
                           </div>
                         )}

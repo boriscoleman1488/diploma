@@ -105,6 +105,12 @@ export class TranslationService {
       'мигдаль': 'almonds',
       'волоські горіхи': 'walnuts'
     }
+    
+    // Зворотний словник для перекладу з англійської на українську
+    this.reverseStaticDictionary = Object.entries(this.staticDictionary).reduce((acc, [uk, en]) => {
+      acc[en.toLowerCase()] = uk;
+      return acc;
+    }, {});
   }
 
   async testApiConnection() {
@@ -138,10 +144,7 @@ export class TranslationService {
       return this.staticDictionary[lowerText] || text
     } else if (targetLanguage === 'uk') {
       // Англійська -> Українська (зворотний пошук)
-      const entry = Object.entries(this.staticDictionary).find(([uk, en]) => 
-        en.toLowerCase() === lowerText
-      )
-      return entry ? entry[0] : text
+      return this.reverseStaticDictionary[lowerText] || text
     }
     
     return text
@@ -234,7 +237,7 @@ export class TranslationService {
   // Визначити мову тексту
   async detectLanguage(text) {
     // Простий алгоритм визначення мови на основі символів
-    const cyrillicPattern = /[а-яё]/i
+    const cyrillicPattern = /[а-яёіїєґ]/i
     const latinPattern = /[a-z]/i
     
     const hasCyrillic = cyrillicPattern.test(text)

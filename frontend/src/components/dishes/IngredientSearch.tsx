@@ -156,6 +156,9 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
                       )}
                       <div className="flex-1">
                         <p className="font-medium text-gray-900">{food.label}</p>
+                        {food.originalLabel && food.originalLabel !== food.label && (
+                          <p className="text-xs text-gray-500">Оригінальна назва: {food.originalLabel}</p>
+                        )}
                         {food.category && (
                           <p className="text-sm text-gray-500">{food.category}</p>
                         )}
@@ -194,6 +197,9 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
                 )}
                 <div>
                   <h5 className="font-medium text-gray-900">{selectedFood.label}</h5>
+                  {selectedFood.originalLabel && selectedFood.originalLabel !== selectedFood.label && (
+                    <p className="text-xs text-gray-500">Оригінальна назва: {selectedFood.originalLabel}</p>
+                  )}
                   {selectedFood.category && (
                     <p className="text-sm text-gray-500">{selectedFood.category}</p>
                   )}

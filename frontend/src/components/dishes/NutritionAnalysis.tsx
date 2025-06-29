@@ -13,7 +13,8 @@ import {
   Info,
   AlertCircle,
   CheckCircle,
-  X
+  X,
+  AlertTriangle
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -47,6 +48,10 @@ interface NutritionData {
   dietLabels: string[]
   healthLabels: string[]
   cautions: string[]
+  limitApplied?: boolean
+  originalCount?: number
+  analyzedCount?: number
+  message?: string
 }
 
 interface NutritionAnalysisProps {
@@ -66,6 +71,7 @@ export function NutritionAnalysis({
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [warning, setWarning] = useState<string | null>(null)
 
   const analyzeNutrition = async () => {
     if (!ingredients || ingredients.length === 0) {
@@ -75,6 +81,7 @@ export function NutritionAnalysis({
 
     setIsAnalyzing(true)
     setError(null)
+    setWarning(null)
     
     try {
       const response = await apiClient.post('/edamam/analyze-nutrition', {
@@ -84,10 +91,21 @@ export function NutritionAnalysis({
 
       if (response.success && response.nutrition) {
         setNutrition(response.nutrition)
+        
+        // Перевіряємо, чи було застосовано обмеження кількості інгредієнтів
+        if (response.limitApplied) {
+          setWarning(response.message || `Аналіз обмежено до ${response.analyzedCount} інгредієнтів із ${response.originalCount}`)
+          toast.success('Поживну цінність розраховано з обмеженнями!', {
+            icon: '⚠️',
+            duration: 5000
+          })
+        } else {
+          toast.success('Поживну цінність розраховано успішно!')
+        }
+        
         if (onNutritionCalculated) {
           onNutritionCalculated(response.nutrition)
         }
-        toast.success('Поживну цінність розраховано успішно!')
       } else {
         setError(response.error || 'Не вдалося розрахувати поживну цінність')
         toast.error(response.message || 'Помилка аналізу поживності')
@@ -104,6 +122,7 @@ export function NutritionAnalysis({
   const clearNutrition = () => {
     setNutrition(null)
     setError(null)
+    setWarning(null)
     setShowDetails(false)
   }
 
@@ -130,6 +149,9 @@ export function NutritionAnalysis({
     }
     return healthColors[label] || 'bg-gray-100 text-gray-800'
   }
+  
+  // Показуємо попередження, якщо кількість інгредієнтів перевищує ліміт
+  const showTooManyIngredientsWarning = ingredients.length > 20 && !nutrition && !error;
 
   return (
     <div className={className}>
@@ -153,6 +175,39 @@ export function NutritionAnalysis({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Попередження про обмеження кількості інгредієнтів */}
+          {showTooManyIngredientsWarning && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <div className="flex items-start">
+                <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-medium text-yellow-800">
+                    Увага: велика кількість інгредієнтів
+                  </h4>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    У вас {ingredients.length} інгредієнтів, але API підтримує аналіз максимум 20 інгредієнтів. 
+                    Будуть проаналізовані тільки перші 20 інгредієнтів.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Попередження про обмеження кількості інгредієнтів у результаті */}
+          {warning && nutrition && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <div className="flex items-start">
+                <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-medium text-yellow-800">
+                    Обмежений аналіз
+                  </h4>
+                  <p className="text-sm text-yellow-700 mt-1">{warning}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {!nutrition && !error && (
             <div className="text-center py-6">
               <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
