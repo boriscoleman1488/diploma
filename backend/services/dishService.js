@@ -381,7 +381,7 @@ export class DishService {
             return {
                 success: false,
                 error: 'Internal server error',
-                message: 'Unable to fetch dish'
+                message: error.message
             }
         }
     }
