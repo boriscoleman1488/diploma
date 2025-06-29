@@ -3,6 +3,45 @@ import { persist } from 'zustand/middleware'
 import { AuthState, User, AuthSession, LoginCredentials, RegisterData, AuthResponse } from '@/types/auth'
 import { apiClient } from '@/lib/api'
 
+// Create a noop storage for server-side rendering
+const noopStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {}
+}
+
+// Function to get the appropriate storage
+const getStorage = () => {
+  if (typeof window !== 'undefined') {
+    return {
+      getItem: (name: string) => {
+        try {
+          const value = localStorage.getItem(name);
+          return value ? JSON.parse(value) : null;
+        } catch (error) {
+          console.error('Error retrieving auth data from localStorage:', error);
+          return null;
+        }
+      },
+      setItem: (name: string, value: any) => {
+        try {
+          localStorage.setItem(name, JSON.stringify(value));
+        } catch (error) {
+          console.error('Error storing auth data in localStorage:', error);
+        }
+      },
+      removeItem: (name: string) => {
+        try {
+          localStorage.removeItem(name);
+        } catch (error) {
+          console.error('Error removing auth data from localStorage:', error);
+        }
+      }
+    }
+  }
+  return noopStorage
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -102,11 +141,15 @@ export const useAuthStore = create<AuthState>()(
           })
           apiClient.setSession(null)
           
-          // Clear localStorage
-          localStorage.removeItem('auth-storage')
+          // Clear localStorage only on client side
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('auth-storage')
+          }
           
-          // Redirect to login
-          window.location.href = '/auth/login'
+          // Redirect to login only on client side
+          if (typeof window !== 'undefined') {
+            window.location.href = '/auth/login'
+          }
         }
       },
 
@@ -209,32 +252,7 @@ export const useAuthStore = create<AuthState>()(
         session: state.session,
         isAuthenticated: state.isAuthenticated,
       }),
-      // Add storage configuration to ensure proper persistence
-      storage: {
-        getItem: (name) => {
-          try {
-            const value = localStorage.getItem(name);
-            return value ? JSON.parse(value) : null;
-          } catch (error) {
-            console.error('Error retrieving auth data from localStorage:', error);
-            return null;
-          }
-        },
-        setItem: (name, value) => {
-          try {
-            localStorage.setItem(name, JSON.stringify(value));
-          } catch (error) {
-            console.error('Error storing auth data in localStorage:', error);
-          }
-        },
-        removeItem: (name) => {
-          try {
-            localStorage.removeItem(name);
-          } catch (error) {
-            console.error('Error removing auth data from localStorage:', error);
-          }
-        }
-      }
+      storage: getStorage()
     }
   )
 )

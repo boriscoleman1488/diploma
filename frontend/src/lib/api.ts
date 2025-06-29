@@ -12,13 +12,17 @@ class ApiClient {
   constructor(baseURL: string) {
     this.baseURL = baseURL
     
-    // Try to restore session from localStorage on initialization
-    this.restoreSession()
+    // Only restore session on client side
+    if (typeof window !== 'undefined') {
+      this.restoreSession()
+    }
   }
 
   // Restore session from localStorage if available
   private restoreSession() {
     try {
+      if (typeof window === 'undefined') return
+      
       const authStorage = localStorage.getItem('auth-storage')
       if (authStorage) {
         const parsedStorage = JSON.parse(authStorage)
