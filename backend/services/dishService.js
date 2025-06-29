@@ -253,7 +253,7 @@ export class DishService {
                 categories: dish.dish_category_relations?.map(rel => rel.dish_categories) || [],
                 ratings: dish.dish_ratings || [],
                 comments_count: dish.dish_comments?.length || 0,
-                ingredients: dish.dish_ingredients?.sort((a, b) => a.order_index - b.order_index) || [],
+                ingredients: dish.dish_ingredients || [],
                 steps: dish.dish_steps?.sort((a, b) => a.step_number - b.step_number) || []
             }))
 
@@ -370,7 +370,7 @@ export class DishService {
                 ...dish,
                 categories: dish.dish_category_relations?.map(rel => rel.dish_categories) || [],
                 ratings: dish.dish_ratings || [],
-                ingredients: dish.dish_ingredients?.sort((a, b) => a.order_index - b.order_index) || [],
+                ingredients: dish.dish_ingredients || [],
                 steps: dish.dish_steps?.sort((a, b) => a.step_number - b.step_number) || []
             }
 
@@ -410,13 +410,12 @@ export class DishService {
         }
 
         if (ingredients && ingredients.length > 0) {
-            const ingredientsData = ingredients.map((ing, index) => ({
+            const ingredientsData = ingredients.map((ing) => ({
                 dish_id: dishId,
                 name: ing.name,
                 amount: ing.amount,
                 unit: ing.unit,
-                edamam_food_id: ing.edamam_food_id,
-                order_index: index
+                edamam_food_id: ing.edamam_food_id
             }))
 
             operations.push(
