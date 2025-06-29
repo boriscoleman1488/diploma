@@ -355,7 +355,7 @@ export class DishService {
                 return {
                     success: false,
                     error: 'Dish not found',
-                    message: 'Unable to fetch dish'
+                    message: error.message
                 }
             }
 
