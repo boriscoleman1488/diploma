@@ -7,7 +7,7 @@ export class RatingService {
     // Константи
     this.RATING_VALUES = {
       LIKE: 1,
-      NO_RATING: 0
+      DISLIKE: 0
     }
 
 
@@ -172,7 +172,7 @@ export class RatingService {
 
       await this._checkDishExists(dishId)
 
-      if (rating === this.RATING_VALUES.NO_RATING) {
+      if (rating === this.RATING_VALUES.DISLIKE) {
         // Видалити рейтинг якщо 0
         const { error } = await this.supabase
           .from('dish_ratings')
@@ -230,7 +230,7 @@ export class RatingService {
         return this._handleError(error, 'Unable to get user rating', { dishId, userId })
       }
 
-      const rating = data ? data.rating_type : this.RATING_VALUES.NO_RATING
+      const rating = data ? data.rating_type : this.RATING_VALUES.DISLIKE
       return this._handleSuccess({ rating })
 
     } catch (error) {

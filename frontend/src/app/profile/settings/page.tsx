@@ -24,11 +24,10 @@ import toast from 'react-hot-toast'
 import { isValidImageFile, compressImage } from '@/lib/utils'
 
 const profileSchema = z.object({
-  full_name: z.string().min(2, 'Повне ім\'я повинно містити принаймні 2 символи').optional(),
-  profile_tag: z.string()
+  full_name: z.string().min(2, 'Повне ім\'я повинно містити принаймні 2 символи'),
+  /*profile_tag: z.string()
     .min(3, 'Тег профілю повинен містити принаймні 3 символи')
-    .regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, 'Тег профілю повинен починатися з літери і містити лише літери, цифри та підкреслення')
-    .optional(),
+    .regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, 'Тег профілю повинен починатися з літери і містити лише літери, цифри та підкреслення'),*/
 })
 
 const passwordSchema = z.object({
