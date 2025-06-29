@@ -302,8 +302,6 @@ export class EdamamService {
       // Check if all ingredients have edamam_food_id for structured analysis
       const allHaveFoodId = ingredientsToAnalyze.every(ingredient => ingredient.edamam_food_id)
       
-      let requestBody
-      
       if (allHaveFoodId) {
         console.log('Using structured ingredient data (Food Database API)')
         
@@ -330,62 +328,75 @@ export class EdamamService {
         let combinedNutrients = {};
         let totalWeight = 0;
         let totalCalories = 0;
+        let successfulBatches = 0;
         
         for (let i = 0; i < batches.length; i++) {
           const batch = batches[i];
           console.log(`Processing batch ${i+1}/${batches.length} with ${batch.length} ingredients`);
           
-          // Use Food Database nutrients endpoint for structured data
-          const url = `${this.foodDatabaseUrl}/nutrients?app_id=${this.foodAppId}&app_key=${this.foodAppKey}`
-          
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              ingredients: batch
-            })
-          })
-
-          console.log(`Batch ${i+1} response status:`, response.status)
-
-          if (!response.ok) {
-            if (response.status === 401) {
-              throw new Error('Неправильні credentials для Edamam Food Database API')
-            }
-            if (response.status === 422) {
-              console.error('Unprocessable structured ingredients in batch:', {
-                ingredients: batch,
-                response: await response.json()
-              })
-              // Continue with next batch instead of failing completely
-              continue
-            }
-            if (response.status === 429) {
-              throw new Error('Перевищено ліміт запитів. Спробуйте пізніше')
-            }
+          try {
+            // Use Food Database nutrients endpoint for structured data
+            const url = `${this.foodDatabaseUrl}/nutrients?app_id=${this.foodAppId}&app_key=${this.foodAppKey}`
             
-            const errorData = await response.json();
-            throw new Error(`Edamam Food Database API error (${response.status}): ${errorData.message || 'Unknown error'}`)
-          }
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                ingredients: batch
+              })
+            })
 
-          const data = await response.json()
-          console.log(`Batch ${i+1} response data:`, JSON.stringify(data, null, 2))
-          
-          // Combine results from this batch
-          totalWeight += data.totalWeight || 0;
-          totalCalories += data.calories || 0;
-          
-          // Combine nutrients
-          if (data.totalNutrients) {
-            Object.entries(data.totalNutrients).forEach(([key, value]) => {
-              if (!combinedNutrients[key]) {
-                combinedNutrients[key] = { ...value, quantity: 0 };
+            console.log(`Batch ${i+1} response status:`, response.status)
+
+            if (!response.ok) {
+              if (response.status === 401) {
+                throw new Error('Неправильні credentials для Edamam Food Database API')
               }
-              combinedNutrients[key].quantity += value.quantity;
-            });
+              if (response.status === 422) {
+                console.error('Unprocessable structured ingredients in batch:', {
+                  ingredients: batch,
+                  response: await response.json()
+                })
+                // Continue with next batch instead of failing completely
+                continue
+              }
+              if (response.status === 429) {
+                throw new Error('Перевищено ліміт запитів. Спробуйте пізніше')
+              }
+              
+              const errorData = await response.json();
+              throw new Error(`Edamam Food Database API error (${response.status}): ${errorData.message || 'Unknown error'}`)
+            }
+
+            const data = await response.json()
+            console.log(`Batch ${i+1} response data:`, JSON.stringify(data, null, 2))
+            
+            // Combine results from this batch
+            totalWeight += data.totalWeight || 0;
+            totalCalories += data.calories || 0;
+            successfulBatches++;
+            
+            // Combine nutrients
+            if (data.totalNutrients) {
+              Object.entries(data.totalNutrients).forEach(([key, value]) => {
+                if (!combinedNutrients[key]) {
+                  combinedNutrients[key] = { ...value, quantity: 0 };
+                }
+                combinedNutrients[key].quantity += value.quantity;
+              });
+            }
+          } catch (batchError) {
+            console.error(`Error processing batch ${i+1}:`, batchError);
+            // Continue with next batch instead of failing completely
           }
+        }
+        
+        // If no batches were successful, fall back to text-based analysis
+        if (successfulBatches === 0) {
+          console.log('No batches were successful with structured data, falling back to text-based analysis');
+          return this.analyzeNutritionWithText(ingredientsToAnalyze, limitApplied, ingredients.length);
         }
         
         // Create a combined result object
