@@ -139,6 +139,10 @@ export default function AiChefPage() {
       amount: 100,
       unit: 'г'
     })
+    
+    // Clear search after adding
+    setSearchQuery('')
+    setShowSearchResults(false)
   }
 
   const handleAddCustomIngredient = () => {
@@ -149,10 +153,6 @@ export default function AiChefPage() {
       amount: 100,
       unit: 'г'
     })
-    
-    // Clear search after adding
-    setSearchQuery('')
-    setShowSearchResults(false)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

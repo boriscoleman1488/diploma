@@ -132,7 +132,7 @@ export class AIService {
 
       // System instruction according to the new documentation
       const systemInstruction = `Ти корисний кулінарний помічник, який пропонує страву на основі доступних інгредієнтів. 
-                                Зосередься на практичних, легких для виконання страв, які використовують надані інгредієнти.
+                                Зосередься на практичних, легких для виконання стравах, які використовують надані інгредієнти.
                                 Форматуй свою відповідь у markdown з чіткими розділами:
                                 1. Назва страви (як заголовок)
                                 2. Короткий опис
@@ -179,15 +179,6 @@ export class AIService {
         success: false,
         error: 'AI чат тимчасово не працює. Спробуйте пізніше.'
       }
-    }
-  }
-
-  getFallbackSuggestion(ingredients, preferences = '') {
-    this.logger.info('Using fallback suggestion due to missing Gemini API key')
-
-    return {
-      success: false,
-      error: 'AI чат тимчасово не працює. Спробуйте пізніше.'
     }
   }
 }
