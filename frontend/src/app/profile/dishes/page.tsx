@@ -264,7 +264,7 @@ export default function UserDishesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDishes.map((dish) => {
             const cookingTime = getTotalCookingTime(dish)
-            const likesCount = dish.ratings?.filter(r => r.rating_type === 1).length || 0
+            const likesCount = dish.ratings?.filter(r => r.rating === 1).length || 0
             const dishCategories = getDishCategories(dish)
 
             return (

@@ -284,7 +284,7 @@ export class CollectionService {
                             )
                         ),
                         dish_ratings(
-                            rating_type
+                            rating
                         ),
                         dish_comments(id)
                     )
@@ -595,7 +595,7 @@ export class CollectionService {
                             dish_categories(name)
                         ),
                         profiles(full_name, profile_tag, avatar_url),
-                        dish_ratings(rating_type),
+                        dish_ratings(rating),
                         dish_comments(id)
                     )
                 `)

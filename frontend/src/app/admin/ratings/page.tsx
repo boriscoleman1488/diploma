@@ -26,7 +26,7 @@ import toast from 'react-hot-toast'
 
 interface Rating {
   id: string
-  rating_type: number
+  rating: number
   created_at: string
   updated_at: string
   dishes: {
@@ -103,11 +103,11 @@ function RatingDetailsModal({ rating, isOpen, onClose, onDelete, isUpdating }: R
             <CardContent>
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-red-100 rounded-lg">
-                  <Heart className={`w-5 h-5 text-red-600 ${rating.rating_type === 1 ? 'fill-current' : ''}`} />
+                  <Heart className={`w-5 h-5 text-red-600 ${rating.rating === 1 ? 'fill-current' : ''}`} />
                 </div>
                 <div>
                   <p className="font-medium text-gray-900">
-                    {rating.rating_type === 1 ? 'Лайк' : 'Без рейтингу'}
+                    {rating.rating === 1 ? 'Лайк' : 'Без рейтингу'}
                   </p>
                   <p className="text-sm text-gray-500">
                     Поставлено {formatRelativeTime(rating.created_at)}
@@ -459,9 +459,9 @@ export default function AdminRatingsPage() {
                     <tr key={rating.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <Heart className={`w-5 h-5 text-red-500 ${rating.rating_type === 1 ? 'fill-current' : ''}`} />
+                          <Heart className={`w-5 h-5 text-red-500 ${rating.rating === 1 ? 'fill-current' : ''}`} />
                           <span className="ml-2 text-sm font-medium text-gray-900">
-                            {rating.rating_type === 1 ? 'Лайк' : 'Без рейтингу'}
+                            {rating.rating === 1 ? 'Лайк' : 'Без рейтингу'}
                           </span>
                         </div>
                       </td>

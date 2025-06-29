@@ -2,7 +2,7 @@ export interface Rating {
   id: string
   dish_id: string
   user_id: string
-  rating_type: number
+  rating: number
   created_at: string
   updated_at: string
 }

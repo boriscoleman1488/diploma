@@ -152,7 +152,7 @@ export const getDishesSchema = {
                 items: {
                   type: 'object',
                   properties: {
-                    rating_type: { type: 'string' }
+                    rating: { type: 'string' }
                   }
                 }
               },
