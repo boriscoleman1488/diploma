@@ -37,6 +37,15 @@ export default async function edamamRoutes(fastify, options) {
       const result = await fastify.edamam.searchFood(query, limit)
 
       if (!result.success) {
+        // Check for rate limit error
+        if (result.error && result.error.includes('rate limit exceeded')) {
+          return reply.code(429).send({
+            success: false,
+            error: result.error,
+            message: 'Перевищено ліміт запитів до API. Будь ласка, спробуйте пізніше.'
+          })
+        }
+        
         return reply.code(400).send({
           success: false,
           error: result.error,
@@ -51,6 +60,16 @@ export default async function edamamRoutes(fastify, options) {
       }
     } catch (error) {
       fastify.log.error('Edamam search error', { error: error.message })
+      
+      // Check for rate limit error
+      if (error.message && error.message.includes('rate limit exceeded')) {
+        return reply.code(429).send({
+          success: false,
+          error: 'Rate limit exceeded',
+          message: 'Перевищено ліміт запитів до API. Будь ласка, спробуйте пізніше.'
+        })
+      }
+      
       return reply.code(500).send({
         success: false,
         error: error.message || 'Internal server error',
@@ -85,6 +104,15 @@ export default async function edamamRoutes(fastify, options) {
       const result = await fastify.edamam.getFoodDetails(foodId)
 
       if (!result.success) {
+        // Check for rate limit error
+        if (result.error && result.error.includes('rate limit exceeded')) {
+          return reply.code(429).send({
+            success: false,
+            error: result.error,
+            message: 'Перевищено ліміт запитів до API. Будь ласка, спробуйте пізніше.'
+          })
+        }
+        
         return reply.code(400).send({
           success: false,
           error: result.error,
@@ -100,6 +128,16 @@ export default async function edamamRoutes(fastify, options) {
       }
     } catch (error) {
       fastify.log.error('Edamam food details error', { error: error.message })
+      
+      // Check for rate limit error
+      if (error.message && error.message.includes('rate limit exceeded')) {
+        return reply.code(429).send({
+          success: false,
+          error: 'Rate limit exceeded',
+          message: 'Перевищено ліміт запитів до API. Будь ласка, спробуйте пізніше.'
+        })
+      }
+      
       return reply.code(500).send({
         success: false,
         error: error.message || 'Internal server error',
@@ -151,6 +189,15 @@ export default async function edamamRoutes(fastify, options) {
       })
 
       if (!result.success) {
+        // Check for rate limit error
+        if (result.error && result.error.includes('rate limit exceeded')) {
+          return reply.code(429).send({
+            success: false,
+            error: 'Rate limit exceeded',
+            message: 'Перевищено ліміт запитів до API. Будь ласка, спробуйте пізніше.'
+          })
+        }
+        
         return reply.code(400).send({
           success: false,
           error: result.error,
@@ -168,6 +215,16 @@ export default async function edamamRoutes(fastify, options) {
       }
     } catch (error) {
       fastify.log.error('Nutrition analysis error', { error: error.message })
+      
+      // Check for rate limit error
+      if (error.message && error.message.includes('rate limit exceeded')) {
+        return reply.code(429).send({
+          success: false,
+          error: 'Rate limit exceeded',
+          message: 'Перевищено ліміт запитів до API. Будь ласка, спробуйте пізніше.'
+        })
+      }
+      
       return reply.code(500).send({
         success: false,
         error: error.message || 'Internal server error',
@@ -215,6 +272,15 @@ export default async function edamamRoutes(fastify, options) {
       const result = await fastify.edamam.analyzeNutrition(ingredients)
 
       if (!result.success) {
+        // Check for rate limit error
+        if (result.error && result.error.includes('rate limit exceeded')) {
+          return reply.code(429).send({
+            success: false,
+            error: 'Rate limit exceeded',
+            message: 'Перевищено ліміт запитів до API. Будь ласка, спробуйте пізніше.'
+          })
+        }
+        
         return reply.code(400).send({
           success: false,
           error: result.error,
@@ -232,6 +298,16 @@ export default async function edamamRoutes(fastify, options) {
       }
     } catch (error) {
       fastify.log.error('Ingredients analysis error', { error: error.message })
+      
+      // Check for rate limit error
+      if (error.message && error.message.includes('rate limit exceeded')) {
+        return reply.code(429).send({
+          success: false,
+          error: 'Rate limit exceeded',
+          message: 'Перевищено ліміт запитів до API. Будь ласка, спробуйте пізніше.'
+        })
+      }
+      
       return reply.code(500).send({
         success: false,
         error: error.message || 'Internal server error',

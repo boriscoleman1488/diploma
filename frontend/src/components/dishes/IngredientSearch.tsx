@@ -81,10 +81,15 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
       console.error('Failed to search foods:', error)
       setSearchResults([])
       setShowResults(true)
-      setError(error instanceof Error ? error.message : 'Помилка пошуку інгредієнтів')
       
-      // Show toast for better user experience
-      toast.error('Помилка пошуку інгредієнтів. Спробуйте додати інгредієнт вручну.')
+      // Handle rate limit error specifically
+      if (error instanceof Error && error.message.includes('rate limit exceeded')) {
+        setError('Перевищено ліміт запитів до API. Будь ласка, спробуйте пізніше або додайте інгредієнт вручну.')
+        toast.error('Перевищено ліміт запитів до API. Спробуйте додати інгредієнт вручну.')
+      } else {
+        setError(error instanceof Error ? error.message : 'Помилка пошуку інгредієнтів')
+        toast.error('Помилка пошуку інгредієнтів. Спробуйте додати інгредієнт вручну.')
+      }
     } finally {
       setIsSearching(false)
     }

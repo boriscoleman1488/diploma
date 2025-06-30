@@ -40,6 +40,11 @@ export class EdamamService {
         let errorMessage;
         const contentType = response.headers.get('content-type');
         
+        // Handle rate limit exceeded (429)
+        if (response.status === 429) {
+          return Promise.reject(new Error(`${apiName} rate limit exceeded. Please try again later.`));
+        }
+        
         if (contentType && contentType.includes('application/json')) {
           try {
             const errorData = await response.json();
@@ -197,6 +202,15 @@ export class EdamamService {
       }
     } catch (error) {
       console.error('Edamam search error:', error)
+      
+      // Handle rate limit errors specifically
+      if (error.message && error.message.includes('rate limit exceeded')) {
+        return {
+          success: false,
+          error: 'Перевищено ліміт запитів до API Edamam. Будь ласка, спробуйте пізніше.'
+        }
+      }
+      
       return {
         success: false,
         error: error.message || 'Помилка пошуку інгредієнтів'
@@ -240,6 +254,14 @@ export class EdamamService {
       }
 
     } catch (error) {
+      // Handle rate limit errors specifically
+      if (error.message && error.message.includes('rate limit exceeded')) {
+        return {
+          success: false,
+          error: 'Перевищено ліміт запитів до API Edamam. Будь ласка, спробуйте пізніше.'
+        }
+      }
+      
       return {
         success: false,
         error: error.message
@@ -434,6 +456,14 @@ export class EdamamService {
 
       console.log('Edamam Nutrition Analysis API response status:', response.status)
 
+      // Handle rate limit exceeded (429)
+      if (response.status === 429) {
+        return {
+          success: false,
+          error: 'Перевищено ліміт запитів до API Edamam. Будь ласка, спробуйте пізніше.'
+        }
+      }
+
       // Use the safe parsing method
       const data = await this.parseApiResponse(response, 'Edamam Nutrition Analysis API');
       console.log('Edamam Nutrition Analysis API response data:', JSON.stringify(data, null, 2))
@@ -456,6 +486,14 @@ export class EdamamService {
       return result;
 
     } catch (error) {
+      // Handle rate limit errors specifically
+      if (error.message && error.message.includes('rate limit exceeded')) {
+        return {
+          success: false,
+          error: 'Перевищено ліміт запитів до API Edamam. Будь ласка, спробуйте пізніше.'
+        }
+      }
+      
       throw error
     }
   }
@@ -596,6 +634,14 @@ export class EdamamService {
       }
 
     } catch (error) {
+      // Handle rate limit errors specifically
+      if (error.message && error.message.includes('rate limit exceeded')) {
+        return {
+          success: false,
+          error: 'Перевищено ліміт запитів до API Edamam. Будь ласка, спробуйте пізніше.'
+        }
+      }
+      
       return {
         success: false,
         error: error.message
