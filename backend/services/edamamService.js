@@ -427,7 +427,7 @@ export class EdamamService {
 
       const result = this.processNutritionResponse(data);
       
-      // Add information about ingredient limit
+      // Add information about ingredient limit if it exists
       if (limitApplied) {
         result.limitApplied = true;
         result.originalCount = originalCount;

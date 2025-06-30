@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { apiClient } from '@/lib/api'
-import { Search, Plus, X } from 'lucide-react'
+import { Search, Plus, X, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface EdamamFood {
@@ -49,6 +49,13 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
       setSearchResults([])
       setShowResults(false)
       setError(null)
+      return
+    }
+
+    if (query.trim().length < 2) {
+      setError('Введіть принаймні 2 символи для пошуку')
+      setShowResults(true)
+      setSearchResults([])
       return
     }
 
@@ -252,12 +259,15 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
             {showResults && searchResults.length === 0 && !isSearching && searchQuery.trim() && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4">
                 <div className="flex justify-between items-center mb-2">
-                  <p className="text-gray-500 text-sm">
-                    {error || 'Інгредієнти не знайдено. Спробуйте інший запит.'}
-                  </p>
+                  <div className="flex items-start">
+                    <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 mr-1.5 flex-shrink-0" />
+                    <p className="text-gray-600 text-sm">
+                      {error || 'Інгредієнти не знайдено. Спробуйте інший запит.'}
+                    </p>
+                  </div>
                   <button
                     onClick={() => setShowResults(false)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-gray-400 hover:text-gray-600 ml-2 flex-shrink-0"
                   >
                     <X className="w-4 h-4" />
                   </button>
