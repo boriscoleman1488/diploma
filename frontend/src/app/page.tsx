@@ -95,12 +95,6 @@ interface NutritionData {
   }
 }
 
-interface DishDetailsModalProps {
-  dish: Dish | null
-  isOpen: boolean
-  onClose: () => void
-}
-
 interface FiltersProps {
   categories: Category[]
   selectedCategory: string
@@ -114,6 +108,8 @@ interface FiltersProps {
   hasNutrition: boolean
   setHasNutrition: (value: boolean) => void
   onReset: () => void
+  searchQuery: string
+  setSearchQuery: (value: string) => void
 }
 
 function Filters({
@@ -128,7 +124,9 @@ function Filters({
   setServingsCount,
   hasNutrition,
   setHasNutrition,
-  onReset
+  onReset,
+  searchQuery,
+  setSearchQuery
 }: FiltersProps) {
   const [showFilters, setShowFilters] = useState(false)
 
@@ -337,6 +335,12 @@ function Filters({
       </CardContent>
     </Card>
   )
+}
+
+interface DishDetailsModalProps {
+  dish: Dish | null
+  isOpen: boolean
+  onClose: () => void
 }
 
 function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
@@ -939,6 +943,8 @@ export default function HomePage() {
           hasNutrition={hasNutrition}
           setHasNutrition={setHasNutrition}
           onReset={resetFilters}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
         />
 
         {/* Dishes Grid */}
