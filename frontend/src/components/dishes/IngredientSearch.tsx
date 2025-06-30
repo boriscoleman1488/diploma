@@ -86,7 +86,7 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
       
       // Provide a more helpful error message
       if (error instanceof Error && error.message.includes('not valid JSON')) {
-        setError('Помилка з'єднання з сервером. Спробуйте додати інгредієнт вручну.')
+        setError('Помилка з\'єднання з сервером. Спробуйте додати інгредієнт вручну.')
       } else {
         setError(error instanceof Error ? error.message : 'Помилка пошуку інгредієнтів')
       }
