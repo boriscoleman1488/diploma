@@ -119,7 +119,13 @@ export function useAuth() {
   const resetPassword = async (token: string, password: string) => {
     setIsResettingPassword(true)
     try {
-      const response = await apiClient.post('/auth/reset-password', { token, password })
+      console.log('Resetting password with token:', token.substring(0, 10) + '...')
+      
+      const response = await apiClient.post('/auth/reset-password', { 
+        token, 
+        password,
+        type: 'recovery'
+      })
       
       if (response.success) {
         toast.success('Пароль успішно змінено! Тепер ви можете увійти з новим паролем.')

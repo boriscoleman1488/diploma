@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -19,16 +19,15 @@ const resetPasswordSchema = z.object({
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
 
 interface ResetPasswordFormProps {
+  token: string
   redirectTo?: string
 }
 
-export function ResetPasswordForm({ redirectTo = '/auth/login' }: ResetPasswordFormProps) {
+export function ResetPasswordForm({ token, redirectTo = '/auth/login' }: ResetPasswordFormProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const { resetPassword, isResettingPassword } = useAuth()
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const token = searchParams.get('token') || ''
 
   const {
     register,
@@ -39,10 +38,6 @@ export function ResetPasswordForm({ redirectTo = '/auth/login' }: ResetPasswordF
   })
 
   const onSubmit = async (data: ResetPasswordFormData) => {
-    if (!token) {
-      return
-    }
-
     const result = await resetPassword(token, data.password)
     
     if (result.success) {
@@ -102,16 +97,10 @@ export function ResetPasswordForm({ redirectTo = '/auth/login' }: ResetPasswordF
         type="submit"
         className="w-full"
         isLoading={isResettingPassword}
-        disabled={isResettingPassword || !token}
+        disabled={isResettingPassword}
       >
         Скинути пароль
       </Button>
-
-      {!token && (
-        <div className="text-center text-sm text-red-600">
-          Токен для скидання пароля відсутній або недійсний. Будь ласка, перевірте URL або запитайте новий лист для скидання пароля.
-        </div>
-      )}
     </form>
   )
 }

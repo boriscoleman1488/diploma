@@ -1,11 +1,36 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { AuthHeader } from '@/components/auth/AuthHeader'
 import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm'
-import { Lock } from 'lucide-react'
+import { Lock, AlertTriangle } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import Link from 'next/link'
 
 export default function ResetPasswordPage() {
+  const searchParams = useSearchParams()
+  const [token, setToken] = useState<string | null>(null)
+  
+  useEffect(() => {
+    // Try to get token from URL parameters
+    const tokenFromParams = searchParams.get('token')
+    
+    // Also check for token in hash (for some auth providers)
+    const hashParams = new URLSearchParams(
+      typeof window !== 'undefined' ? window.location.hash.substring(1) : ''
+    )
+    const tokenFromHash = hashParams.get('token')
+    
+    // Use whichever token is available
+    const resetToken = tokenFromParams || tokenFromHash || null
+    setToken(resetToken)
+    
+    // Log for debugging
+    console.log('Reset token found:', !!resetToken)
+  }, [searchParams])
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -22,7 +47,35 @@ export default function ResetPasswordPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResetPasswordForm />
+            {token ? (
+              <ResetPasswordForm token={token} />
+            ) : (
+              <div className="text-center space-y-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start">
+                  <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="text-sm font-medium text-yellow-800">
+                      Токен для скидання пароля відсутній або недійсний
+                    </h3>
+                    <p className="text-sm text-yellow-700 mt-1">
+                      Будь ласка, перевірте URL або запитайте новий лист для скидання пароля.
+                    </p>
+                  </div>
+                </div>
+                
+                <Link href="/auth/forgot-password">
+                  <Button className="w-full">
+                    Запросити новий лист для скидання пароля
+                  </Button>
+                </Link>
+                
+                <Link href="/auth/login">
+                  <Button variant="outline" className="w-full">
+                    Повернутися до входу
+                  </Button>
+                </Link>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
