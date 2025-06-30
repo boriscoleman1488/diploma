@@ -500,12 +500,6 @@ export class EdamamService {
 
   // Common method to process nutrition response from either API
   processNutritionResponse(data) {
-    console.log('Processing nutrition response:', {
-      hasCalories: !!data.calories,
-      hasTotalNutrients: !!data.totalNutrients,
-      calories: data.calories,
-      totalNutrientsKeys: data.totalNutrients ? Object.keys(data.totalNutrients) : []
-    })
 
     // Check if we got valid nutrition data
     if (!data.calories && (!data.totalNutrients || Object.keys(data.totalNutrients).length === 0)) {
@@ -554,12 +548,6 @@ export class EdamamService {
         unit: nutrition.totalNutrients.NA?.unit || 'mg'
       }
     }
-
-    console.log('Processed nutrition data:', {
-      calories: nutrition.calories,
-      macros: macros,
-      totalNutrients: Object.keys(nutrition.totalNutrients)
-    })
 
     return {
       success: true,
