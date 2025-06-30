@@ -38,6 +38,7 @@ export function ResetPasswordForm({ token, redirectTo = '/auth/login' }: ResetPa
   })
 
   const onSubmit = async (data: ResetPasswordFormData) => {
+    console.log('Submitting reset password form with token length:', token.length)
     const result = await resetPassword(token, data.password)
     
     if (result.success) {

@@ -3,7 +3,8 @@ import {
   loginSchema,
   refreshTokenSchema,
   forgotPasswordSchema,
-  resendConfirmationSchema
+  resendConfirmationSchema,
+  resetPasswordSchema
 } from '../schemas/authSchemas.js'
 
 export default async function authRoutes(fastify, options) {
@@ -105,6 +106,40 @@ export default async function authRoutes(fastify, options) {
       return result
     } catch (error) {
       fastify.log.error('Forgot password error', { error: error.message })
+      return reply.code(500).send({
+        error: 'Internal server error',
+        message: 'Помилка скидання пароля'
+      })
+    }
+  })
+
+  fastify.post('/reset-password', {
+    schema: resetPasswordSchema
+  }, async (request, reply) => {
+    try {
+      const { password, type } = request.body
+      const authHeader = request.headers.authorization
+
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return reply.code(401).send({
+          error: 'Missing authorization header',
+          message: 'Відсутній заголовок авторизації'
+        })
+      }
+
+      const token = authHeader.substring(7)
+      const result = await fastify.authService.resetPassword(token, password, type)
+
+      if (!result.success) {
+        return reply.code(400).send({
+          error: result.error,
+          message: result.message
+        })
+      }
+
+      return result
+    } catch (error) {
+      fastify.log.error('Reset password error', { error: error.message })
       return reply.code(500).send({
         error: 'Internal server error',
         message: 'Помилка скидання пароля'

@@ -28,7 +28,6 @@ export default function ResetPasswordPage() {
     
     // 3. Check for type parameter to confirm it's a recovery
     const type = hashParams.get('type') || searchParams.get('type')
-    const isRecovery = type === 'recovery'
     
     // Use whichever token is available
     const resetToken = accessToken || tokenFromParams || null

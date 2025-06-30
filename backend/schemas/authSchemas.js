@@ -69,6 +69,25 @@ export const forgotPasswordSchema = {
   }
 }
 
+export const resetPasswordSchema = {
+  body: {
+    type: 'object',
+    required: ['password'],
+    properties: {
+      password: {
+        type: 'string',
+        minLength: 6,
+        maxLength: 128
+      },
+      type: {
+        type: 'string',
+        enum: ['recovery', 'signup']
+      }
+    },
+    additionalProperties: false
+  }
+}
+
 export const resendConfirmationSchema = {
   body: {
     type: 'object',
