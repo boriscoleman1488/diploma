@@ -28,7 +28,10 @@ class ApiClient {
         const parsedStorage = JSON.parse(authStorage)
         if (parsedStorage.state && parsedStorage.state.session) {
           this.session = parsedStorage.state.session
-          console.log('Session restored from localStorage')
+          console.log('Session restored from localStorage', {
+            tokenLength: this.session.access_token.length,
+            expiresAt: new Date(this.session.expires_at * 1000).toISOString()
+          })
         }
       }
     } catch (error) {
@@ -72,7 +75,8 @@ class ApiClient {
       '/auth/logout',
       '/auth/resend-confirmation',
       '/auth/reset-password',
-      '/auth/confirm'
+      '/auth/confirm',
+      '/auth/verify'
     ]
     
     return authEndpoints.some(authEndpoint => endpoint.startsWith(authEndpoint))
@@ -112,6 +116,7 @@ class ApiClient {
 
   private async performTokenRefresh(): Promise<boolean> {
     try {
+      console.log('Performing token refresh...')
       // Add error handling with timeout to prevent hanging requests
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
@@ -130,12 +135,14 @@ class ApiClient {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        console.log('Token refresh failed: Response not OK', { status: response.status })
         throw new Error('Token refresh failed')
       }
 
       const data = await response.json()
       
       if (data.success && data.session) {
+        console.log('Token refresh successful, updating session')
         this.session = data.session
         
         // Update the auth store
@@ -145,6 +152,7 @@ class ApiClient {
         return true
       }
       
+      console.log('Token refresh failed: Invalid response data', { data })
       throw new Error('Invalid refresh response')
     } catch (error) {
       console.error('Token refresh error:', error)

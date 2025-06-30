@@ -5,14 +5,16 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { CheckCircle, XCircle } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 import toast from 'react-hot-toast'
+import Link from 'next/link'
 
 export default function AuthCallbackPage() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { verifyToken } = useAuthStore()
+  const { verifyToken, refreshToken, setSession } = useAuthStore()
 
   useEffect(() => {
     const handleAuthCallback = async () => {
@@ -20,8 +22,26 @@ export default function AuthCallbackPage() {
         // Get the access token from URL hash or search params
         const hashParams = new URLSearchParams(window.location.hash.substring(1))
         const accessToken = hashParams.get('access_token') || searchParams.get('access_token')
+        const refreshTokenValue = hashParams.get('refresh_token') || searchParams.get('refresh_token')
+        const expiresIn = hashParams.get('expires_in') || searchParams.get('expires_in')
         
         if (accessToken) {
+          console.log('Access token found in URL, setting session...')
+          
+          // Calculate expires_at
+          const expiresAt = Math.floor(Date.now() / 1000) + (parseInt(expiresIn || '3600', 10))
+          
+          // Set the session manually
+          if (refreshTokenValue) {
+            setSession({
+              access_token: accessToken,
+              refresh_token: refreshTokenValue,
+              expires_at: expiresAt,
+              expires_in: parseInt(expiresIn || '3600', 10),
+              token_type: 'bearer'
+            })
+          }
+          
           // Verify the token
           const isValid = await verifyToken()
           
@@ -53,12 +73,11 @@ export default function AuthCallbackPage() {
         setStatus('error')
         setMessage(error instanceof Error ? error.message : 'Помилка підтвердження')
         toast.error('Помилка підтвердження електронної пошти')
-        
       }
     }
 
     handleAuthCallback()
-  }, [router, searchParams, verifyToken])
+  }, [router, searchParams, verifyToken, refreshToken, setSession])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -100,9 +119,21 @@ export default function AuthCallbackPage() {
               <p className="text-gray-600 mb-4">
                 {message}
               </p>
-              <p className="text-sm text-gray-500">
-                Перенаправлення до сторінки входу...
-              </p>
+              <div className="space-y-3">
+                <p className="text-sm text-gray-500 mb-4">
+                  Спробуйте увійти в систему або зв'яжіться з підтримкою, якщо проблема не зникає.
+                </p>
+                <Link href="/auth/login">
+                  <Button className="w-full">
+                    Перейти до сторінки входу
+                  </Button>
+                </Link>
+                <Link href="/auth/resend-confirmation">
+                  <Button variant="outline" className="w-full">
+                    Надіслати лист підтвердження повторно
+                  </Button>
+                </Link>
+              </div>
             </>
           )}
         </div>
