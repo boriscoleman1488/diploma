@@ -29,7 +29,9 @@ import {
   Image as ImageIcon,
   Activity,
   Zap,
-  X
+  X,
+  SlidersHorizontal,
+  ChevronsUpDown
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -99,6 +101,244 @@ interface DishDetailsModalProps {
   onClose: () => void
 }
 
+interface FiltersProps {
+  categories: Category[]
+  selectedCategory: string
+  setSelectedCategory: (id: string) => void
+  sortBy: string
+  setSortBy: (value: string) => void
+  cookingTime: string
+  setCookingTime: (value: string) => void
+  servingsCount: string
+  setServingsCount: (value: string) => void
+  hasNutrition: boolean
+  setHasNutrition: (value: boolean) => void
+  onReset: () => void
+}
+
+function Filters({
+  categories,
+  selectedCategory,
+  setSelectedCategory,
+  sortBy,
+  setSortBy,
+  cookingTime,
+  setCookingTime,
+  servingsCount,
+  setServingsCount,
+  hasNutrition,
+  setHasNutrition,
+  onReset
+}: FiltersProps) {
+  const [showFilters, setShowFilters] = useState(false)
+
+  return (
+    <Card className="mb-8">
+      <CardContent className="p-6">
+        <div className="flex flex-col space-y-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <Input
+                id="search-input"
+                placeholder="Пошук страв за назвою, описом або автором..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                leftIcon={<Search className="w-4 h-4" />}
+              />
+            </div>
+            <div className="md:w-64">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="">Всі категорії</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowFilters(!showFilters)}
+              leftIcon={<SlidersHorizontal className="w-4 h-4" />}
+            >
+              {showFilters ? 'Приховати фільтри' : 'Додаткові фільтри'}
+            </Button>
+          </div>
+
+          {showFilters && (
+            <div className="pt-4 border-t border-gray-200 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Сортувати за
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="newest">Найновіші</option>
+                  <option value="oldest">Найстаріші</option>
+                  <option value="popular">Найпопулярніші</option>
+                  <option value="rating">За рейтингом</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Час приготування
+                </label>
+                <select
+                  value={cookingTime}
+                  onChange={(e) => setCookingTime(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="">Будь-який час</option>
+                  <option value="quick">Швидко (до 30 хв)</option>
+                  <option value="medium">Середній (30-60 хв)</option>
+                  <option value="long">Довго (більше 60 хв)</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Кількість порцій
+                </label>
+                <select
+                  value={servingsCount}
+                  onChange={(e) => setServingsCount(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="">Будь-яка кількість</option>
+                  <option value="1-2">1-2 порції</option>
+                  <option value="3-4">3-4 порції</option>
+                  <option value="5+">5+ порцій</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Додаткові опції
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hasNutrition}
+                      onChange={(e) => setHasNutrition(e.target.checked)}
+                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-gray-700">З аналізом калорій</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div className="md:col-span-2 lg:col-span-4 flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onReset}
+                  leftIcon={<X className="w-4 h-4" />}
+                >
+                  Скинути фільтри
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {/* Active filters display */}
+          {(searchQuery || selectedCategory || sortBy !== 'newest' || cookingTime || servingsCount || hasNutrition) && (
+            <div className="flex flex-wrap items-center gap-2 pt-4">
+              <span className="text-sm text-gray-500">Активні фільтри:</span>
+              {searchQuery && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  Пошук: "{searchQuery}"
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="ml-1 text-blue-600 hover:text-blue-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {selectedCategory && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Категорія: {categories.find(c => c.id === selectedCategory)?.name}
+                  <button
+                    onClick={() => setSelectedCategory('')}
+                    className="ml-1 text-green-600 hover:text-green-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {sortBy !== 'newest' && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  Сортування: {
+                    sortBy === 'oldest' ? 'Найстаріші' :
+                    sortBy === 'popular' ? 'Найпопулярніші' :
+                    sortBy === 'rating' ? 'За рейтингом' : ''
+                  }
+                  <button
+                    onClick={() => setSortBy('newest')}
+                    className="ml-1 text-purple-600 hover:text-purple-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {cookingTime && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  Час: {
+                    cookingTime === 'quick' ? 'До 30 хв' :
+                    cookingTime === 'medium' ? '30-60 хв' :
+                    cookingTime === 'long' ? 'Більше 60 хв' : ''
+                  }
+                  <button
+                    onClick={() => setCookingTime('')}
+                    className="ml-1 text-yellow-600 hover:text-yellow-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {servingsCount && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                  Порції: {
+                    servingsCount === '1-2' ? '1-2 порції' :
+                    servingsCount === '3-4' ? '3-4 порції' :
+                    servingsCount === '5+' ? '5+ порцій' : ''
+                  }
+                  <button
+                    onClick={() => setServingsCount('')}
+                    className="ml-1 text-orange-600 hover:text-orange-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {hasNutrition && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                  З аналізом калорій
+                  <button
+                    onClick={() => setHasNutrition(false)}
+                    className="ml-1 text-red-600 hover:text-red-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
   const { isAuthenticated } = useAuthStore()
   const [nutritionData, setNutritionData] = useState<NutritionData | null>(null)
@@ -141,6 +381,26 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
       setIsAnalyzingNutrition(false)
     }
   }
+
+  const getDishCategories = (dish: Dish) => {
+    if (!dish.categories || !Array.isArray(dish.categories)) return []
+    
+    return dish.categories
+      .map(categoryRelation => {
+        if (categoryRelation && typeof categoryRelation === 'object') {
+          if (categoryRelation.dish_categories && categoryRelation.dish_categories.name) {
+            return categoryRelation.dish_categories
+          }
+          if (categoryRelation.name) {
+            return categoryRelation
+          }
+        }
+        return null
+      })
+      .filter(Boolean)
+  }
+
+  const dishCategories = getDishCategories(dish)
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -196,20 +456,18 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
           </div>
 
           {/* Categories */}
-          {dish.categories && dish.categories.length > 0 && (
+          {dishCategories.length > 0 && (
             <div>
               <h4 className="font-medium text-gray-900 mb-2">Категорії</h4>
               <div className="flex flex-wrap gap-2">
-                {dish.categories
-                  .filter(cat => cat && cat.dish_categories && cat.dish_categories.name)
-                  .map((cat, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
-                    >
-                      {cat.dish_categories.name}
-                    </span>
-                  ))}
+                {dishCategories.map((cat, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
+                  >
+                    {cat.name}
+                  </span>
+                ))}
               </div>
             </div>
           )}
@@ -416,6 +674,13 @@ export default function HomePage() {
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const { isAuthenticated } = useAuthStore()
+  
+  // Additional filter states
+  const [sortBy, setSortBy] = useState('newest')
+  const [cookingTime, setCookingTime] = useState('')
+  const [servingsCount, setServingsCount] = useState('')
+  const [hasNutrition, setHasNutrition] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
 
   const fetchDishes = async () => {
     setIsLoading(true)
@@ -490,8 +755,75 @@ export default function HomePage() {
       )
     }
 
+    // Filter by cooking time
+    if (cookingTime) {
+      filtered = filtered.filter(dish => {
+        const totalTime = dish.steps?.reduce((total, step) => total + (step.duration_minutes || 0), 0) || 0
+        
+        if (cookingTime === 'quick') return totalTime > 0 && totalTime <= 30
+        if (cookingTime === 'medium') return totalTime > 30 && totalTime <= 60
+        if (cookingTime === 'long') return totalTime > 60
+        
+        return true
+      })
+    }
+
+    // Filter by servings count
+    if (servingsCount) {
+      filtered = filtered.filter(dish => {
+        const count = dish.servings || 0
+        
+        if (servingsCount === '1-2') return count >= 1 && count <= 2
+        if (servingsCount === '3-4') return count >= 3 && count <= 4
+        if (servingsCount === '5+') return count >= 5
+        
+        return true
+      })
+    }
+
+    // Filter by nutrition info availability
+    if (hasNutrition) {
+      filtered = filtered.filter(dish => 
+        dish.ingredients && dish.ingredients.length > 0
+      )
+    }
+
+    // Sort dishes
+    if (sortBy) {
+      filtered = [...filtered].sort((a, b) => {
+        if (sortBy === 'newest') {
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        }
+        if (sortBy === 'oldest') {
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        }
+        if (sortBy === 'popular') {
+          const aLikes = a.ratings?.filter(r => r.rating === 1).length || 0
+          const bLikes = b.ratings?.filter(r => r.rating === 1).length || 0
+          return bLikes - aLikes
+        }
+        if (sortBy === 'rating') {
+          const aLikes = a.ratings?.filter(r => r.rating === 1).length || 0
+          const bLikes = b.ratings?.filter(r => r.rating === 1).length || 0
+          const aTotal = a.ratings?.length || 1
+          const bTotal = b.ratings?.length || 1
+          return (bLikes / bTotal) - (aLikes / aTotal)
+        }
+        return 0
+      })
+    }
+
     setFilteredDishes(filtered)
-  }, [searchQuery, dishes])
+  }, [searchQuery, dishes, sortBy, cookingTime, servingsCount, hasNutrition])
+
+  const resetFilters = () => {
+    setSearchQuery('')
+    setSelectedCategory('')
+    setSortBy('newest')
+    setCookingTime('')
+    setServingsCount('')
+    setHasNutrition(false)
+  }
 
   const getTotalCookingTime = (dish: Dish) => {
     if (!dish.steps || !Array.isArray(dish.steps)) return null
@@ -594,35 +926,20 @@ export default function HomePage() {
         </div>
 
         {/* Search and Filters */}
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <Input
-                  id="search-input"
-                  placeholder="Пошук страв за назвою, описом або автором..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  leftIcon={<Search className="w-4 h-4" />}
-                />
-              </div>
-              <div className="md:w-64">
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="">Всі категорії</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <Filters 
+          categories={categories}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+          cookingTime={cookingTime}
+          setCookingTime={setCookingTime}
+          servingsCount={servingsCount}
+          setServingsCount={setServingsCount}
+          hasNutrition={hasNutrition}
+          setHasNutrition={setHasNutrition}
+          onReset={resetFilters}
+        />
 
         {/* Dishes Grid */}
         {isLoading ? (
@@ -636,15 +953,23 @@ export default function HomePage() {
           <div className="text-center py-16">
             <ChefHat className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchQuery || selectedCategory ? 'Страви не знайдено' : 'Поки що немає страв'}
+              {searchQuery || selectedCategory || sortBy !== 'newest' || cookingTime || servingsCount || hasNutrition ? 'Страви не знайдено' : 'Поки що немає страв'}
             </h3>
             <p className="text-gray-600 mb-6">
-              {searchQuery || selectedCategory 
+              {searchQuery || selectedCategory || sortBy !== 'newest' || cookingTime || servingsCount || hasNutrition
                 ? 'Спробуйте змінити критерії пошуку'
                 : 'Станьте першим, хто поділиться своєю стравою!'
               }
             </p>
-            {!searchQuery && !selectedCategory && isAuthenticated && (
+            {(searchQuery || selectedCategory || sortBy !== 'newest' || cookingTime || servingsCount || hasNutrition) ? (
+              <Button 
+                variant="outline"
+                onClick={resetFilters}
+                leftIcon={<X className="w-4 h-4" />}
+              >
+                Скинути всі фільтри
+              </Button>
+            ) : isAuthenticated && (
               <Link href="/dishes/add">
                 <Button leftIcon={<Plus className="w-4 h-4" />}>
                   Додати першу страву
@@ -656,7 +981,7 @@ export default function HomePage() {
           <>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">
-                {searchQuery || selectedCategory ? 'Результати пошуку' : 'Популярні страви'}
+                {searchQuery || selectedCategory || sortBy !== 'newest' || cookingTime || servingsCount || hasNutrition ? 'Результати пошуку' : 'Популярні страви'}
               </h2>
               <p className="text-gray-600">
                 Знайдено {filteredDishes.length} {filteredDishes.length === 1 ? 'страва' : 'страв'}
