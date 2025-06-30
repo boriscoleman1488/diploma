@@ -1,13 +1,12 @@
 'use client'
 
 import { useAdminCategories } from '@/hooks/useAdminCategories'
-import { Button } from '@/components/ui/Button'
+import { CategoryHeader } from '@/components/admin/categories/CategoryHeader'
 import { CategoryStatsCards } from '@/components/admin/categories/CategoryStatsCards'
 import { CategorySearch } from '@/components/admin/categories/CategorySearch'
 import { CategoryTable } from '@/components/admin/categories/CategoryTable'
 import { CreateCategoryModal } from '@/components/admin/categories/CreateCategoryModal'
 import { EditCategoryModal } from '@/components/admin/categories/EditCategoryModal'
-import { Plus } from 'lucide-react'
 
 export default function AdminCategoriesPage() {
   const {
@@ -35,22 +34,7 @@ export default function AdminCategoriesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Управління категоріями
-          </h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Створюйте, редагуйте та видаляйте категорії страв
-          </p>
-        </div>
-        <Button
-          leftIcon={<Plus className="w-4 h-4" />}
-          onClick={() => setShowCreateModal(true)}
-        >
-          Створити категорію
-        </Button>
-      </div>
+      <CategoryHeader onCreateClick={() => setShowCreateModal(true)} />
 
       {/* Stats */}
       <CategoryStatsCards 
