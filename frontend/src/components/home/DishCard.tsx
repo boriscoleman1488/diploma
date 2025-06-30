@@ -23,7 +23,7 @@ interface DishCardProps {
 
 export function DishCard({ dish, onViewDetails }: DishCardProps) {
   const cookingTime = dish.steps?.reduce((total, step) => total + (step.duration_minutes || 0), 0) || 0
-  const likesCount = dish.ratings?.filter(r => r.rating === 1).length || 0
+  const likesCount = dish.ratings?.filter(r => r.rating === 1 || r.rating === "1").length || 0
   const hasIngredients = dish.ingredients && dish.ingredients.length > 0
   
   const getDishCategories = (dish: Dish) => {

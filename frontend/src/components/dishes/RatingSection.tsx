@@ -50,7 +50,11 @@ export function RatingSection({ dishId, className = '', onRatingChange }: Rating
     try {
       const response = await apiClient.get(`/ratings/dishes/${dishId}/my-rating`)
       if (response.success) {
-        setUserRating(response.rating)
+        // Handle both number and string types for rating
+        const rating = typeof response.rating === 'string' 
+          ? parseInt(response.rating, 10) 
+          : response.rating;
+        setUserRating(rating)
       }
     } catch (error) {
       console.error('Failed to fetch user rating:', error)
@@ -105,7 +109,8 @@ export function RatingSection({ dishId, className = '', onRatingChange }: Rating
     fetchUserRating()
   }, [dishId, isAuthenticated])
 
-  const isLiked = userRating === 1
+  // Check if userRating is 1 (either as number or string)
+  const isLiked = userRating === 1 || userRating === "1"
 
   return (
     <div className={className}>

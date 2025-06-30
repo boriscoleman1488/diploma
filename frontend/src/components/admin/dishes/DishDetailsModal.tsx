@@ -85,7 +85,7 @@ export function DishDetailsModal({
     )
   }
 
-  const likesCount = dish.ratings?.filter(r => r.rating === 1).length || 0
+  const likesCount = dish.ratings?.filter(r => r.rating === 1 || r.rating === "1").length || 0
   const totalCookingTime = dish.steps?.reduce((total, step) => total + (step.duration_minutes || 0), 0) || 0
 
   const getDishCategories = () => {

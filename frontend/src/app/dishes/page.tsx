@@ -65,7 +65,7 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
 
   if (!isOpen || !dish) return null
 
-  const likesCount = dish.ratings?.filter(r => r.rating === 1).length || 0
+  const likesCount = dish.ratings?.filter(r => r.rating === 1 || r.rating === "1").length || 0
   const totalCookingTime = dish.steps?.reduce((total, step) => total + (step.duration_minutes || 0), 0) || 0
 
   const handleAuthAction = (action: string) => {
@@ -454,17 +454,15 @@ export default function DishesPage() {
   }, [selectedCategory])
 
   useEffect(() => {
-    let filtered = dishes
-
-    // Filter by search query
     if (searchQuery.trim()) {
-      filtered = filtered.filter(dish =>
+      const filtered = dishes.filter(dish =>
         dish.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         dish.description.toLowerCase().includes(searchQuery.toLowerCase())
       )
+      setFilteredDishes(filtered)
+    } else {
+      setFilteredDishes(dishes)
     }
-
-    setFilteredDishes(filtered)
   }, [searchQuery, dishes])
 
   const getStatusBadge = (status: string) => {
@@ -631,7 +629,7 @@ export default function DishesPage() {
           
           {/* Active filters display */}
           {(searchQuery || selectedCategory) && (
-            <div className="mt-4 flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 pt-4">
               <span className="text-sm text-gray-500">Активні фільтри:</span>
               {searchQuery && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -704,7 +702,7 @@ export default function DishesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDishes.map((dish) => {
             const cookingTime = getTotalCookingTime(dish)
-            const likesCount = dish.ratings?.filter(r => r.rating === 1).length || 0
+            const likesCount = dish.ratings?.filter(r => r.rating === 1 || r.rating === "1").length || 0
             const dishCategories = getDishCategories(dish)
             const hasIngredients = dish.ingredients && dish.ingredients.length > 0
 
@@ -776,7 +774,7 @@ export default function DishesPage() {
                       ))}
                       {dishCategories.length > 2 && (
                         <span className="text-xs text-gray-500">
-                          +{dishCategories.length - 2} ще
+                          +{dishCategories.length - 2}
                         </span>
                       )}
                     </div>
@@ -787,12 +785,12 @@ export default function DishesPage() {
                     <div className="flex items-center space-x-4">
                       <div className="flex items-center">
                         <Users className="w-4 h-4 mr-1" />
-                        {dish.servings} порцій
+                        {dish.servings}
                       </div>
                       {cookingTime && (
                         <div className="flex items-center">
                           <Clock className="w-4 h-4 mr-1" />
-                          {cookingTime} хв
+                          {cookingTime}хв
                         </div>
                       )}
                     </div>
