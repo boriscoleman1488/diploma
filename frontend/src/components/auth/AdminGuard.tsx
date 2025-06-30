@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/store/authStore'
+import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { apiClient } from '@/lib/api'
 
@@ -13,7 +13,7 @@ interface AdminGuardProps {
 export function AdminGuard({ children }: AdminGuardProps) {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const { isAuthenticated, user } = useAuthStore()
+  const { isAuthenticated, verifyToken } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -38,14 +38,41 @@ export function AdminGuard({ children }: AdminGuardProps) {
         }
       } catch (error) {
         console.error('Failed to check admin role:', error)
-        router.push('/profile')
+        
+        // If it's an auth error, try to refresh token
+        if (error instanceof Error && error.message.includes('увійдіть в систему')) {
+          const refreshed = await verifyToken()
+          if (refreshed) {
+            // Retry after token refresh
+            try {
+              const response = await apiClient.get('/users/profile')
+              if (response.success && response.profile) {
+                const hasAdminRole = response.profile.role === 'admin'
+                setIsAdmin(hasAdminRole)
+                
+                if (!hasAdminRole) {
+                  router.push('/profile')
+                }
+              } else {
+                router.push('/profile')
+              }
+            } catch (retryError) {
+              console.error('Retry failed:', retryError)
+              router.push('/profile')
+            }
+          } else {
+            router.push('/profile')
+          }
+        } else {
+          router.push('/profile')
+        }
       } finally {
         setIsLoading(false)
       }
     }
 
     checkAdminRole()
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, router, verifyToken])
 
   if (isLoading) {
     return (

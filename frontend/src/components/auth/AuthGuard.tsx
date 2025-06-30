@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/store/authStore'
+import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 interface AuthGuardProps {
@@ -14,10 +14,10 @@ interface AuthGuardProps {
 export function AuthGuard({ 
   children, 
   requireAuth = true, 
-  redirectTo = '' 
+  redirectTo = '/auth/login' 
 }: AuthGuardProps) {
   const [isChecking, setIsChecking] = useState(true)
-  const { isAuthenticated, isLoading, verifyToken, session } = useAuthStore()
+  const { isAuthenticated, isLoading, verifyToken, user, refreshToken } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -28,26 +28,27 @@ export function AuthGuard({
       }
 
       try {
-        if (session?.access_token) {
-          console.log('Verifying token in AuthGuard...')
+        if (!isAuthenticated) {
+          console.log('User not authenticated, verifying token...')
           const isValid = await verifyToken()
+          
           if (!isValid) {
-            console.log('Token verification failed, redirecting to login')
-            router.push(redirectTo)
-            return
+            console.log('Token verification failed, trying to refresh...')
+            const refreshed = await refreshToken()
+            
+            if (!refreshed) {
+              console.log('Token refresh failed, redirecting to login')
+              router.push(redirectTo)
+              return
+            }
           }
-          console.log('Token verification successful')
-        } else if (!isAuthenticated) {
-          console.log('No session found, redirecting to login')
-          router.push(redirectTo)
-          return
         }
+        
+        console.log('Authentication check passed')
+        setIsChecking(false)
       } catch (error) {
         console.error('Auth check failed:', error)
         router.push(redirectTo)
-        return
-      } finally {
-        setIsChecking(false)
       }
     }
 
@@ -55,7 +56,7 @@ export function AuthGuard({
       checkAuth()
     } else {
       const checkInterval = setInterval(() => {
-        if (!useAuthStore.getState().isLoading) {
+        if (!isLoading) {
           clearInterval(checkInterval)
           checkAuth()
         }
@@ -63,7 +64,7 @@ export function AuthGuard({
       
       return () => clearInterval(checkInterval)
     }
-  }, [isAuthenticated, requireAuth, redirectTo, router, verifyToken, session, isLoading])
+  }, [isAuthenticated, requireAuth, redirectTo, router, verifyToken, refreshToken, isLoading])
 
   if (isLoading || isChecking) {
     return (
