@@ -20,7 +20,7 @@ export function StatsSection({
   dishesWithNutrition 
 }: StatsSectionProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6 mb-8">
       <Card>
         <CardContent className="p-6 text-center">
           <div className="inline-flex items-center justify-center w-12 h-12 bg-primary-100 rounded-lg mb-4">

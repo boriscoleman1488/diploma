@@ -134,23 +134,6 @@ export function Filters({
                 </select>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Додаткові опції
-                </label>
-                <div className="space-y-2">
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={hasNutrition}
-                      onChange={(e) => setHasNutrition(e.target.checked)}
-                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                    />
-                    <span className="text-sm text-gray-700">З аналізом калорій</span>
-                  </label>
-                </div>
-              </div>
-              
               <div className="md:col-span-2 lg:col-span-4 flex justify-end">
                 <Button
                   variant="outline"
