@@ -131,6 +131,23 @@ export function Filters({
                 </select>
               </div>
               
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Додаткові опції
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hasNutrition}
+                      onChange={(e) => setHasNutrition(e.target.checked)}
+                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-gray-700">З аналізом калорій</span>
+                  </label>
+                </div>
+              </div>
+              
               <div className="md:col-span-2 lg:col-span-4 flex justify-end">
                 <Button
                   variant="outline"
@@ -210,6 +227,17 @@ export function Filters({
                   <button
                     onClick={() => setServingsCount('')}
                     className="ml-1 text-orange-600 hover:text-orange-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {hasNutrition && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                  З аналізом калорій
+                  <button
+                    onClick={() => setHasNutrition(false)}
+                    className="ml-1 text-red-600 hover:text-red-800"
                   >
                     ×
                   </button>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { User, Settings, LogOut, Menu, X, Shield, ChefHat, BookOpen, Sparkles, MessageCircle } from 'lucide-react'
+import { User, Settings, LogOut, Menu, X, Shield, ChefHat, BookOpen, Sparkles, MessageCircle, Home } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button'
 import { apiClient } from '@/lib/api'
 
 const navigation = [
+  { name: 'Головна', href: '/', icon: Home },
   { name: 'Профіль', href: '/profile', icon: User },
   { name: 'Страви', href: '/dishes', icon: ChefHat },
   { name: 'AI-шеф', href: '/ai-chef', icon: Sparkles },
@@ -122,8 +123,8 @@ export function Navigation() {
                   (item.href === '/admin/users' && pathname.startsWith('/admin')) ||
                   (item.href === '/dishes' && pathname.startsWith('/dishes')) ||
                   (item.href === '/collections' && pathname.startsWith('/collections')) ||
-                  (item.href === '/profile/dishes' && pathname === '/profile/dishes') ||
-                  (item.href === '/ai-chef' && pathname === '/ai-chef')
+                  (item.href === '/profile' && pathname.startsWith('/profile')) ||
+                  (item.href === '/ai-chef' && pathname.startsWith('/ai-chef'))
                 
                 return (
                   <Link
@@ -203,8 +204,8 @@ export function Navigation() {
                 (item.href === '/admin/users' && pathname.startsWith('/admin')) ||
                 (item.href === '/dishes' && pathname.startsWith('/dishes')) ||
                 (item.href === '/collections' && pathname.startsWith('/collections')) ||
-                (item.href === '/profile/dishes' && pathname === '/profile/dishes') ||
-                (item.href === '/ai-chef' && pathname === '/ai-chef')
+                (item.href === '/profile' && pathname.startsWith('/profile')) ||
+                (item.href === '/ai-chef' && pathname.startsWith('/ai-chef'))
               
               return (
                 <Link
