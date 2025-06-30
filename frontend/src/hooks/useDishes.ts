@@ -43,6 +43,7 @@ export function useDishes(options: UseDishesOptions = {}) {
         // Filter only approved dishes for the homepage
         const approvedDishes = response.dishes.filter((dish: Dish) => dish.status === 'approved')
         setDishes(approvedDishes)
+        setFilteredDishes(approvedDishes)
       }
     } catch (error) {
       console.error('Failed to fetch dishes:', error)
