@@ -235,26 +235,35 @@ export class CategoryService {
 
     async getAllCategoriesForAdmin() {
         try {
+            // First, get all categories
             const { data: categories, error } = await this.supabase
                 .from('dish_categories')
-                .select(`
-                    *,
-                    dish_category_relations!inner(count)
-                `)
+                .select('*')
                 .order('name')
 
             if (error) {
                 return this._handleError('Admin categories fetch', error, CategoryService.ERRORS.FETCH_ERROR)
             }
 
-            const categoriesWithCount = categories?.map(category => ({
-                ...category,
-                dishes_count: category.dish_category_relations?.[0]?.count || 0
-            })) || []
+            // Then, for each category, count the number of dishes
+            const categoriesWithCount = await Promise.all(categories.map(async (category) => {
+                try {
+                    const { count, error: countError } = await this.supabase
+                        .from('dish_category_relations')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('category_id', category.id)
 
-            categoriesWithCount.forEach(category => {
-                delete category.dish_category_relations
-            })
+                    if (countError) {
+                        this.logger.warn(`Failed to get dish count for category ${category.id}`, { error: countError.message })
+                        return { ...category, dishes_count: 0 }
+                    }
+
+                    return { ...category, dishes_count: count || 0 }
+                } catch (countError) {
+                    this.logger.warn(`Error getting dish count for category ${category.id}`, { error: countError.message })
+                    return { ...category, dishes_count: 0 }
+                }
+            }))
 
             return this._handleSuccess({ categories: categoriesWithCount })
         } catch (error) {
