@@ -18,8 +18,14 @@ export function useAdminCategories() {
     try {
       const response = await apiClient.get('/admin/categories')
       if (response.success && response.categories) {
-        setCategories(response.categories)
-        setFilteredCategories(response.categories)
+        // Ensure dishes_count is a number for each category
+        const categoriesWithCounts = response.categories.map(category => ({
+          ...category,
+          dishes_count: typeof category.dishes_count === 'number' ? category.dishes_count : 0
+        }));
+        
+        setCategories(categoriesWithCounts)
+        setFilteredCategories(categoriesWithCounts)
       }
     } catch (error) {
       console.error('Failed to fetch categories:', error)
