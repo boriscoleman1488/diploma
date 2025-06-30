@@ -25,13 +25,22 @@ export default async function edamamRoutes(fastify, options) {
         })
       }
 
+      // Validate query length
+      if (query.length < 2) {
+        return reply.code(400).send({
+          success: false,
+          error: 'Запит занадто короткий',
+          message: 'Введіть принаймні 2 символи для пошуку'
+        })
+      }
+
       const result = await fastify.edamam.searchFood(query, limit)
 
       if (!result.success) {
         return reply.code(400).send({
           success: false,
           error: result.error,
-          message: 'Не вдалося знайти інгредієнти'
+          message: result.error || 'Не вдалося знайти інгредієнти'
         })
       }
 

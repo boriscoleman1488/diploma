@@ -24,10 +24,10 @@ export class EdamamService {
       nutritionAppId: this.nutritionAppId ? `${this.nutritionAppId.substring(0, 4)}...` : 'missing'
     })
     
-    // Додати translation service
+    // Add translation service
     this.translationService = config.translationService
     
-    // Максимальна кількість інгредієнтів для аналізу
+    // Maximum number of ingredients for analysis
     this.MAX_INGREDIENTS = 20
   }
 
@@ -41,43 +41,53 @@ export class EdamamService {
     }
 
     try {
-      // Перекласти запит на англійську для Edamam API
+      // Try to translate query to English for Edamam API
       let translatedQuery = query;
       let originalQuery = query;
       
       if (this.translationService && this.translationService.isConfigured) {
         try {
-          // Визначити мову запиту
+          // Detect query language
           const detectedLanguage = await this.translationService.detectLanguage(query);
           
-          // Якщо не англійська, перекласти
+          // If not English, translate
           if (detectedLanguage !== 'en') {
             translatedQuery = await this.translationService.translateToEnglish(query, detectedLanguage);
             console.log(`Translated query: "${query}" -> "${translatedQuery}"`);
           }
         } catch (translationError) {
           console.error('Translation error during search:', translationError);
-          // Продовжуємо з оригінальним запитом при помилці перекладу
+          // Continue with original query if translation fails
+        }
+      }
+      
+      // If query is too short, return error
+      if (translatedQuery.length < 2) {
+        return {
+          success: false,
+          error: 'Запит занадто короткий. Введіть принаймні 2 символи.'
         }
       }
       
       const url = `${this.foodDatabaseUrl}/parser?app_id=${this.foodAppId}&app_key=${this.foodAppKey}&ingr=${encodeURIComponent(translatedQuery)}&limit=${limit}`
       
+      console.log(`Making request to Edamam API: ${url}`);
       const response = await fetch(url)
       const data = await response.json()
       
       if (!response.ok) {
+        console.error('Edamam API error:', data);
         throw new Error(data.message || 'Edamam API error')
       }
       
       const foods = []
       
-      // Обробити результати
+      // Process results
       if (data.parsed && data.parsed.length > 0) {
         for (const item of data.parsed) {
           const food = item.food
           
-          // Перекласти назву назад на українську для відображення
+          // Try to translate label back to Ukrainian for display
           let displayLabel = food.label
           if (this.translationService && this.translationService.isConfigured) {
             try {
@@ -90,12 +100,45 @@ export class EdamamService {
           
           foods.push({
             foodId: food.foodId,
-            label: displayLabel, // Українська назва для відображення
-            originalLabel: food.label, // Англійська назва для збереження
+            label: displayLabel, // Ukrainian name for display
+            originalLabel: food.label, // English name for saving
             category: food.category,
             image: food.image,
             nutrients: food.nutrients
           })
+        }
+      }
+      
+      // If no parsed results, try hints
+      if (foods.length === 0 && data.hints && data.hints.length > 0) {
+        for (const hint of data.hints.slice(0, limit)) {
+          const food = hint.food
+          
+          // Try to translate label back to Ukrainian for display
+          let displayLabel = food.label
+          if (this.translationService && this.translationService.isConfigured) {
+            try {
+              displayLabel = await this.translationService.translateToUkrainian(food.label)
+            } catch (error) {
+              console.error('Failed to translate hint label to Ukrainian:', error)
+            }
+          }
+          
+          foods.push({
+            foodId: food.foodId,
+            label: displayLabel,
+            originalLabel: food.label,
+            category: food.category,
+            image: food.image,
+            nutrients: food.nutrients
+          })
+        }
+      }
+      
+      if (foods.length === 0) {
+        return {
+          success: false,
+          error: 'Інгредієнти не знайдено. Спробуйте використати англійську назву (наприклад: "tomato" замість "помідор").'
         }
       }
       
@@ -109,7 +152,7 @@ export class EdamamService {
       console.error('Edamam search error:', error)
       return {
         success: false,
-        error: error.message
+        error: error.message || 'Помилка пошуку інгредієнтів'
       }
     }
   }
@@ -165,32 +208,32 @@ export class EdamamService {
 
   // Helper function to normalize ingredient names to English
   async normalizeIngredientName(name) {
-    // Спочатку спробувати статичний словник для швидкості
+    // First try static dictionary for speed
     
     const lowerName = name.toLowerCase().trim()
     
-    // Перевірити статичний словник
+    // Check static dictionary
     if (this.translationService && this.translationService.staticDictionary[lowerName]) {
       return this.translationService.staticDictionary[lowerName];
     }
     
-    // Якщо немає translation service, повернути як є
+    // If no translation service, return as is
     if (!this.translationService || !this.translationService.isConfigured) {
       console.warn('Translation service not available, using original text:', name)
       return name
     }
     
     try {
-      // Визначити мову
+      // Detect language
       const detectedLanguage = await this.translationService.detectLanguage(name)
       console.log(`Detected language for "${name}": ${detectedLanguage}`)
       
-      // Якщо вже англійська, повернути як є
+      // If already English, return as is
       if (detectedLanguage === 'en') {
         return name
       }
       
-      // Перекласти на англійську
+      // Translate to English
       const translatedName = await this.translationService.translateToEnglish(name, detectedLanguage)
       console.log(`Translated ingredient: "${name}" -> "${translatedName}"`)
       return translatedName
@@ -293,7 +336,7 @@ export class EdamamService {
         throw new Error('Ingredients array is required')
       }
       
-      // Обмеження кількості інгредієнтів до максимально допустимої
+      // Limit ingredients to maximum allowed
       let ingredientsToAnalyze = ingredients;
       let limitApplied = false;
       
@@ -303,7 +346,7 @@ export class EdamamService {
         limitApplied = true;
       }
 
-      // Використовуємо text-based аналіз для всіх інгредієнтів
+      // Use text-based analysis for all ingredients
       return this.analyzeNutritionWithText(ingredientsToAnalyze, limitApplied, ingredients.length)
 
     } catch (error) {
@@ -377,14 +420,14 @@ export class EdamamService {
         throw new Error(`Edamam Nutrition Analysis API error (${response.status}): ${data.message || data.error || 'Unknown error'}`)
       }
 
-      // Перевірка на порожні дані
+      // Check for empty data
       if (!data.calories && (!data.totalNutrients || Object.keys(data.totalNutrients).length === 0)) {
         throw new Error('API повернув порожні дані. Можливо, інгредієнти не розпізнано. Спробуйте використати англійські назви інгредієнтів (наприклад: "apple" замість "яблуко", "rice" замість "рис")')
       }
 
       const result = this.processNutritionResponse(data);
       
-      // Додаємо інформацію про обмеження кількості інгредієнтів
+      // Add information about ingredient limit
       if (limitApplied) {
         result.limitApplied = true;
         result.originalCount = originalCount;
@@ -521,7 +564,7 @@ export class EdamamService {
         }
       }
       
-      // Передаємо інформацію про обмеження кількості інгредієнтів, якщо вона є
+      // Pass information about ingredient limit if it exists
       if (nutritionResult.limitApplied) {
         adjustedNutrition.limitApplied = nutritionResult.limitApplied;
         adjustedNutrition.originalCount = nutritionResult.originalCount;
