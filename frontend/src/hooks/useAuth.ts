@@ -119,8 +119,9 @@ export function useAuth() {
   const resetPassword = async (token: string, password: string) => {
     setIsResettingPassword(true)
     try {
-      console.log('Resetting password with token:', token.substring(0, 10) + '...')
+      console.log('Resetting password with token length:', token.length)
       
+      // For Supabase, we need to use the access_token as the token
       const response = await apiClient.post('/auth/reset-password', { 
         token, 
         password,

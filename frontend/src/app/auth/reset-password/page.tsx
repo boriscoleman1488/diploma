@@ -12,23 +12,34 @@ import Link from 'next/link'
 export default function ResetPasswordPage() {
   const searchParams = useSearchParams()
   const [token, setToken] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   
   useEffect(() => {
-    // Try to get token from URL parameters
-    const tokenFromParams = searchParams.get('token')
+    // Check for token in various locations
     
-    // Also check for token in hash (for some auth providers)
+    // 1. Check URL hash parameters (most common for Supabase)
     const hashParams = new URLSearchParams(
       typeof window !== 'undefined' ? window.location.hash.substring(1) : ''
     )
-    const tokenFromHash = hashParams.get('token')
+    const accessToken = hashParams.get('access_token')
+    
+    // 2. Check URL query parameters
+    const tokenFromParams = searchParams.get('token')
+    
+    // 3. Check for type parameter to confirm it's a recovery
+    const type = hashParams.get('type') || searchParams.get('type')
+    const isRecovery = type === 'recovery'
     
     // Use whichever token is available
-    const resetToken = tokenFromParams || tokenFromHash || null
-    setToken(resetToken)
+    const resetToken = accessToken || tokenFromParams || null
     
-    // Log for debugging
-    console.log('Reset token found:', !!resetToken)
+    if (resetToken) {
+      console.log('Reset token found:', resetToken.substring(0, 10) + '...')
+      setToken(resetToken)
+    } else {
+      console.error('No reset token found in URL')
+      setError('Токен для скидання пароля відсутній або недійсний')
+    }
   }, [searchParams])
 
   return (
@@ -55,7 +66,7 @@ export default function ResetPasswordPage() {
                   <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" />
                   <div>
                     <h3 className="text-sm font-medium text-yellow-800">
-                      Токен для скидання пароля відсутній або недійсний
+                      {error || 'Токен для скидання пароля відсутній або недійсний'}
                     </h3>
                     <p className="text-sm text-yellow-700 mt-1">
                       Будь ласка, перевірте URL або запитайте новий лист для скидання пароля.
