@@ -31,6 +31,56 @@ export class EdamamService {
     this.MAX_INGREDIENTS = 20
   }
 
+  // Helper method to safely parse API response
+  async parseApiResponse(response, apiName = 'Edamam API') {
+    try {
+      // First check if response is ok
+      if (!response.ok) {
+        // Try to get error message from response
+        let errorMessage;
+        const contentType = response.headers.get('content-type');
+        
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorData.error || `${apiName} error (${response.status})`;
+          } catch (jsonError) {
+            // If JSON parsing fails, get text
+            const errorText = await response.text();
+            errorMessage = `${apiName} error (${response.status}): ${errorText.substring(0, 200)}`;
+          }
+        } else {
+          // Non-JSON response, get as text
+          const errorText = await response.text();
+          if (errorText.includes('<!doctype') || errorText.includes('<html')) {
+            errorMessage = `${apiName} returned HTML error page (${response.status}). This usually indicates invalid API credentials or rate limit exceeded.`;
+          } else {
+            errorMessage = `${apiName} error (${response.status}): ${errorText.substring(0, 200)}`;
+          }
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      // Response is ok, try to parse as JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        if (responseText.includes('<!doctype') || responseText.includes('<html')) {
+          throw new Error(`${apiName} returned HTML instead of JSON. This usually indicates invalid API credentials.`);
+        }
+        throw new Error(`${apiName} returned non-JSON response: ${responseText.substring(0, 200)}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (error.name === 'SyntaxError' && error.message.includes('Unexpected token')) {
+        throw new Error(`${apiName} returned invalid JSON. This usually indicates invalid API credentials or the API is returning an error page.`);
+      }
+      throw error;
+    }
+  }
+
   // Food Database API methods
   async searchFood(query, limit = 20) {
     if (!this.isFoodApiConfigured) {
@@ -73,12 +123,9 @@ export class EdamamService {
       
       console.log(`Making request to Edamam API: ${url}`);
       const response = await fetch(url)
-      const data = await response.json()
       
-      if (!response.ok) {
-        console.error('Edamam API error:', data);
-        throw new Error(data.message || 'Edamam API error')
-      }
+      // Use the safe parsing method
+      const data = await this.parseApiResponse(response, 'Edamam Food Database API');
       
       const foods = []
       
@@ -182,14 +229,8 @@ export class EdamamService {
         })
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Неправильні credentials для Edamam Food Database API')
-        }
-        throw new Error(`Edamam Food Database API error: ${data.message || 'Unknown error'}`)
-      }
+      // Use the safe parsing method
+      const data = await this.parseApiResponse(response, 'Edamam Food Database API');
 
       return {
         success: true,
@@ -393,32 +434,9 @@ export class EdamamService {
 
       console.log('Edamam Nutrition Analysis API response status:', response.status)
 
-      const data = await response.json()
+      // Use the safe parsing method
+      const data = await this.parseApiResponse(response, 'Edamam Nutrition Analysis API');
       console.log('Edamam Nutrition Analysis API response data:', JSON.stringify(data, null, 2))
-
-      if (!response.ok) {
-        // Handle specific Edamam API errors
-        if (response.status === 401) {
-          throw new Error('Неправильні credentials для Edamam Nutrition Analysis API. Перевірте EDAMAM_APP_NUTRITION_ID та EDAMAM_APP_NUTRITION_KEY')
-        }
-        if (response.status === 422) {
-          console.error('Unprocessable ingredients:', {
-            ingredients: normalizedIngredients,
-            response: data
-          })
-          throw new Error(`Не вдалося розпізнати інгредієнти. Спробуйте використати англійські назви (наприклад: "apple", "rice") та стандартні одиниці виміру (g, kg, ml, l)`)
-        }
-        if (response.status === 403) {
-          throw new Error('Доступ заборонено. Перевірте ваші API credentials та ліміти')
-        }
-        if (response.status === 429) {
-          throw new Error('Перевищено ліміт запитів. Спробуйте пізніше')
-        }
-        if (response.status === 555) {
-          throw new Error('Низька якість даних. Спробуйте додати більше деталей до інгредієнтів')
-        }
-        throw new Error(`Edamam Nutrition Analysis API error (${response.status}): ${data.message || data.error || 'Unknown error'}`)
-      }
 
       // Check for empty data
       if (!data.calories && (!data.totalNutrients || Object.keys(data.totalNutrients).length === 0)) {
