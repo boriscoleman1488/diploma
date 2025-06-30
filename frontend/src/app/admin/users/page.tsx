@@ -1,10 +1,17 @@
+'use client'
+
+import { useState } from 'react'
 import { useAdminUsers } from '@/hooks/useAdminUsers'
 import { UserStatsCards } from '@/components/admin/users/UserStatsCards'
 import { UserSearch } from '@/components/admin/users/UserSearch'
 import { UsersTable } from '@/components/admin/users/UsersTable'
 import { UserDetailsModal } from '@/components/admin/UserDetailsModal'
+import { debounce } from '@/lib/utils'
 
 export default function AdminUsersPage() {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showUserDetails, setShowUserDetails] = useState(false)
+  
   const {
     users,
     selectedUser,
@@ -21,14 +28,17 @@ export default function AdminUsersPage() {
     canModifyUser,
   } = useAdminUsers()
 
-  const [showUserDetails, setShowUserDetails] = useState(false)
+  const debouncedSearch = debounce((query: string) => {
+    fetchUsers(1, pagination.limit, query)
+  }, 500)
 
   const handleSearch = (query: string) => {
-    fetchUsers(1, pagination.limit, query)
+    setSearchQuery(query)
+    debouncedSearch(query)
   }
 
   const handlePageChange = (page: number) => {
-    fetchUsers(page, pagination.limit)
+    fetchUsers(page, pagination.limit, searchQuery)
   }
 
   const handleViewUser = async (userId: string) => {
@@ -62,7 +72,7 @@ export default function AdminUsersPage() {
 
       {/* Search */}
       <UserSearch 
-        searchQuery=""
+        searchQuery={searchQuery}
         onSearch={handleSearch}
       />
 

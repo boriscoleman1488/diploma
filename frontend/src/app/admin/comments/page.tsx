@@ -1,3 +1,6 @@
+'use client'
+
+import { useState } from 'react'
 import { useAdminComments } from '@/hooks/useAdminComments'
 import { CommentStatsCards } from '@/components/admin/comments/CommentStatsCards'
 import { CommentFilters } from '@/components/admin/comments/CommentFilters'

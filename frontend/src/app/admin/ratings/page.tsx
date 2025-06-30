@@ -1,3 +1,6 @@
+'use client'
+
+import { useState } from 'react'
 import { useAdminRatings } from '@/hooks/useAdminRatings'
 import { RatingStatsCards } from '@/components/admin/ratings/RatingStatsCards'
 import { RatingFilters } from '@/components/admin/ratings/RatingFilters'
