@@ -42,15 +42,18 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
   const [selectedFood, setSelectedFood] = useState<EdamamFood | null>(null)
   const [amount, setAmount] = useState<number>(100)
   const [unit, setUnit] = useState('г')
+  const [error, setError] = useState<string | null>(null)
 
   const searchFoods = async (query: string) => {
     if (!query.trim()) {
       setSearchResults([])
       setShowResults(false)
+      setError(null)
       return
     }
 
     setIsSearching(true)
+    setError(null)
     try {
       // Call the backend endpoint that uses Edamam API with translation
       const response = await apiClient.get(`/edamam/search?query=${encodeURIComponent(query)}&limit=10`)
@@ -60,12 +63,14 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
         setShowResults(true)
       } else {
         setSearchResults([])
-        setShowResults(false)
+        setShowResults(true)
+        setError(response.error || 'Не вдалося знайти інгредієнти')
       }
     } catch (error) {
       console.error('Failed to search foods:', error)
       setSearchResults([])
-      setShowResults(false)
+      setShowResults(true)
+      setError(error instanceof Error ? error.message : 'Помилка пошуку інгредієнтів')
     } finally {
       setIsSearching(false)
     }
@@ -73,11 +78,9 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
 
   const debouncedSearch = debounce(searchFoods, 500)
 
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      debouncedSearch(searchQuery)
-    }
-  }, [searchQuery])
+  const handleSearchClick = () => {
+    searchFoods(searchQuery)
+  }
 
   const handleSelectFood = (food: EdamamFood) => {
     setSelectedFood(food)
@@ -102,12 +105,33 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
     setSelectedFood(null)
     setAmount(100)
     setUnit('г')
+    setError(null)
   }
 
   const handleClearSelection = () => {
     setSelectedFood(null)
     setSearchQuery('')
     setShowResults(false)
+    setError(null)
+  }
+
+  const handleAddCustomIngredient = () => {
+    if (!searchQuery.trim()) return
+    
+    const ingredient: Ingredient = {
+      name: searchQuery.trim(),
+      amount: amount,
+      unit: unit
+    }
+    
+    onAddIngredient(ingredient)
+    
+    // Reset form
+    setSearchQuery('')
+    setSelectedFood(null)
+    setAmount(100)
+    setUnit('г')
+    setError(null)
   }
 
   const commonUnits = ['г', 'кг', 'мл', 'л', 'шт', 'ст.л.', 'ч.л.', 'склянка', 'пучок']
@@ -136,24 +160,50 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
                   </button>
                 )
               }
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleSearchClick()
+                }
+              }}
             />
             
-            <div className="mt-2">
+            <div className="flex space-x-2 mt-2">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => searchFoods(searchQuery)}
+                onClick={handleSearchClick}
                 disabled={!searchQuery.trim() || isSearching}
-                leftIcon={<Search className="w-4 h-4" />}
+                leftIcon={isSearching ? <LoadingSpinner size="sm" /> : <Search className="w-4 h-4" />}
               >
-                Пошук інгредієнтів
+                {isSearching ? 'Пошук...' : 'Пошук інгредієнтів'}
+              </Button>
+              
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddCustomIngredient}
+                disabled={!searchQuery.trim()}
+                leftIcon={<Plus className="w-4 h-4" />}
+              >
+                Додати вручну
               </Button>
             </div>
 
             {/* Search Results */}
             {showResults && searchResults.length > 0 && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <div className="flex justify-between items-center p-2 border-b border-gray-200">
+                  <span className="text-sm font-medium text-gray-700">Результати пошуку</span>
+                  <button
+                    onClick={() => setShowResults(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
                 {searchResults.map((food) => (
                   <button
                     key={food.foodId}
@@ -183,6 +233,7 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
                           </p>
                         )}
                       </div>
+                      <Plus className="w-4 h-4 text-gray-400" />
                     </div>
                   </button>
                 ))}
@@ -192,8 +243,28 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
             {/* No Results */}
             {showResults && searchResults.length === 0 && !isSearching && searchQuery.trim() && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4">
-                <p className="text-gray-500 text-center">
-                  Інгредієнти не знайдено. Спробуйте інший запит.
+                <div className="flex justify-between items-center mb-2">
+                  <p className="text-gray-500 text-sm">
+                    {error || 'Інгредієнти не знайдено. Спробуйте інший запит.'}
+                  </p>
+                  <button
+                    onClick={() => setShowResults(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddCustomIngredient}
+                  leftIcon={<Plus className="w-4 h-4" />}
+                  className="w-full"
+                >
+                  Додати "{searchQuery}" вручну
+                </Button>
+                <p className="text-xs text-gray-500 mt-2">
+                  Спробуйте використати англійські назви (наприклад: "tomato" замість "помідор")
                 </p>
               </div>
             )}
