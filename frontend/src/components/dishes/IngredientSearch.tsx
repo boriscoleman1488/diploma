@@ -52,7 +52,7 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
 
     setIsSearching(true)
     try {
-      // Викликаємо backend endpoint, який використовує Edamam API з перекладом
+      // Call the backend endpoint that uses Edamam API with translation
       const response = await apiClient.get(`/edamam/search?query=${encodeURIComponent(query)}&limit=10`)
       
       if (response.success && response.foods) {
@@ -74,7 +74,9 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
   const debouncedSearch = debounce(searchFoods, 500)
 
   useEffect(() => {
-    debouncedSearch(searchQuery)
+    if (searchQuery.trim()) {
+      debouncedSearch(searchQuery)
+    }
   }, [searchQuery])
 
   const handleSelectFood = (food: EdamamFood) => {
@@ -135,6 +137,19 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
                 )
               }
             />
+            
+            <div className="mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => searchFoods(searchQuery)}
+                disabled={!searchQuery.trim() || isSearching}
+                leftIcon={<Search className="w-4 h-4" />}
+              >
+                Пошук інгредієнтів
+              </Button>
+            </div>
 
             {/* Search Results */}
             {showResults && searchResults.length > 0 && (
