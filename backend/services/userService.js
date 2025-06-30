@@ -213,9 +213,41 @@ export class UserService {
                 throw new Error('Valid user object is required')
             }
             
+            // Get count of dishes created by user
+            const { count: recipesCreated, error: dishesError } = await this.supabase
+                .from('dishes')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.id)
+            
+            if (dishesError) {
+                this.logger.error('Error fetching user dishes count', { error: dishesError.message, userId: user.id })
+            }
+            
+            // Get count of likes given by user
+            const { count: likesGiven, error: likesError } = await this.supabase
+                .from('dish_ratings')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.id)
+                .eq('rating', 1)
+            
+            if (likesError) {
+                this.logger.error('Error fetching user likes count', { error: likesError.message, userId: user.id })
+            }
+            
+            // Get count of favorite recipes (from collections)
+            const { count: favoriteRecipes, error: favoritesError } = await this.supabase
+                .from('dish_collection_items')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.id)
+            
+            if (favoritesError) {
+                this.logger.error('Error fetching user favorites count', { error: favoritesError.message, userId: user.id })
+            }
+            
             const stats = {
-                recipesCreated: 0,
-                favoriteRecipes: 0,
+                recipesCreated: recipesCreated || 0,
+                likesGiven: likesGiven || 0,
+                favoriteRecipes: favoriteRecipes || 0,
                 lastLogin: user.lastSignIn || 'Unknown',
                 emailConfirmed: user.emailConfirmed
             }
@@ -303,7 +335,7 @@ export class UserService {
             const fileExtension = mimetype.split('/')[1]
             const uniqueFilename = `${userId}-${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
 
-            // Upload to Supabase Storage
+            // Use supabaseAdmin to bypass RLS
             const { data: uploadData, error: uploadError } = await this.supabase.storage
                 .from('avatars')
                 .upload(uniqueFilename, fileBuffer, {

@@ -22,6 +22,7 @@ import authRoutes from './routes/auth.js'
 import edamamRoutes from './routes/edamam/index.js'
 import aiRoutes from './routes/ai/index.js'
 import aiChatRoutes from './routes/ai/chat.js'
+import translationRoutes from './routes/translation/index.js'
 
 import userRoutes from './routes/users/index.js'
 import userAdminRoutes from './routes/users/admin.js'
@@ -43,7 +44,8 @@ console.log('Environment variables check:', {
   EDAMAM_APP_FOOD_KEY: process.env.EDAMAM_APP_FOOD_KEY ? `${process.env.EDAMAM_APP_FOOD_KEY.substring(0, 4)}...` : 'missing',
   EDAMAM_APP_NUTRITION_ID: process.env.EDAMAM_APP_NUTRITION_ID ? `${process.env.EDAMAM_APP_NUTRITION_ID.substring(0, 4)}...` : 'missing',
   EDAMAM_APP_NUTRITION_KEY: process.env.EDAMAM_APP_NUTRITION_KEY ? `${process.env.EDAMAM_APP_NUTRITION_KEY.substring(0, 4)}...` : 'missing',
-  GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'configured' : 'missing'
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'configured' : 'missing',
+  DEEPL_API_KEY: process.env.DEEPL_API_KEY ? 'configured' : 'missing'
 })
 
 const fastify = Fastify({
@@ -119,8 +121,7 @@ const commentService = new CommentService(supabaseClient, fastify.log)
 const ratingService = new RatingService(supabaseClient, fastify.log)
 
 const translationService = new TranslationService({
-  apiKey: process.env.GOOGLE_TRANSLATE_API_KEY,
-  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID
+  apiKey: process.env.DEEPL_API_KEY
 })
 
 const edamamService = new EdamamService({
@@ -149,6 +150,7 @@ await fastify.register(authRoutes, { prefix: '/api/auth' })
 await fastify.register(edamamRoutes, { prefix: '/api/edamam' })
 await fastify.register(aiRoutes, { prefix: '/api/ai' })
 await fastify.register(aiChatRoutes, { prefix: '/api/ai/chat' })
+await fastify.register(translationRoutes, { prefix: '/api/translation' })
 
 // User routes
 await fastify.register(userRoutes, { prefix: '/api/users' })
@@ -182,7 +184,8 @@ fastify.get('/', async (request, reply) => {
       ratings: '/api/ratings',
       collections: '/api/collections',
       edamam: '/api/edamam',
-      ai: '/api/ai'
+      ai: '/api/ai',
+      translation: '/api/translation'
     }
   }
 })
@@ -211,7 +214,8 @@ fastify.setNotFoundHandler((request, reply) => {
       'GET /api/edamam/search',
       'POST /api/edamam/analyze-nutrition',
       'POST /api/ai/search-ingredients',
-      'POST /api/ai/recipe-suggestions'
+      'POST /api/ai/recipe-suggestions',
+      'POST /api/translation/translate'
     ]
   })
 })
@@ -329,6 +333,12 @@ const start = async () => {
       console.log('✅ Gemini API налаштовано')
     } else {
       console.log('⚠️ Gemini API не налаштовано. Додайте GEMINI_API_KEY до .env файлу')
+    }
+    
+    if (process.env.DEEPL_API_KEY) {
+      console.log('✅ DeepL API налаштовано')
+    } else {
+      console.log('⚠️ DeepL API не налаштовано. Додайте DEEPL_API_KEY до .env файлу')
     }
   } catch (err) {
     console.error('Помилка запуску сервера:', err)

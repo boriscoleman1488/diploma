@@ -25,9 +25,9 @@ import { isValidImageFile, compressImage } from '@/lib/utils'
 
 const profileSchema = z.object({
   full_name: z.string().min(2, 'Повне ім\'я повинно містити принаймні 2 символи'),
-  /*profile_tag: z.string()
+  profile_tag: z.string()
     .min(3, 'Тег профілю повинен містити принаймні 3 символи')
-    .regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, 'Тег профілю повинен починатися з літери і містити лише літери, цифри та підкреслення'),*/
+    .regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, 'Тег профілю повинен починатися з літери і містити лише літери, цифри та підкреслення'),
 })
 
 const passwordSchema = z.object({
@@ -321,7 +321,7 @@ export default function SettingsPage() {
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-800">
-                <strong>Примітка:</strong> Після зміни пароля ви отримаєте повідомлення на вашу електронну пошту для підтвердження.
+                <strong>Примітка:</strong> Після зміни пароля ви отримаєте повідомлення на вашу електронну пошту.
               </p>
             </div>
 

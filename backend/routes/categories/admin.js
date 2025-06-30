@@ -35,6 +35,32 @@ export default async function categoryAdminRoutes(fastify, options) {
         }
     })
 
+    fastify.get('/stats', {
+        preHandler: [authenticateUser, requireAdmin]
+    }, async (request, reply) => {
+        try {
+            const result = await fastify.categoryService.getCategoryStats()
+
+            if (!result.success) {
+                return reply.code(500).send({
+                    error: result.error,
+                    message: result.message
+                })
+            }
+
+            return {
+                success: true,
+                stats: result.stats
+            }
+        } catch (error) {
+            fastify.log.error('Category stats fetch error', { error: error.message })
+            return reply.code(500).send({
+                error: 'Internal server error',
+                message: 'Unable to fetch category statistics'
+            })
+        }
+    })
+
     fastify.post('/', {
         preHandler: [authenticateUser, requireAdmin],
         schema: createCategorySchema

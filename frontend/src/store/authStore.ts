@@ -57,6 +57,15 @@ export const useAuthStore = create<AuthState>()(
       setSession: (session: AuthSession | null) => {
         set({ session })
         apiClient.setSession(session)
+        
+        // Log session details for debugging
+        if (session) {
+          console.log('Session set in auth store:', {
+            tokenLength: session.access_token.length,
+            expiresAt: new Date(session.expires_at * 1000).toISOString(),
+            expiresIn: session.expires_in
+          })
+        }
       },
 
       login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
@@ -156,20 +165,24 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: async (): Promise<boolean> => {
         const { session } = get()
         if (!session?.refresh_token) {
+          console.log('No refresh token available')
           return false
         }
 
         try {
+          console.log('Attempting to refresh token...')
           const response = await apiClient.post('/auth/refresh', {
             refresh_token: session.refresh_token
           })
 
           if (response.success && response.session) {
+            console.log('Token refreshed successfully')
             set({ session: response.session })
             apiClient.setSession(response.session)
             return true
           }
           
+          console.log('Token refresh failed: Invalid response')
           // Refresh failed, logout user
           get().logout()
           return false
@@ -184,6 +197,7 @@ export const useAuthStore = create<AuthState>()(
       verifyToken: async (): Promise<boolean> => {
         const { session } = get()
         if (!session?.access_token) {
+          console.log('No access token available for verification')
           return false
         }
 
@@ -198,9 +212,11 @@ export const useAuthStore = create<AuthState>()(
         }
 
         try {
+          console.log('Verifying token...')
           const response = await apiClient.get('/auth/verify')
           
           if (response.success && response.user) {
+            console.log('Token verified successfully')
             set({ 
               user: response.user, 
               isAuthenticated: true 
@@ -229,6 +245,7 @@ export const useAuthStore = create<AuthState>()(
             return true
           }
           
+          console.log('Token verification failed: Invalid response')
           // Token is invalid, try to refresh
           return await get().refreshToken()
         } catch (error) {

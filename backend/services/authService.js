@@ -438,6 +438,28 @@ export class AuthService {
         }
     }
 
+    async resetPassword(token, password, type = 'recovery') {
+        try {
+            this.logger.info('Resetting password', { tokenLength: token.length, type })
+            
+            // Use the token to update the password
+            const { data, error } = await this.supabase.auth.updateUser({
+                password: password
+            })
+
+            if (error) {
+                return this._handleError('Password reset', error)
+            }
+
+            return this._handleSuccess('Password reset', 
+                { message: 'Пароль успішно змінено' }
+            )
+
+        } catch (error) {
+            return this._handleError('Password reset', error)
+        }
+    }
+
     async resendConfirmation(email) {
         try {
             const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'

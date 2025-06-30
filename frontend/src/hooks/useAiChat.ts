@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { apiClient } from '@/lib/api'
 import toast from 'react-hot-toast'
 
@@ -56,7 +56,7 @@ export function useAiChat() {
   const [isSubmittingUserInput, setIsSubmittingUserInput] = useState(false)
 
   // Fetch chat sessions
-  const fetchChatSessions = async () => {
+  const fetchChatSessions = useCallback(async () => {
     setIsLoadingSessions(true)
     try {
       const response = await apiClient.get('/ai/chat/sessions')
@@ -69,7 +69,7 @@ export function useAiChat() {
     } finally {
       setIsLoadingSessions(false)
     }
-  }
+  }, [])
 
   // Create a new chat session
   const createNewSession = async (title?: string) => {
@@ -417,8 +417,7 @@ export function useAiChat() {
             // Save error message
             await apiClient.post(`/ai/chat/sessions/${sessionId}/messages`, {
               content: errorMessage.content,
-              role: 'assistant',
-              metadata: { error: true }
+              role: 'assistant'
             })
           }
         } catch (msgError) {

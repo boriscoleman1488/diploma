@@ -270,7 +270,7 @@ export default function DishDetailPage({ params }: { params: { id: string } }) {
                       className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
                     >
                       <Grid3X3 className="w-3 h-3 mr-1" />
-                      {cat.name}
+                      {cat.dish_categories?.name || cat.name}
                     </span>
                   ))}
                 </div>

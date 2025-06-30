@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { User, Settings, LogOut, Menu, X, Shield, ChefHat, BookOpen, Sparkles, MessageCircle } from 'lucide-react'
+import { User, Settings, Menu, X, Shield, ChefHat, BookOpen, Sparkles } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
+import { LogoutButton } from '@/components/auth/LogoutButton'
 import { apiClient } from '@/lib/api'
 
 const navigation = [
@@ -23,7 +24,7 @@ export function Navigation() {
   const [isCheckingAdmin, setIsCheckingAdmin] = useState(false)
   const [userProfile, setUserProfile] = useState<any>(null)
   const pathname = usePathname()
-  const { user, logout, isAuthenticated, verifyToken } = useAuthStore()
+  const { user, isAuthenticated, verifyToken } = useAuthStore()
 
   // Fetch user profile to get avatar
   useEffect(() => {
@@ -90,11 +91,6 @@ export function Navigation() {
 
     checkAdminRole()
   }, [user, isAuthenticated, verifyToken])
-
-  const handleLogout = async () => {
-    await logout()
-    setIsMobileMenuOpen(false)
-  }
 
   // Add admin navigation if user is admin
   const allNavigation = isAdmin 
@@ -165,15 +161,11 @@ export function Navigation() {
               </div>
             )}
 
-            <Button
+            <LogoutButton
               variant="outline"
               size="sm"
-              onClick={handleLogout}
               className="hidden md:flex"
-              leftIcon={<LogOut className="w-4 h-4" />}
-            >
-              Вийти
-            </Button>
+            />
 
             {/* Mobile menu button */}
             <button
@@ -245,15 +237,12 @@ export function Navigation() {
                 </div>
               </div>
               <div className="mt-3 space-y-1">
-                <button
-                  onClick={handleLogout}
-                  className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 w-full text-left"
-                >
-                  <div className="flex items-center">
-                    <LogOut className="w-4 h-4 mr-3" />
-                    Вийти з системи
-                  </div>
-                </button>
+                <LogoutButton
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-left justify-start px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                />
               </div>
             </div>
           )}

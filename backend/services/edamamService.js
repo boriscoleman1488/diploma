@@ -169,15 +169,21 @@ export class EdamamService {
     
     const lowerName = name.toLowerCase().trim()
     
+    // Перевірити статичний словник
+    if (this.translationService && this.translationService.staticDictionary[lowerName]) {
+      return this.translationService.staticDictionary[lowerName];
+    }
     
     // Якщо немає translation service, повернути як є
     if (!this.translationService || !this.translationService.isConfigured) {
+      console.warn('Translation service not available, using original text:', name)
       return name
     }
     
     try {
       // Визначити мову
       const detectedLanguage = await this.translationService.detectLanguage(name)
+      console.log(`Detected language for "${name}": ${detectedLanguage}`)
       
       // Якщо вже англійська, повернути як є
       if (detectedLanguage === 'en') {
@@ -186,6 +192,7 @@ export class EdamamService {
       
       // Перекласти на англійську
       const translatedName = await this.translationService.translateToEnglish(name, detectedLanguage)
+      console.log(`Translated ingredient: "${name}" -> "${translatedName}"`)
       return translatedName
     } catch (error) {
       console.error('Translation failed for ingredient:', name, error)
@@ -194,11 +201,11 @@ export class EdamamService {
   }
 
   // Helper function to normalize ingredient strings
-  normalizeIngredientString(ingredient) {
+  async normalizeIngredientString(ingredient) {
     const { name, amount, unit } = ingredient
     
     // Normalize ingredient name to English
-    const normalizedName = this.normalizeIngredientName(name)
+    const normalizedName = await this.normalizeIngredientName(name)
     
     // Convert units to more standard forms that Edamam recognizes
     const unitMapping = {
@@ -296,76 +303,8 @@ export class EdamamService {
         limitApplied = true;
       }
 
-      // Check if all ingredients have edamam_food_id for structured analysis
-      const allHaveFoodId = ingredientsToAnalyze.every(ingredient => ingredient.edamam_food_id)
-      
-      let requestBody
-      
-      if (allHaveFoodId) {
-        console.log('Using structured ingredient data (Food Database API)')
-        
-        // Use structured ingredient data for better accuracy
-        const structuredIngredients = ingredientsToAnalyze.map(ingredient => ({
-          quantity: parseFloat(ingredient.amount),
-          measureURI: this.getMeasureURI(ingredient.unit),
-          foodId: ingredient.edamam_food_id
-        }))
-
-        console.log('Structured ingredients:', structuredIngredients)
-
-        // Use Food Database nutrients endpoint for structured data
-        const url = `${this.foodDatabaseUrl}/nutrients?app_id=${this.foodAppId}&app_key=${this.foodAppKey}`
-        
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            ingredients: structuredIngredients
-          })
-        })
-
-        console.log('Food Database API response status:', response.status)
-
-        const data = await response.json()
-        console.log('Food Database API response data:', JSON.stringify(data, null, 2))
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error('Неправильні credentials для Edamam Food Database API')
-          }
-          if (response.status === 422) {
-            console.error('Unprocessable structured ingredients:', {
-              ingredients: structuredIngredients,
-              response: data
-            })
-            // Fall back to text-based analysis
-            return this.analyzeNutritionWithText(ingredientsToAnalyze)
-          }
-          if (response.status === 429) {
-            throw new Error('Перевищено ліміт запитів. Спробуйте пізніше')
-          }
-          throw new Error(`Edamam Food Database API error (${response.status}): ${data.message || 'Unknown error'}`)
-        }
-
-        // Process structured response
-        const result = this.processNutritionResponse(data);
-        
-        // Додаємо інформацію про обмеження кількості інгредієнтів
-        if (limitApplied) {
-          result.limitApplied = true;
-          result.originalCount = ingredients.length;
-          result.analyzedCount = ingredientsToAnalyze.length;
-          result.message = `Аналіз обмежено до ${this.MAX_INGREDIENTS} інгредієнтів із ${ingredients.length}`;
-        }
-        
-        return result;
-        
-      } else {
-        console.log('Using text-based ingredient parsing (some ingredients missing edamam_food_id)')
-        return this.analyzeNutritionWithText(ingredientsToAnalyze, limitApplied, ingredients.length)
-      }
+      // Використовуємо text-based аналіз для всіх інгредієнтів
+      return this.analyzeNutritionWithText(ingredientsToAnalyze, limitApplied, ingredients.length)
 
     } catch (error) {
       console.error('Nutrition analysis error:', error)
@@ -376,17 +315,19 @@ export class EdamamService {
     }
   }
 
-  // Fallback method for text-based nutrition analysis
+  // Nutrition analysis with text-based ingredients
   async analyzeNutritionWithText(ingredients, limitApplied = false, originalCount = 0) {
     try {
-      // Convert ingredients to Edamam format with better normalization
-      const edamamIngredients = ingredients.map(ingredient => {
-        return this.normalizeIngredientString(ingredient)
-      })
+      // Prepare normalized ingredient strings
+      const normalizedIngredients = await Promise.all(
+        ingredients.map(async ingredient => {
+          return await this.normalizeIngredientString(ingredient);
+        })
+      );
 
       console.log('Sending request to Edamam Nutrition Analysis API:', {
         url: this.nutritionAnalysisUrl,
-        ingredients: edamamIngredients,
+        ingredients: normalizedIngredients,
         originalIngredients: ingredients
       })
 
@@ -394,7 +335,7 @@ export class EdamamService {
 
       const requestBody = {
         title: "Recipe Nutrition Analysis",
-        ingr: edamamIngredients
+        ingr: normalizedIngredients
       }
 
       console.log('Request body:', JSON.stringify(requestBody, null, 2))
@@ -419,7 +360,7 @@ export class EdamamService {
         }
         if (response.status === 422) {
           console.error('Unprocessable ingredients:', {
-            ingredients: edamamIngredients,
+            ingredients: normalizedIngredients,
             response: data
           })
           throw new Error(`Не вдалося розпізнати інгредієнти. Спробуйте використати англійські назви (наприклад: "apple", "rice") та стандартні одиниці виміру (g, kg, ml, l)`)
@@ -434,6 +375,11 @@ export class EdamamService {
           throw new Error('Низька якість даних. Спробуйте додати більше деталей до інгредієнтів')
         }
         throw new Error(`Edamam Nutrition Analysis API error (${response.status}): ${data.message || data.error || 'Unknown error'}`)
+      }
+
+      // Перевірка на порожні дані
+      if (!data.calories && (!data.totalNutrients || Object.keys(data.totalNutrients).length === 0)) {
+        throw new Error('API повернув порожні дані. Можливо, інгредієнти не розпізнано. Спробуйте використати англійські назви інгредієнтів (наприклад: "apple" замість "яблуко", "rice" замість "рис")')
       }
 
       const result = this.processNutritionResponse(data);

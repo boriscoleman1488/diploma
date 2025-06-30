@@ -1,32 +1,28 @@
-import { Translate } from '@google-cloud/translate/build/src/v2/index.js'
+import { Translator } from 'deepl-node';
 
 export class TranslationService {
   constructor(config) {
-    this.apiKey = config.apiKey
-    this.projectId = config.projectId
+    this.apiKey = config.apiKey;
     
-    this.isConfigured = !!this.apiKey
-    this.isWorking = false // Track if API is actually working
+    this.isConfigured = !!this.apiKey;
+    this.isWorking = false; // Track if API is actually working
     
     if (this.isConfigured) {
       try {
-        this.translate = new Translate({
-          key: this.apiKey,
-          projectId: this.projectId
-        })
-        console.log('Google Translate API initialized successfully')
+        this.translator = new Translator(this.apiKey);
+        console.log('DeepL API initialized successfully');
         // Test the API with a simple call to verify it's working
-        this.testApiConnection()
+        this.testApiConnection();
       } catch (error) {
-        console.error('Failed to initialize Google Translate API:', error)
-        this.isConfigured = false
+        console.error('Failed to initialize DeepL API:', error);
+        this.isConfigured = false;
       }
     } else {
-      console.warn('Google Translate API not configured - GOOGLE_TRANSLATE_API_KEY is missing')
+      console.warn('DeepL API not configured - DEEPL_API_KEY is missing');
     }
     
     // Кеш для перекладів, щоб не робити повторні запити
-    this.translationCache = new Map()
+    this.translationCache = new Map();
     
     // Статичний словник для основних інгредієнтів
     this.staticDictionary = {
@@ -59,6 +55,7 @@ export class TranslationService {
       'цвітна капуста': 'cauliflower',
       'шпинат': 'spinach',
       'салат': 'lettuce',
+      'огірок': 'cucumber',
       
       // М'ясо та риба
       'курка': 'chicken',
@@ -113,169 +110,169 @@ export class TranslationService {
   }
 
   async testApiConnection() {
-    if (!this.isConfigured) return
+    if (!this.isConfigured) return;
     
     try {
       // Test with a simple word
-      await this.translate.translate('test', { to: 'uk' })
-      this.isWorking = true
-      console.log('Google Translate API is working correctly')
+      const result = await this.translator.translateText('test', null, 'uk');
+      this.isWorking = true;
+      console.log('DeepL API is working correctly');
     } catch (error) {
-      console.error('Google Translate API test failed:', error.message)
-      this.isWorking = false
+      console.error('DeepL API test failed:', error.message);
+      this.isWorking = false;
       
-      if (error.code === 403) {
-        console.error('Translation API blocked (403). Please check:')
-        console.error('1. Cloud Translation API is enabled in Google Cloud Console')
-        console.error('2. API key has correct permissions')
-        console.error('3. Billing is enabled for the project')
-        console.error('4. API key is valid and not restricted')
+      if (error.response && error.response.status === 403) {
+        console.error('DeepL API access denied (403). Please check:');
+        console.error('1. API key is valid');
+        console.error('2. API key has correct permissions');
+        console.error('3. Billing is enabled for your account');
       }
     }
   }
 
   // Використовувати статичний словник як основний метод перекладу
   translateWithDictionary(text, targetLanguage = 'en') {
-    const lowerText = text.toLowerCase().trim()
+    const lowerText = text.toLowerCase().trim();
     
     if (targetLanguage === 'en') {
       // Українська -> Англійська
-      return this.staticDictionary[lowerText] || text
+      return this.staticDictionary[lowerText] || text;
     } else if (targetLanguage === 'uk') {
       // Англійська -> Українська (зворотний пошук)
-      return this.reverseStaticDictionary[lowerText] || text
+      return this.reverseStaticDictionary[lowerText] || text;
     }
     
-    return text
+    return text;
   }
 
   async translateToEnglish(text, sourceLanguage = 'uk') {
     // Спочатку спробувати статичний словник
-    const staticTranslation = this.translateWithDictionary(text, 'en')
+    const staticTranslation = this.translateWithDictionary(text, 'en');
     if (staticTranslation !== text) {
-      console.log(`Static dictionary translation: "${text}" -> "${staticTranslation}"`)
-      return staticTranslation
+      console.log(`Static dictionary translation: "${text}" -> "${staticTranslation}"`);
+      return staticTranslation;
     }
 
     // Якщо API не працює, повернути оригінальний текст
     if (!this.isConfigured || !this.isWorking) {
-      console.warn('Google Translate API not available, using original text:', text)
-      return text
+      console.warn('DeepL API not available, using original text:', text);
+      return text;
     }
 
     // Перевірити кеш
-    const cacheKey = `${sourceLanguage}:en:${text.toLowerCase()}`
+    const cacheKey = `${sourceLanguage}:en:${text.toLowerCase()}`;
     if (this.translationCache.has(cacheKey)) {
-      return this.translationCache.get(cacheKey)
+      return this.translationCache.get(cacheKey);
     }
 
     try {
-      console.log(`Translating from ${sourceLanguage} to English: "${text}"`)
-      const [translation] = await this.translate.translate(text, {
-        from: sourceLanguage,
-        to: 'en'
-      })
+      console.log(`Translating from ${sourceLanguage} to English: "${text}"`);
+      const result = await this.translator.translateText(text, sourceLanguage, 'en-US');
+      const translation = result.text;
 
       // Зберегти в кеш
-      this.translationCache.set(cacheKey, translation)
-      console.log(`Translation result: "${translation}"`)
-      return translation
+      this.translationCache.set(cacheKey, translation);
+      console.log(`Translation result: "${translation}"`);
+      return translation;
     } catch (error) {
-      console.error('Translation error:', error.message)
+      console.error('Translation error:', error.message);
       
       // Якщо помилка 403, позначити API як неробочий
-      if (error.code === 403) {
-        this.isWorking = false
-        console.error('Translation API access denied. Falling back to original text.')
+      if (error.response && error.response.status === 403) {
+        this.isWorking = false;
+        console.error('DeepL API access denied. Falling back to original text.');
       }
       
-      return text // Повернути оригінальний текст при помилці
+      return text; // Повернути оригінальний текст при помилці
     }
   }
 
   async translateToUkrainian(text, sourceLanguage = 'en') {
     // Спочатку спробувати статичний словник
-    const staticTranslation = this.translateWithDictionary(text, 'uk')
+    const staticTranslation = this.translateWithDictionary(text, 'uk');
     if (staticTranslation !== text) {
-      console.log(`Static dictionary translation: "${text}" -> "${staticTranslation}"`)
-      return staticTranslation
+      console.log(`Static dictionary translation: "${text}" -> "${staticTranslation}"`);
+      return staticTranslation;
     }
 
     if (!this.isConfigured || !this.isWorking) {
-      console.warn('Google Translate API not available, using original text:', text)
-      return text
+      console.warn('DeepL API not available, using original text:', text);
+      return text;
     }
 
-    const cacheKey = `${sourceLanguage}:uk:${text.toLowerCase()}`
+    const cacheKey = `${sourceLanguage}:uk:${text.toLowerCase()}`;
     if (this.translationCache.has(cacheKey)) {
-      return this.translationCache.get(cacheKey)
+      return this.translationCache.get(cacheKey);
     }
 
     try {
-      console.log(`Translating from ${sourceLanguage} to Ukrainian: "${text}"`)
-      const [translation] = await this.translate.translate(text, {
-        from: sourceLanguage,
-        to: 'uk'
-      })
+      console.log(`Translating from ${sourceLanguage} to Ukrainian: "${text}"`);
+      const result = await this.translator.translateText(text, sourceLanguage, 'uk');
+      const translation = result.text;
 
-      this.translationCache.set(cacheKey, translation)
-      console.log(`Translation result: "${translation}"`)
-      return translation
+      this.translationCache.set(cacheKey, translation);
+      console.log(`Translation result: "${translation}"`);
+      return translation;
     } catch (error) {
-      console.error('Translation error:', error.message)
+      console.error('Translation error:', error.message);
       
-      if (error.code === 403) {
-        this.isWorking = false
-        console.error('Translation API access denied. Falling back to original text.')
+      if (error.response && error.response.status === 403) {
+        this.isWorking = false;
+        console.error('DeepL API access denied. Falling back to original text.');
       }
       
-      return text
+      return text;
     }
   }
 
   // Визначити мову тексту
   async detectLanguage(text) {
     // Простий алгоритм визначення мови на основі символів
-    const cyrillicPattern = /[а-яёіїєґ]/i
-    const latinPattern = /[a-z]/i
+    const cyrillicPattern = /[а-яёіїєґ]/i;
+    const latinPattern = /[a-z]/i;
     
-    const hasCyrillic = cyrillicPattern.test(text)
-    const hasLatin = latinPattern.test(text)
+    const hasCyrillic = cyrillicPattern.test(text);
+    const hasLatin = latinPattern.test(text);
     
     // Якщо є кирилиця, вважаємо українською
     if (hasCyrillic && !hasLatin) {
-      console.log(`Detected language for "${text}": uk (cyrillic characters)`)
-      return 'uk'
+      console.log(`Detected language for "${text}": uk (cyrillic characters)`);
+      return 'uk';
     }
     
     // Якщо тільки латиниця, вважаємо англійською
     if (hasLatin && !hasCyrillic) {
-      console.log(`Detected language for "${text}": en (latin characters)`)
-      return 'en'
+      console.log(`Detected language for "${text}": en (latin characters)`);
+      return 'en';
     }
 
     if (!this.isConfigured || !this.isWorking) {
-      console.warn('Google Translate API not available for language detection, assuming Ukrainian')
-      return 'uk' // За замовчуванням українська
+      console.warn('DeepL API not available for language detection, assuming Ukrainian');
+      return 'uk'; // За замовчуванням українська
     }
 
     try {
-      const [detection] = await this.translate.detect(text)
-      console.log(`Detected language for "${text}": ${detection.language}`)
-      return detection.language
-    } catch (error) {
-      console.error('Language detection error:', error.message)
+      // DeepL не має прямого API для визначення мови, тому використовуємо евристику
+      // Спробуємо перекласти на англійську і подивитися, чи змінився текст
+      const result = await this.translator.translateText(text, null, 'en-US');
+      const isEnglish = result.text.toLowerCase() === text.toLowerCase();
+      const detectedLanguage = isEnglish ? 'en' : 'uk';
       
-      if (error.code === 403) {
-        this.isWorking = false
+      console.log(`Detected language for "${text}": ${detectedLanguage}`);
+      return detectedLanguage;
+    } catch (error) {
+      console.error('Language detection error:', error.message);
+      
+      if (error.response && error.response.status === 403) {
+        this.isWorking = false;
       }
       
-      return 'uk'
+      return 'uk'; // За замовчуванням українська
     }
   }
 
   // Перевірити чи працює API
   get isApiWorking() {
-    return this.isConfigured && this.isWorking
+    return this.isConfigured && this.isWorking;
   }
 }

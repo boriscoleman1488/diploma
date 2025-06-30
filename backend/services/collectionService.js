@@ -149,11 +149,11 @@ export class CollectionService {
                 }
             }
             
-            
+            const { name, description } = collectionData
             const updateData = {}
             
             if (name !== undefined) updateData.name = name
-            if (description !== undefined) updateData.description = descriptionc
+            if (description !== undefined) updateData.description = description
             
             const { data: updatedCollection, error } = await this.supabase
                 .from('dish_collections')
@@ -418,25 +418,18 @@ export class CollectionService {
                 }
             }
             
-
-            
-            // First delete all items in the collection
-            const { error: itemsError } = await this.supabase
-                .from('dish_collection_items')
-                .delete()
-                .eq('collection_id', collectionId)
-                
-            if (itemsError) {
-                return this._handleError('Delete collection items', itemsError, 'Unable to delete collection items')
-            }
-            
-            // Then delete the collection
+            // Delete the collection directly - the items will be deleted via CASCADE
             const { error } = await this.supabase
                 .from('dish_collections')
                 .delete()
                 .eq('id', collectionId)
                 
             if (error) {
+                this.logger.error('Delete collection error', { 
+                    error: error.message, 
+                    collectionId,
+                    userId
+                })
                 return this._handleError('Delete collection', error, 'Unable to delete collection')
             }
             

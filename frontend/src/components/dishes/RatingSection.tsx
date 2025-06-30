@@ -50,7 +50,11 @@ export function RatingSection({ dishId, className = '', onRatingChange }: Rating
     try {
       const response = await apiClient.get(`/ratings/dishes/${dishId}/my-rating`)
       if (response.success) {
-        setUserRating(response.rating)
+        // Handle both number and string types for rating
+        const rating = typeof response.rating === 'string' 
+          ? parseInt(response.rating, 10) 
+          : response.rating;
+        setUserRating(rating)
       }
     } catch (error) {
       console.error('Failed to fetch user rating:', error)
@@ -65,7 +69,7 @@ export function RatingSection({ dishId, className = '', onRatingChange }: Rating
 
     setIsUpdating(true)
     try {
-      const newRating = userRating === 1 ? 0 : 1 // Toggle between like (1) and no rating (0)
+      const newRating = userRating === 1 || userRating === "1" ? 0 : 1 // Toggle between like (1) and no rating (0)
       
       const response = await apiClient.post(`/ratings/${dishId}`, {
         rating: newRating
@@ -79,7 +83,7 @@ export function RatingSection({ dishId, className = '', onRatingChange }: Rating
           ...stats,
           likes: newRating === 1 ? stats.likes + 1 : Math.max(0, stats.likes - 1),
           total: newRating === 1 && userRating !== 1 ? stats.total + 1 : 
-                 newRating === 0 && userRating === 1 ? Math.max(0, stats.total - 1) : stats.total
+                 newRating === 0 && (userRating === 1 || userRating === "1") ? Math.max(0, stats.total - 1) : stats.total
         }
         newStats.ratio = newStats.total > 0 ? newStats.likes / newStats.total : 0
         setStats(newStats)
@@ -105,7 +109,8 @@ export function RatingSection({ dishId, className = '', onRatingChange }: Rating
     fetchUserRating()
   }, [dishId, isAuthenticated])
 
-  const isLiked = userRating === 1
+  // Check if userRating is 1 (either as number or string)
+  const isLiked = userRating === 1 || userRating === "1"
 
   return (
     <div className={className}>
