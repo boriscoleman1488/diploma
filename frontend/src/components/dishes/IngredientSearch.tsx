@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { apiClient } from '@/lib/api'
 import { Search, Plus, X } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { debounce } from '@/lib/utils'
 
 interface EdamamFood {
   foodId: string
@@ -55,47 +55,28 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
     setIsSearching(true)
     setError(null)
     try {
-      // Try to use English query for better results with Edamam API
-      const isEnglish = /^[a-zA-Z\s]+$/.test(query);
-      
-      if (!isEnglish) {
-        // If not English, show a message suggesting to use English
-        setSearchResults([]);
-        setShowResults(true);
-        setError('Спробуйте використати англійські назви (наприклад: "tomato" замість "помідор")');
-        
-        // Still allow adding the ingredient manually
-        return;
-      }
-      
-      // Call the backend endpoint that uses Edamam API
+      // Call the backend endpoint that uses Edamam API with translation
       const response = await apiClient.get(`/edamam/search?query=${encodeURIComponent(query)}&limit=10`)
       
-      if (response.success && response.foods && response.foods.length > 0) {
+      if (response.success && response.foods) {
         setSearchResults(response.foods)
         setShowResults(true)
       } else {
         setSearchResults([])
         setShowResults(true)
-        setError(response.error || 'Інгредієнти не знайдено. Спробуйте інший запит.')
+        setError(response.error || 'Не вдалося знайти інгредієнти')
       }
     } catch (error) {
       console.error('Failed to search foods:', error)
       setSearchResults([])
       setShowResults(true)
-      
-      // Provide a more helpful error message
-      if (error instanceof Error && error.message.includes('not valid JSON')) {
-        setError('Помилка з\'єднання з сервером. Спробуйте додати інгредієнт вручну.')
-      } else {
-        setError(error instanceof Error ? error.message : 'Помилка пошуку інгредієнтів')
-      }
-      
-      // Still allow adding the ingredient manually
+      setError(error instanceof Error ? error.message : 'Помилка пошуку інгредієнтів')
     } finally {
       setIsSearching(false)
     }
   }
+
+  const debouncedSearch = debounce(searchFoods, 500)
 
   const handleSearchClick = () => {
     searchFoods(searchQuery)
@@ -144,7 +125,6 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
     }
     
     onAddIngredient(ingredient)
-    toast.success(`Інгредієнт "${searchQuery.trim()}" додано вручну`)
     
     // Reset form
     setSearchQuery('')
@@ -152,7 +132,6 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
     setAmount(100)
     setUnit('г')
     setError(null)
-    setShowResults(false)
   }
 
   const commonUnits = ['г', 'кг', 'мл', 'л', 'шт', 'ст.л.', 'ч.л.', 'склянка', 'пучок']
@@ -168,7 +147,7 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Введіть назву інгредієнта англійською (наприклад: tomato, chicken, rice)"
+              placeholder="Введіть назву інгредієнта українською (наприклад: помідор, курка, рис)"
               leftIcon={isSearching ? <LoadingSpinner size="sm" /> : <Search className="w-4 h-4" />}
               rightIcon={
                 selectedFood && (
@@ -232,29 +211,27 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
                     onClick={() => handleSelectFood(food)}
                     className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        {food.image && (
-                          <img
-                            src={food.image}
-                            alt={food.label}
-                            className="w-10 h-10 rounded-lg object-cover"
-                          />
+                    <div className="flex items-center space-x-3">
+                      {food.image && (
+                        <img
+                          src={food.image}
+                          alt={food.label}
+                          className="w-10 h-10 rounded-lg object-cover"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{food.label}</p>
+                        {food.originalLabel && food.originalLabel !== food.label && (
+                          <p className="text-xs text-gray-500">Оригінальна назва: {food.originalLabel}</p>
                         )}
-                        <div>
-                          <p className="font-medium text-gray-900">{food.label}</p>
-                          {food.originalLabel && food.originalLabel !== food.label && (
-                            <p className="text-xs text-gray-500">Оригінальна назва: {food.originalLabel}</p>
-                          )}
-                          {food.category && (
-                            <p className="text-sm text-gray-500">{food.category}</p>
-                          )}
-                          {food.nutrients?.ENERC_KCAL && (
-                            <p className="text-xs text-gray-400">
-                              {Math.round(food.nutrients.ENERC_KCAL)} ккал/100г
-                            </p>
-                          )}
-                        </div>
+                        {food.category && (
+                          <p className="text-sm text-gray-500">{food.category}</p>
+                        )}
+                        {food.nutrients?.ENERC_KCAL && (
+                          <p className="text-xs text-gray-400">
+                            {Math.round(food.nutrients.ENERC_KCAL)} ккал/100г
+                          </p>
+                        )}
                       </div>
                       <Plus className="w-4 h-4 text-gray-400" />
                     </div>
@@ -263,7 +240,7 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
               </div>
             )}
 
-            {/* No Results or Error */}
+            {/* No Results */}
             {showResults && searchResults.length === 0 && !isSearching && searchQuery.trim() && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4">
                 <div className="flex justify-between items-center mb-2">
@@ -395,14 +372,6 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
               >
                 Додати інгредієнт
               </Button>
-            </div>
-          )}
-          
-          {/* Helper text */}
-          {!selectedFood && !showResults && (
-            <div className="text-xs text-gray-500 mt-2 p-2 bg-blue-50 rounded-lg">
-              <p>💡 <strong>Порада:</strong> Використовуйте англійські назви інгредієнтів для кращих результатів пошуку (наприклад: "tomato", "chicken", "rice").</p>
-              <p className="mt-1">Якщо пошук не дає результатів, ви завжди можете додати інгредієнт вручну.</p>
             </div>
           )}
         </div>
