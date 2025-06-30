@@ -23,6 +23,7 @@ export interface ChangePasswordData {
 export interface ProfileStats {
   recipesCreated: number
   favoriteRecipes: number
+  likesGiven: number
   lastLogin: string
   emailConfirmed: boolean
 }

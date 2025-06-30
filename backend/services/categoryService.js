@@ -5,22 +5,24 @@ export class CategoryService {
     }
 
     static ERRORS = {
-        CATEGORY_NOT_FOUND: 'Category not found',
-        CATEGORY_EXISTS: 'Category already exists',
-        INTERNAL_ERROR: 'Internal server error',
-        FETCH_ERROR: 'Unable to fetch category',
-        CREATE_ERROR: 'Unable to create category',
-        UPDATE_ERROR: 'Unable to update category',
-        DELETE_ERROR: 'Unable to delete category',
-        SEARCH_ERROR: 'Unable to search categories'
+        CATEGORY_NOT_FOUND: 'Категорію не знайдено',
+        CATEGORY_EXISTS: 'Категорія вже існує',
+        CATEGORY_IN_USE: 'Категорія використовується',
+        INTERNAL_ERROR: 'Внутрішня помилка сервера',
+        FETCH_ERROR: 'Не вдається отримати категорію',
+        CREATE_ERROR: 'Не вдалося створити категорію',
+        UPDATE_ERROR: 'Не вдалося оновити категорію',
+        DELETE_ERROR: 'Неможливо видалити категорію',
+        SEARCH_ERROR: 'Неможливо здійснити пошук за категоріями'
     }
 
     static MESSAGES = {
-        CATEGORY_NOT_FOUND: 'The specified category does not exist',
-        CATEGORY_EXISTS: 'A category with this name already exists',
-        CATEGORY_CREATED: 'Category created successfully',
-        CATEGORY_UPDATED: 'Category updated successfully',
-        CATEGORY_DELETED: 'Category deleted successfully'
+        CATEGORY_NOT_FOUND: 'Зазначеної категорії не існує',
+        CATEGORY_EXISTS: 'Категорія з такою назвою вже існує',
+        CATEGORY_CREATED: 'Категорію створено успішно',
+        CATEGORY_UPDATED: 'Категорію успішно оновлено',
+        CATEGORY_DELETED: 'Категорію успішно видалено',
+        CATEGORY_IN_USE: 'Неможливо видалити категорію, оскільки вона пов`язана з однією або кількома стравами'
     }
 
     _handleError(operation, error, customMessage = null) {
@@ -168,6 +170,25 @@ export class CategoryService {
                     success: false,
                     error: CategoryService.ERRORS.CATEGORY_NOT_FOUND,
                     message: CategoryService.MESSAGES.CATEGORY_NOT_FOUND
+                }
+            }
+
+            // Check if the category is associated with any dishes
+            const { count, error: countError } = await this.supabase
+                .from('dish_category_relations')
+                .select('*', { count: 'exact', head: true })
+                .eq('category_id', categoryId)
+
+            if (countError) {
+                return this._handleError('Category relations check', countError, CategoryService.ERRORS.DELETE_ERROR)
+            }
+
+            // If the category is in use, prevent deletion
+            if (count && count > 0) {
+                return {
+                    success: false,
+                    error: CategoryService.ERRORS.CATEGORY_IN_USE,
+                    message: CategoryService.MESSAGES.CATEGORY_IN_USE
                 }
             }
 

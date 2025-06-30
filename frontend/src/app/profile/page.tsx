@@ -16,7 +16,8 @@ import {
   Heart, 
   Clock,
   CheckCircle,
-  XCircle
+  XCircle,
+  BookOpen
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -115,7 +116,22 @@ export default function ProfilePage() {
                   <Heart className="w-6 h-6 text-red-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Улюблені страви</p>
+                  <p className="text-sm font-medium text-gray-600">Поставлено лайків</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.likesGiven}</p>
+
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <BookOpen className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Збережено страв</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.favoriteRecipes}</p>
                 </div>
               </div>
