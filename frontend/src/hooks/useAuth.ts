@@ -13,11 +13,14 @@ export function useAuth() {
     refreshToken,
     isLoading,
     isAuthenticated,
-    user
+    user,
+    session,
+    setSession
   } = useAuthStore()
   
   const [isResendingConfirmation, setIsResendingConfirmation] = useState(false)
   const [isForgotPassword, setIsForgotPassword] = useState(false)
+  const [isResettingPassword, setIsResettingPassword] = useState(false)
 
   const login = async (credentials: LoginCredentials) => {
     const result = await storeLogin(credentials)
@@ -114,6 +117,7 @@ export function useAuth() {
   }
 
   const resetPassword = async (token: string, password: string) => {
+    setIsResettingPassword(true)
     try {
       const response = await apiClient.post('/auth/reset-password', { token, password })
       
@@ -128,6 +132,8 @@ export function useAuth() {
       const errorMessage = error instanceof Error ? error.message : 'Помилка скидання пароля'
       toast.error(errorMessage)
       return { success: false, error: errorMessage }
+    } finally {
+      setIsResettingPassword(false)
     }
   }
 
@@ -140,10 +146,13 @@ export function useAuth() {
     resetPassword,
     verifyToken,
     refreshToken,
+    setSession,
     isLoading,
     isResendingConfirmation,
     isForgotPassword,
+    isResettingPassword,
     isAuthenticated,
-    user
+    user,
+    session
   }
 }

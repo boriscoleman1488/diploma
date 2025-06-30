@@ -17,7 +17,7 @@ export function AuthGuard({
   redirectTo = '/auth/login' 
 }: AuthGuardProps) {
   const [isChecking, setIsChecking] = useState(true)
-  const { isAuthenticated, isLoading, verifyToken, user, refreshToken } = useAuth()
+  const { isAuthenticated, isLoading, verifyToken, refreshToken, user } = useAuth()
   const router = useRouter()
 
   useEffect(() => {

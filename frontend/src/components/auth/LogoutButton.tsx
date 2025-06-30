@@ -5,11 +5,13 @@ import { LogOut } from 'lucide-react'
 
 interface LogoutButtonProps extends Omit<ButtonProps, 'onClick'> {
   redirectTo?: string
+  onClick?: () => void
 }
 
 export function LogoutButton({ 
   redirectTo = '/auth/login', 
   children = 'Вийти', 
+  onClick,
   ...props 
 }: LogoutButtonProps) {
   const { logout, isLoading } = useAuth()
@@ -18,6 +20,9 @@ export function LogoutButton({
   const handleLogout = async () => {
     const result = await logout()
     if (result.success) {
+      if (onClick) {
+        onClick()
+      }
       router.push(redirectTo)
     }
   }

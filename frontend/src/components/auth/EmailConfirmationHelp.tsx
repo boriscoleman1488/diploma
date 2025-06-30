@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export function EmailConfirmationHelp() {
   return (
     <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -13,5 +15,3 @@ export function EmailConfirmationHelp() {
     </div>
   )
 }
-
-import Link from 'next/link'

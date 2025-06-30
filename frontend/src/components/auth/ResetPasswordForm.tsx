@@ -25,8 +25,7 @@ interface ResetPasswordFormProps {
 export function ResetPasswordForm({ redirectTo = '/auth/login' }: ResetPasswordFormProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const { resetPassword } = useAuth()
+  const { resetPassword, isResettingPassword } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token') || ''
@@ -44,15 +43,10 @@ export function ResetPasswordForm({ redirectTo = '/auth/login' }: ResetPasswordF
       return
     }
 
-    setIsSubmitting(true)
-    try {
-      const result = await resetPassword(token, data.password)
-      
-      if (result.success) {
-        router.push(redirectTo)
-      }
-    } finally {
-      setIsSubmitting(false)
+    const result = await resetPassword(token, data.password)
+    
+    if (result.success) {
+      router.push(redirectTo)
     }
   }
 
@@ -107,8 +101,8 @@ export function ResetPasswordForm({ redirectTo = '/auth/login' }: ResetPasswordF
       <Button
         type="submit"
         className="w-full"
-        isLoading={isSubmitting}
-        disabled={isSubmitting || !token}
+        isLoading={isResettingPassword}
+        disabled={isResettingPassword || !token}
       >
         Скинути пароль
       </Button>

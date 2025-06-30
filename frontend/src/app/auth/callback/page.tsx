@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useAuthStore } from '@/store/authStore'
+import { useAuth } from '@/hooks/useAuth'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { CheckCircle, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -14,7 +14,7 @@ export default function AuthCallbackPage() {
   const [message, setMessage] = useState('')
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { verifyToken, refreshToken, setSession } = useAuthStore()
+  const { verifyToken, refreshToken, setSession } = useAuth()
 
   useEffect(() => {
     const handleAuthCallback = async () => {
