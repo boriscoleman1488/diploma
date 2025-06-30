@@ -60,49 +60,55 @@ export function CategoryTable({
               </tr>
             </thead>
             <tbody>
-              {categories.map((category) => (
-                <tr key={category.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-4 px-4">
-                    <div className="flex items-center">
-                      <Grid3X3 className="w-5 h-5 mr-3 text-primary-600" />
-                      <span className="font-medium text-gray-900">{category.name}</span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4 text-gray-600">
-                    {category.description || '—'}
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center">
-                      <ChefHat className="w-4 h-4 mr-1 text-gray-400" />
-                      <span className="text-gray-900">{category.dishes_count || 0}</span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4 text-gray-600">
-                    {formatDate(category.created_at)}
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center justify-end space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        leftIcon={<Edit className="w-4 h-4" />}
-                        onClick={() => onEdit(category)}
-                      >
-                        Редагувати
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        leftIcon={<Trash2 className="w-4 h-4" />}
-                        onClick={() => onDelete(category.id, category.name)}
-                        disabled={isDeleting === category.id}
-                      >
-                        {isDeleting === category.id ? 'Видалення...' : 'Видалити'}
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {categories.map((category) => {
+                // Ensure dishes_count is a number
+                const dishesCount = typeof category.dishes_count === 'number' ? category.dishes_count : 
+                                   typeof category.dishes_count === 'string' ? parseInt(category.dishes_count, 10) : 0;
+                
+                return (
+                  <tr key={category.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-4 px-4">
+                      <div className="flex items-center">
+                        <Grid3X3 className="w-5 h-5 mr-3 text-primary-600" />
+                        <span className="font-medium text-gray-900">{category.name}</span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-gray-600">
+                      {category.description || '—'}
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center">
+                        <ChefHat className="w-4 h-4 mr-1 text-gray-400" />
+                        <span className="text-gray-900">{dishesCount}</span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-gray-600">
+                      {formatDate(category.created_at)}
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center justify-end space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          leftIcon={<Edit className="w-4 h-4" />}
+                          onClick={() => onEdit(category)}
+                        >
+                          Редагувати
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          leftIcon={<Trash2 className="w-4 h-4" />}
+                          onClick={() => onDelete(category.id, category.name)}
+                          disabled={isDeleting === category.id}
+                        >
+                          {isDeleting === category.id ? 'Видалення...' : 'Видалити'}
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

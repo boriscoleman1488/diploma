@@ -346,14 +346,29 @@ export class CategoryService {
             }
             
             // Calculate total dishes
-            const totalDishes = categories.reduce((sum, category) => sum + (category.dishes_count || 0), 0)
+            const totalDishes = categories.reduce((sum, category) => {
+                // Ensure dishes_count is a number
+                const dishesCount = typeof category.dishes_count === 'number' ? category.dishes_count : 
+                                   typeof category.dishes_count === 'string' ? parseInt(category.dishes_count, 10) : 0;
+                return sum + dishesCount;
+            }, 0)
             
             // Calculate empty categories
-            const emptyCategories = categories.filter(category => (category.dishes_count || 0) === 0).length
+            const emptyCategories = categories.filter(category => {
+                const dishesCount = typeof category.dishes_count === 'number' ? category.dishes_count : 
+                                   typeof category.dishes_count === 'string' ? parseInt(category.dishes_count, 10) : 0;
+                return dishesCount === 0;
+            }).length
             
             // Get most used categories (top 5)
             const mostUsedCategories = [...categories]
-                .sort((a, b) => (b.dishes_count || 0) - (a.dishes_count || 0))
+                .sort((a, b) => {
+                    const aCount = typeof a.dishes_count === 'number' ? a.dishes_count : 
+                                  typeof a.dishes_count === 'string' ? parseInt(a.dishes_count, 10) : 0;
+                    const bCount = typeof b.dishes_count === 'number' ? b.dishes_count : 
+                                  typeof b.dishes_count === 'string' ? parseInt(b.dishes_count, 10) : 0;
+                    return bCount - aCount;
+                })
                 .slice(0, 5)
             
             // Get recently created categories (top 5)
