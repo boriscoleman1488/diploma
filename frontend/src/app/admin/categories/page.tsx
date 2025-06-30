@@ -12,6 +12,7 @@ export default function AdminCategoriesPage() {
   const {
     categories,
     filteredCategories,
+    stats,
     isLoading,
     isDeleting,
     searchQuery,
@@ -26,11 +27,6 @@ export default function AdminCategoriesPage() {
     fetchCategories
   } = useAdminCategories()
 
-  // Calculate stats
-  const totalCategories = categories.length
-  const totalDishes = categories.reduce((sum, cat) => sum + (cat.dishes_count || 0), 0)
-  const emptyCategories = categories.filter(cat => (cat.dishes_count || 0) === 0).length
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -38,9 +34,9 @@ export default function AdminCategoriesPage() {
 
       {/* Stats */}
       <CategoryStatsCards 
-        totalCategories={totalCategories}
-        totalDishes={totalDishes}
-        emptyCategories={emptyCategories}
+        totalCategories={stats?.totalCategories || categories.length}
+        totalDishes={stats?.totalDishes || categories.reduce((sum, cat) => sum + (cat.dishes_count || 0), 0)}
+        emptyCategories={stats?.emptyCategories || categories.filter(cat => (cat.dishes_count || 0) === 0).length}
       />
 
       {/* Search */}

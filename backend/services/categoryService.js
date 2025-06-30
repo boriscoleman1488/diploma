@@ -335,4 +335,43 @@ export class CategoryService {
             return this._handleError('Category details fetch', error)
         }
     }
+
+    async getCategoryStats() {
+        try {
+            // Get all categories with dish counts
+            const { categories } = await this.getAllCategoriesForAdmin()
+            
+            if (!categories) {
+                return this._handleError('Category stats fetch', new Error('Failed to fetch categories'))
+            }
+            
+            // Calculate total dishes
+            const totalDishes = categories.reduce((sum, category) => sum + (category.dishes_count || 0), 0)
+            
+            // Calculate empty categories
+            const emptyCategories = categories.filter(category => (category.dishes_count || 0) === 0).length
+            
+            // Get most used categories (top 5)
+            const mostUsedCategories = [...categories]
+                .sort((a, b) => (b.dishes_count || 0) - (a.dishes_count || 0))
+                .slice(0, 5)
+            
+            // Get recently created categories (top 5)
+            const recentCategories = [...categories]
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                .slice(0, 5)
+            
+            const stats = {
+                totalCategories: categories.length,
+                totalDishes,
+                emptyCategories,
+                mostUsedCategories,
+                recentCategories
+            }
+            
+            return this._handleSuccess({ stats })
+        } catch (error) {
+            return this._handleError('Category stats fetch', error)
+        }
+    }
 }

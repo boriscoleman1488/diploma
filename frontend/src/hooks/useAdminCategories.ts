@@ -3,9 +3,19 @@ import { apiClient } from '@/lib/api'
 import { Category } from '@/types/category'
 import toast from 'react-hot-toast'
 
+interface CategoryStats {
+  totalCategories: number
+  totalDishes: number
+  emptyCategories: number
+  mostUsedCategories: Category[]
+  recentCategories: Category[]
+}
+
 export function useAdminCategories() {
   const [categories, setCategories] = useState<Category[]>([])
+  const [stats, setStats] = useState<CategoryStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingStats, setIsLoadingStats] = useState(true)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([])
@@ -35,6 +45,21 @@ export function useAdminCategories() {
     }
   }, [])
 
+  const fetchCategoryStats = useCallback(async () => {
+    setIsLoadingStats(true)
+    try {
+      const response = await apiClient.get('/admin/categories/stats')
+      if (response.success && response.stats) {
+        setStats(response.stats)
+      }
+    } catch (error) {
+      console.error('Failed to fetch category stats:', error)
+      // Don't show error toast for stats as it's not critical
+    } finally {
+      setIsLoadingStats(false)
+    }
+  }, [])
+
   const handleDeleteCategory = useCallback(async (categoryId: string, categoryName: string) => {
     if (!confirm(`Ви впевнені, що хочете видалити категорію "${categoryName}"?`)) {
       return false
@@ -46,6 +71,7 @@ export function useAdminCategories() {
       if (response.success) {
         toast.success('Категорію успішно видалено')
         fetchCategories()
+        fetchCategoryStats()
         return true
       } else {
         toast.error(response.error || 'Не вдалося видалити категорію')
@@ -58,7 +84,7 @@ export function useAdminCategories() {
     } finally {
       setIsDeleting(null)
     }
-  }, [fetchCategories])
+  }, [fetchCategories, fetchCategoryStats])
 
   const handleEditCategory = useCallback((category: Category) => {
     setEditingCategory(category)
@@ -83,15 +109,18 @@ export function useAdminCategories() {
     }
   }, [searchQuery, categories])
 
-  // Fetch categories on mount
+  // Fetch categories and stats on mount
   useEffect(() => {
     fetchCategories()
-  }, [fetchCategories])
+    fetchCategoryStats()
+  }, [fetchCategories, fetchCategoryStats])
 
   return {
     categories,
     filteredCategories,
+    stats,
     isLoading,
+    isLoadingStats,
     isDeleting,
     searchQuery,
     showCreateModal,
@@ -102,6 +131,7 @@ export function useAdminCategories() {
     handleDeleteCategory,
     handleEditCategory,
     handleCloseEditModal,
-    fetchCategories
+    fetchCategories,
+    fetchCategoryStats
   }
 }
