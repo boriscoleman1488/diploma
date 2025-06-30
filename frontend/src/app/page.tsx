@@ -88,6 +88,7 @@ export default function HomePage() {
           onReset={resetFilters}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
+          searchInputRef={searchInputRef}
         />
 
         {/* Dishes Grid */}

@@ -185,7 +185,7 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
                     className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
                   >
                     <Grid3X3 className="w-3 h-3 mr-1" />
-                    {cat.name}
+                    {cat.dish_categories?.name || cat.name}
                   </span>
                 ))}
               </div>
@@ -590,6 +590,12 @@ export default function DishesPage() {
               <div className="p-2 bg-blue-100 rounded-lg">
                 <Activity className="w-6 h-6 text-blue-600" />
               </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">З аналізом калорій</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {dishes.filter(d => d.ingredients && d.ingredients.length > 0).length}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -747,35 +753,30 @@ export default function DishesPage() {
 
                 <CardContent className="p-6">
                   {/* Header */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 text-lg mb-1 line-clamp-2">
-                        {dish.title}
-                      </h3>
-                      {getStatusBadge(dish.status)}
-                    </div>
+                  <div className="mb-3">
+                    <h3 className="font-semibold text-gray-900 text-lg mb-1 line-clamp-2">
+                      {dish.title}
+                    </h3>
+                    <p className="text-gray-600 text-sm line-clamp-2">
+                      {dish.description}
+                    </p>
                   </div>
-
-                  {/* Description */}
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                    {dish.description}
-                  </p>
 
                   {/* Categories */}
                   {dishCategories.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-4">
-                      {dishCategories.slice(0, 3).map((cat, index) => (
+                      {dishCategories.slice(0, 2).map((cat, index) => (
                         <span
                           key={index}
                           className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
                         >
                           <Grid3X3 className="w-3 h-3 mr-1" />
-                          {cat.name}
+                          {cat.dish_categories?.name || cat.name}
                         </span>
                       ))}
-                      {dishCategories.length > 3 && (
+                      {dishCategories.length > 2 && (
                         <span className="text-xs text-gray-500">
-                          +{dishCategories.length - 3} ще
+                          +{dishCategories.length - 2} ще
                         </span>
                       )}
                     </div>
