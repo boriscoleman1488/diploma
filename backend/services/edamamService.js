@@ -36,14 +36,14 @@ export class EdamamService {
     try {
       // First check if response is ok
       if (!response.ok) {
-        // Try to get error message from response
-        let errorMessage;
-        const contentType = response.headers.get('content-type');
-        
         // Handle rate limit exceeded (429)
         if (response.status === 429) {
           return Promise.reject(new Error(`${apiName} rate limit exceeded. Please try again later.`));
         }
+        
+        // Try to get error message from response
+        let errorMessage;
+        const contentType = response.headers.get('content-type');
         
         if (contentType && contentType.includes('application/json')) {
           try {

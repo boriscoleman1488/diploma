@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { apiClient } from '@/lib/api'
-import { Search, Plus, X, AlertTriangle } from 'lucide-react'
+import { Search, Plus, X, AlertTriangle, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface EdamamFood {
@@ -43,6 +43,7 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
   const [amount, setAmount] = useState<number>(100)
   const [unit, setUnit] = useState('г')
   const [error, setError] = useState<string | null>(null)
+  const [showFoodDetails, setShowFoodDetails] = useState<string | null>(null)
 
   const searchFoods = async (query: string) => {
     if (!query.trim()) {
@@ -103,6 +104,7 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
     setSelectedFood(food)
     setSearchQuery(food.label)
     setShowResults(false)
+    setShowFoodDetails(null)
   }
 
   const handleAddIngredient = () => {
@@ -123,6 +125,7 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
     setAmount(100)
     setUnit('г')
     setError(null)
+    setShowFoodDetails(null)
   }
 
   const handleClearSelection = () => {
@@ -130,6 +133,7 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
     setSearchQuery('')
     setShowResults(false)
     setError(null)
+    setShowFoodDetails(null)
   }
 
   const handleAddCustomIngredient = () => {
@@ -150,6 +154,15 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
     setAmount(100)
     setUnit('г')
     setError(null)
+    setShowFoodDetails(null)
+  }
+
+  const toggleFoodDetails = (foodId: string) => {
+    if (showFoodDetails === foodId) {
+      setShowFoodDetails(null)
+    } else {
+      setShowFoodDetails(foodId)
+    }
   }
 
   const commonUnits = ['г', 'кг', 'мл', 'л', 'шт', 'ст.л.', 'ч.л.', 'склянка', 'пучок']
@@ -212,7 +225,7 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
 
             {/* Search Results */}
             {showResults && searchResults.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-y-auto">
                 <div className="flex justify-between items-center p-2 border-b border-gray-200">
                   <span className="text-sm font-medium text-gray-700">Результати пошуку</span>
                   <button
@@ -223,39 +236,95 @@ export function IngredientSearch({ onAddIngredient, className }: IngredientSearc
                   </button>
                 </div>
                 {searchResults.map((food) => (
-                  <button
-                    key={food.foodId}
-                    type="button"
-                    onClick={() => handleSelectFood(food)}
-                    className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        {food.image && (
-                          <img
-                            src={food.image}
-                            alt={food.label}
-                            className="w-10 h-10 rounded-lg object-cover"
-                          />
-                        )}
-                        <div>
-                          <p className="font-medium text-gray-900">{food.label}</p>
-                          {food.originalLabel && food.originalLabel !== food.label && (
-                            <p className="text-xs text-gray-500">Оригінальна назва: {food.originalLabel}</p>
+                  <div key={food.foodId} className="border-b border-gray-100 last:border-b-0">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectFood(food)}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          {food.image && (
+                            <img
+                              src={food.image}
+                              alt={food.label}
+                              className="w-10 h-10 rounded-lg object-cover"
+                            />
                           )}
-                          {food.category && (
-                            <p className="text-sm text-gray-500">{food.category}</p>
-                          )}
-                          {food.nutrients?.ENERC_KCAL && (
-                            <p className="text-xs text-gray-400">
-                              {Math.round(food.nutrients.ENERC_KCAL)} ккал/100г
-                            </p>
-                          )}
+                          <div>
+                            <p className="font-medium text-gray-900">{food.label}</p>
+                            {food.originalLabel && food.originalLabel !== food.label && (
+                              <p className="text-xs text-gray-500">Оригінальна назва: {food.originalLabel}</p>
+                            )}
+                            {food.category && (
+                              <p className="text-sm text-gray-500">{food.category}</p>
+                            )}
+                            {food.nutrients?.ENERC_KCAL && (
+                              <p className="text-xs text-gray-400">
+                                {Math.round(food.nutrients.ENERC_KCAL)} ккал/100г
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFoodDetails(food.foodId);
+                            }}
+                            className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                          >
+                            <Info className="w-4 h-4" />
+                          </button>
+                          <Plus className="w-4 h-4 text-gray-400" />
                         </div>
                       </div>
-                      <Plus className="w-4 h-4 text-gray-400" />
-                    </div>
-                  </button>
+                    </button>
+                    
+                    {/* Detailed Food Information */}
+                    {showFoodDetails === food.foodId && (
+                      <div className="p-4 bg-gray-50 border-t border-gray-100">
+                        <h5 className="font-medium text-gray-900 mb-2">Поживна цінність (на 100г)</h5>
+                        <div className="grid grid-cols-2 gap-2">
+                          {food.nutrients?.ENERC_KCAL !== undefined && (
+                            <div className="bg-white p-2 rounded border border-gray-200">
+                              <p className="text-xs text-gray-500">Калорії</p>
+                              <p className="font-medium">{Math.round(food.nutrients.ENERC_KCAL)} ккал</p>
+                            </div>
+                          )}
+                          {food.nutrients?.PROCNT !== undefined && (
+                            <div className="bg-white p-2 rounded border border-gray-200">
+                              <p className="text-xs text-gray-500">Білки</p>
+                              <p className="font-medium">{Math.round(food.nutrients.PROCNT * 10) / 10} г</p>
+                            </div>
+                          )}
+                          {food.nutrients?.FAT !== undefined && (
+                            <div className="bg-white p-2 rounded border border-gray-200">
+                              <p className="text-xs text-gray-500">Жири</p>
+                              <p className="font-medium">{Math.round(food.nutrients.FAT * 10) / 10} г</p>
+                            </div>
+                          )}
+                          {food.nutrients?.CHOCDF !== undefined && (
+                            <div className="bg-white p-2 rounded border border-gray-200">
+                              <p className="text-xs text-gray-500">Вуглеводи</p>
+                              <p className="font-medium">{Math.round(food.nutrients.CHOCDF * 10) / 10} г</p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="mt-3 flex justify-end">
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => handleSelectFood(food)}
+                            leftIcon={<Plus className="w-3 h-3" />}
+                          >
+                            Додати інгредієнт
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             )}

@@ -179,6 +179,11 @@ class ApiClient {
   }
 
   private async handleResponse<T>(response: Response): Promise<T> {
+    // Handle rate limit errors (429)
+    if (response.status === 429) {
+      throw new Error('Перевищено ліміт запитів до API. Будь ласка, спробуйте пізніше.')
+    }
+    
     if (!response.ok) {
       // Handle 401 errors specially
       if (response.status === 401) {
@@ -191,22 +196,32 @@ class ApiClient {
         throw new Error('TOKEN_REFRESHED')
       }
 
-      const errorData = await response.json().catch(() => ({
-        error: 'Помилка мережі',
-        message: `HTTP ${response.status}: ${response.statusText}`,
-      }))
+      // Try to parse error response as JSON
+      try {
+        const errorData = await response.json()
+        const errorMessage = errorData.message || errorData.error || 'Невідома помилка'
+        throw new Error(errorMessage)
+      } catch (jsonError) {
+        // If JSON parsing fails, use status text
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+    }
+
+    // Try to parse response as JSON
+    try {
+      const data = await response.json()
       
-      const errorMessage = errorData.message || errorData.error || 'Невідома помилка'
-      throw new Error(errorMessage)
+      if (!data.success && data.error) {
+        throw new Error(data.message || data.error)
+      }
+      
+      return data
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        throw new Error('Отримано невалідний JSON від сервера')
+      }
+      throw error
     }
-
-    const data = await response.json()
-    
-    if (!data.success && data.error) {
-      throw new Error(data.message || data.error)
-    }
-
-    return data
   }
 
   private async makeRequest<T>(
@@ -266,6 +281,12 @@ class ApiClient {
         if (error.name === 'AbortError') {
           console.error(`API Request timeout (${options.method} ${endpoint})`)
           throw new Error('Запит перервано через таймаут. Перевірте з\'єднання з сервером.')
+        }
+        
+        // Handle rate limit errors
+        if (error.message.includes('rate limit exceeded') || error.message.includes('429')) {
+          console.error(`API Rate limit exceeded (${options.method} ${endpoint})`)
+          throw new Error('Перевищено ліміт запитів до API. Будь ласка, спробуйте пізніше.')
         }
         
         // Use console.warn for expected "not found" scenarios instead of console.error
