@@ -256,7 +256,7 @@ export class CategoryService {
 
     async getAllCategoriesForAdmin() {
         try {
-            // Get all categories with dish counts
+            // Get all categories with dish counts in a single query using a subquery
             const { data: categories, error: categoriesError } = await this.supabase
                 .from('dish_categories')
                 .select(`
@@ -295,8 +295,7 @@ export class CategoryService {
                 .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                 .slice(0, 5)
 
-            return {
-                success: true,
+            return this._handleSuccess({ 
                 categories: processedCategories,
                 stats: {
                     totalCategories,
@@ -305,7 +304,7 @@ export class CategoryService {
                     mostUsedCategories,
                     recentCategories
                 }
-            }
+            })
 
         } catch (error) {
             return this._handleError('Admin categories fetch', error)
