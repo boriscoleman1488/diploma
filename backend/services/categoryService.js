@@ -266,27 +266,10 @@ export class CategoryService {
                 return this._handleError('Admin categories fetch', error, CategoryService.ERRORS.FETCH_ERROR)
             }
 
-            // Then, for each category, count the number of dishes
-            const categoriesWithCount = await Promise.all(categories.map(async (category) => {
-                try {
-                    const { count, error: countError } = await this.supabase
-                        .from('dish_category_relations')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('category_id', category.id)
+           
 
-                    if (countError) {
-                        this.logger.warn(`Failed to get dish count for category ${category.id}`, { error: countError.message })
-                        return { ...category, dishes_count: 0 }
-                    }
+            return this._handleSuccess({ categories: categories || [] })
 
-                    return { ...category, dishes_count: count || 0 }
-                } catch (countError) {
-                    this.logger.warn(`Error getting dish count for category ${category.id}`, { error: countError.message })
-                    return { ...category, dishes_count: 0 }
-                }
-            }))
-
-            return this._handleSuccess({ categories: categoriesWithCount })
         } catch (error) {
             return this._handleError('Admin categories fetch', error)
         }

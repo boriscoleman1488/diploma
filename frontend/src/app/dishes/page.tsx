@@ -535,7 +535,7 @@ export default function DishesPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
@@ -576,22 +576,6 @@ export default function DishesPage() {
                 <p className="text-sm font-medium text-gray-600">На розгляді</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {dishes.filter(d => d.status === 'pending').length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Activity className="w-6 h-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">З аналізом калорій</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {dishes.filter(d => d.ingredients && d.ingredients.length > 0).length}
                 </p>
               </div>
             </div>

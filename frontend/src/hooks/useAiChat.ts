@@ -227,9 +227,10 @@ export function useAiChat() {
   const addIngredient = (ingredient: Ingredient) => {
     // Check if ingredient already exists
     if (selectedIngredients.some(ing => 
-      ing.foodId === ingredient.foodId || 
       ing.name.toLowerCase() === ingredient.name.toLowerCase()
+      
     )) {
+      console.log('Ingredient already exists:', ingredient)
       toast.error('Цей інгредієнт вже додано')
       return false
     }

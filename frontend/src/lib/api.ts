@@ -1,4 +1,5 @@
 import { AuthSession } from '@/types/auth'
+import { error } from 'console'
 
 // Use the backend URL for API requests
 const API_BASE_URL = 'http://localhost:3000/api'
@@ -203,7 +204,7 @@ class ApiClient {
         throw new Error(errorMessage)
       } catch (jsonError) {
         // If JSON parsing fails, use status text
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        throw new Error(response.statusText)
       }
     }
 

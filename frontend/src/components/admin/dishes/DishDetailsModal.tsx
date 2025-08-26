@@ -34,7 +34,7 @@ interface DishDetailsModalProps {
 }
 
 export function DishDetailsModal({ 
-  dish, 
+  dish,
   isOpen, 
   onClose, 
   onModerate, 
@@ -87,26 +87,6 @@ export function DishDetailsModal({
 
   const likesCount = dish.ratings?.filter(r => r.rating === 1 || r.rating === "1").length || 0
   const totalCookingTime = dish.steps?.reduce((total, step) => total + (step.duration_minutes || 0), 0) || 0
-
-  const getDishCategories = () => {
-    if (!dish.categories || !Array.isArray(dish.categories)) return []
-    
-    return dish.categories
-      .map(categoryRelation => {
-        if (categoryRelation && typeof categoryRelation === 'object') {
-          if (categoryRelation.dish_categories && categoryRelation.dish_categories.name) {
-            return categoryRelation.dish_categories
-          }
-          if (categoryRelation.name) {
-            return categoryRelation
-          }
-        }
-        return null
-      })
-      .filter(Boolean)
-  }
-
-  const dishCategories = getDishCategories()
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -219,7 +199,7 @@ export function DishDetailsModal({
               onClick={() => setActiveTab('ingredients')}
             >
               <List className="w-4 h-4 inline mr-1" />
-              Інгредієнти ({dish.ingredients?.length || 0})
+              Інгредієнти
             </button>
             <button
               className={`px-4 py-2 font-medium text-sm ${
@@ -230,7 +210,7 @@ export function DishDetailsModal({
               onClick={() => setActiveTab('steps')}
             >
               <FileText className="w-4 h-4 inline mr-1" />
-              Кроки ({dish.steps?.length || 0})
+              Кроки
             </button>
             <button
               className={`px-4 py-2 font-medium text-sm ${
@@ -241,7 +221,7 @@ export function DishDetailsModal({
               onClick={() => setActiveTab('categories')}
             >
               <Grid3X3 className="w-4 h-4 inline mr-1" />
-              Категорії ({dishCategories.length})
+              Категорії
             </button>
           </div>
 
@@ -321,10 +301,10 @@ export function DishDetailsModal({
                   <CardTitle>Інгредієнти</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {dish.ingredients && dish.ingredients.length > 0 ? (
+                  {dish.dish_ingredients && dish.dish_ingredients.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {dish.ingredients.map((ingredient, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      {dish.dish_ingredients.map((ingredient, index) => (
+                        <div key={ingredient.id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <span className="text-gray-900 font-medium">{ingredient.name}</span>
                           <span className="text-sm text-gray-600 bg-white px-2 py-1 rounded">
                             {ingredient.amount} {ingredient.unit}
@@ -345,9 +325,9 @@ export function DishDetailsModal({
                   <CardTitle>Кроки приготування</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {dish.steps && dish.steps.length > 0 ? (
+                  {dish.dish_steps && dish.dish_steps.length > 0 ? (
                     <div className="space-y-6">
-                      {dish.steps.map((step, index) => (
+                      {dish.dish_steps.map((step, index) => (
                         <div key={index} className="border border-gray-200 rounded-lg p-4">
                           <div className="flex items-center mb-3">
                             <div className="w-8 h-8 bg-primary-100 text-primary-800 rounded-full flex items-center justify-center text-sm font-medium mr-3">
@@ -390,18 +370,13 @@ export function DishDetailsModal({
                   <CardTitle>Категорії</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {dishCategories.length > 0 ? (
+                  {dish.categories && dish.categories.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
-                      {dishCategories.map((category, index) => (
+                      {dish.categories.map((category, index) => (
                         <div key={index} className="bg-primary-50 border border-primary-100 rounded-lg p-3">
                           <div className="font-medium text-primary-800">
-                            {category.dish_categories?.name || category.name}
+                            {category.name}
                           </div>
-                          {category.dish_categories?.description && (
-                            <div className="text-sm text-primary-600 mt-1">
-                              {category.dish_categories.description}
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>

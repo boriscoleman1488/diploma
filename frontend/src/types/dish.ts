@@ -12,8 +12,10 @@ export interface Dish {
   rejection_reason?: string
   
   // Relations
-  ingredients?: DishIngredient[]
+  //ingredients?: DishIngredient[]
+  dish_ingredients?: DishIngredient[] // Додано це поле
   steps?: DishStep[]
+  dish_steps?: DishStep[] // Додано це поле
   categories?: DishCategory[]
   ratings?: DishRating[]
   comments_count?: number

@@ -917,7 +917,9 @@ export class DishService {
                     dish_categories(id, name)
                 ),
                 dish_ratings(id, rating, profiles!user_id(full_name, profile_tag)),
-                dish_comments(content, created_at, profiles!user_id(full_name, profile_tag))
+                dish_comments(content, created_at, profiles!user_id(full_name, profile_tag)),
+                dish_ingredients(*),
+                dish_steps(*)
             `)
                 .eq('id', dishId)
                 .single()

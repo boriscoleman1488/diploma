@@ -48,7 +48,13 @@ export function CommentDetailsModal({
   if (!isOpen || !comment) return null
 
   const handleDelete = () => {
-    if (confirm(`Ви впевнені, що хочете видалити цей коментар? Ця дія незворотна.`)) {
+    if (confirm(`Ви впевнені, що хочете видалити цей коментар?`)) {
+      onDelete(comment.id)
+    }
+  }
+
+  const handleRestore= () => {
+    if (confirm(`Ви впевнені, що хочете відновити цей коментар?`)) {
       onDelete(comment.id)
     }
   }
@@ -162,7 +168,7 @@ export function CommentDetailsModal({
                 <div>
                   <p className="font-medium text-gray-900">Видалити коментар</p>
                   <p className="text-sm text-gray-500">
-                    Ця дія незворотна. Коментар буде позначено як видалений.
+                    Коментар буде позначено як видалений.
                   </p>
                 </div>
                 <div className="flex space-x-2">
@@ -178,6 +184,7 @@ export function CommentDetailsModal({
                   {comment.is_deleted && (
                     <Button
                       variant="outline"
+                      onClick={handleRestore}
                       disabled={isUpdating}
                       leftIcon={<Check className="w-5 h-5" />}
                       className="text-green-600 border-green-300 hover:bg-green-50"

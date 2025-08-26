@@ -11,7 +11,8 @@ import {
 } from 'lucide-react'
 
 interface CategoryTableProps {
-  categories: Category[]
+  categories: Category[],
+  stats?: any,
   isLoading: boolean
   isDeleting: string | null
   onEdit: (category: Category) => void
@@ -20,6 +21,7 @@ interface CategoryTableProps {
 
 export function CategoryTable({ 
   categories, 
+  stats,
   isLoading, 
   isDeleting, 
   onEdit, 
@@ -61,10 +63,6 @@ export function CategoryTable({
             </thead>
             <tbody>
               {categories.map((category) => {
-                // Ensure dishes_count is a number
-                const dishesCount = typeof category.dishes_count === 'number' ? category.dishes_count : 
-                                   typeof category.dishes_count === 'string' ? parseInt(category.dishes_count, 10) : 0;
-                
                 return (
                   <tr key={category.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-4 px-4">
@@ -79,7 +77,8 @@ export function CategoryTable({
                     <td className="py-4 px-4">
                       <div className="flex items-center">
                         <ChefHat className="w-4 h-4 mr-1 text-gray-400" />
-                        <span className="text-gray-900">{dishesCount}</span>
+                        <span className="text-gray-900">{}</span>
+
                       </div>
                     </td>
                     <td className="py-4 px-4 text-gray-600">
