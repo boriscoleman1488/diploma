@@ -257,18 +257,42 @@ export class CategoryService {
     async getAllCategoriesForAdmin() {
         try {
             // First, get all categories
-            const { data: categories, error } = await this.supabase
+            const { data: categories, categoriesError } = await this.supabase
                 .from('dish_categories')
                 .select('*')
                 .order('name')
 
-            if (error) {
-                return this._handleError('Admin categories fetch', error, CategoryService.ERRORS.FETCH_ERROR)
+            const { data: stats, error: statsError } = await this.supabase
+                .from('dish_categories')
+                .select('id, name, description, created_at, (SELECT COUNT(*) FROM dish_category_relations WHERE category_id = dish_categories.id) AS dishes_count')
+                .order('name')
+
+            if (categoriesError) {
+                return this._handleError('Admin categories fetch', categoriesError, CategoryService.ERRORS.FETCH_ERROR)
             }
 
-           
+            if (statsError) {
+                return this._handleError('Admin categories fetch', statsError, CategoryService.ERRORS.FETCH_ERROR)
+            }
 
-            return this._handleSuccess({ categories: categories || [] })
+            // Create an object with category IDs as keys and dish counts as values
+            const countDishesFromCategory = stats.reduce((acc, category) => {
+                acc[category.id] = parseInt(category.dishes_count) || 0;
+                return acc;
+            }, {});
+
+            // Count categories with no dishes
+            const countEmptyCategories = categories.filter(category => 
+                !countDishesFromCategory[category.id] || countDishesFromCategory[category.id] === 0
+            ).length;
+
+            return this._handleSuccess({ 
+                categories: categories || [],
+                stats: {
+                    countDishesFromCategory: countDishesFromCategory,
+                    countEmptyCategories: countEmptyCategories
+                }
+            })
 
         } catch (error) {
             return this._handleError('Admin categories fetch', error)

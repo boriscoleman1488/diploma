@@ -75,6 +75,15 @@ export const getCategoriesSchema = {
               created_at: { type: 'string' }
             }
           }
+        },
+        // count totalDishesFromCategory
+        //count emptycategory
+        stats: {
+          type: 'object',
+          properties: {
+            countDishesFromCategory: { type: 'integer' },
+            countEmptyCategories: { type: 'integer' }
+          }
         }
       }
     }
