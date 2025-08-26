@@ -310,7 +310,17 @@ class ApiClient {
   }
 
   async post<T>(endpoint: string, data?: any): Promise<T> {
+    return this.postWithOptions<T>(endpoint, data)
+  }
+
+  async postWithOptions<T>(endpoint: string, data?: any, options?: { headers?: HeadersInit }): Promise<T> {
     const headers = this.getAuthHeaders(!!data)
+    
+    // Merge custom headers if provided
+    if (options?.headers) {
+      Object.assign(headers, options.headers)
+    }
+    
     const body = data ? JSON.stringify(data) : undefined
 
     return this.makeRequest<T>(endpoint, {
