@@ -256,46 +256,41 @@ export class CategoryService {
 
     async getAllCategoriesForAdmin() {
         try {
-            // Get all categories with dish counts in a single query using a subquery
-            const { data: categories, error: categoriesError } = await this.supabase
+            // First, get all categories
+            const { data: categories, categoriesError } = await this.supabase
                 .from('dish_categories')
-                .select(`
-                    *,
-                    (
-                        SELECT COUNT(*)::int 
-                        FROM dish_category_relations 
-                        WHERE category_id = dish_categories.id
-                    ) as dishes_count
-                `)
+                .select('*')
+                .order('name')
+
+            const { data: stats, error: statsError } = await this.supabase
+                .from('dish_categories')
+                .select('id, name, description, created_at, (SELECT COUNT(*) FROM dish_category_relations WHERE category_id = dish_categories.id) AS dishes_count')
                 .order('name')
 
             if (categoriesError) {
                 return this._handleError('Admin categories fetch', categoriesError, CategoryService.ERRORS.FETCH_ERROR)
             }
 
-            // Calculate statistics from the fetched data
-            const totalCategories = categories.length
-            const totalDishes = categories.reduce((sum, category) => sum + (category.dishes_count || 0), 0)
-            const emptyCategories = categories.filter(category => (category.dishes_count || 0) === 0).length
-            
-            // Get most used categories (top 5)
-            const mostUsedCategories = [...categories]
-                .sort((a, b) => (b.dishes_count || 0) - (a.dishes_count || 0))
-                .slice(0, 5)
-            
-            // Get recently created categories (top 5)
-            const recentCategories = [...categories]
-                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                .slice(0, 5)
+            if (statsError) {
+                return this._handleError('Admin categories fetch', statsError, CategoryService.ERRORS.FETCH_ERROR)
+            }
+
+            // Create an object with category IDs as keys and dish counts as values
+            const countDishesFromCategory = stats.reduce((acc, category) => {
+                acc[category.id] = parseInt(category.dishes_count) || 0;
+                return acc;
+            }, {});
+
+            // Count categories with no dishes
+            const countEmptyCategories = categories.filter(category => 
+                !countDishesFromCategory[category.id] || countDishesFromCategory[category.id] === 0
+            ).length;
 
             return this._handleSuccess({ 
                 categories: categories || [],
                 stats: {
-                    totalCategories,
-                    totalDishes,
-                    emptyCategories,
-                    mostUsedCategories,
-                    recentCategories
+                    countDishesFromCategory: countDishesFromCategory,
+                    countEmptyCategories: countEmptyCategories
                 }
             })
 
@@ -350,14 +345,53 @@ export class CategoryService {
 
     async getCategoryStats() {
         try {
-            // Use the optimized getAllCategoriesForAdmin method which already includes stats
-            const result = await this.getAllCategoriesForAdmin()
+            // Get all categories with dish counts
+            const { categories } = await this.getAllCategoriesForAdmin()
             
-            if (!result.success) {
-                return result
+            if (!categories) {
+                return this._handleError('Category stats fetch', new Error('Failed to fetch categories'))
             }
             
-            return this._handleSuccess({ stats: result.stats })
+            // Calculate total dishes
+            const totalDishes = categories.reduce((sum, category) => {
+                // Ensure dishes_count is a number
+                const dishesCount = typeof category.dishes_count === 'number' ? category.dishes_count : 
+                                   typeof category.dishes_count === 'string' ? parseInt(category.dishes_count, 10) : 0;
+                return sum + dishesCount;
+            }, 0)
+            
+            // Calculate empty categories
+            const emptyCategories = categories.filter(category => {
+                const dishesCount = typeof category.dishes_count === 'number' ? category.dishes_count : 
+                                   typeof category.dishes_count === 'string' ? parseInt(category.dishes_count, 10) : 0;
+                return dishesCount === 0;
+            }).length
+            
+            // Get most used categories (top 5)
+            const mostUsedCategories = [...categories]
+                .sort((a, b) => {
+                    const aCount = typeof a.dishes_count === 'number' ? a.dishes_count : 
+                                  typeof a.dishes_count === 'string' ? parseInt(a.dishes_count, 10) : 0;
+                    const bCount = typeof b.dishes_count === 'number' ? b.dishes_count : 
+                                  typeof b.dishes_count === 'string' ? parseInt(b.dishes_count, 10) : 0;
+                    return bCount - aCount;
+                })
+                .slice(0, 5)
+            
+            // Get recently created categories (top 5)
+            const recentCategories = [...categories]
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                .slice(0, 5)
+            
+            const stats = {
+                totalCategories: categories.length,
+                totalDishes,
+                emptyCategories,
+                mostUsedCategories,
+                recentCategories
+            }
+            
+            return this._handleSuccess({ stats })
         } catch (error) {
             return this._handleError('Category stats fetch', error)
         }
