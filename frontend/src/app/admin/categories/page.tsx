@@ -34,9 +34,9 @@ export default function AdminCategoriesPage() {
 
       {/* Stats */}
       <CategoryStatsCards 
-        totalCategories={stats?.totalCategories || categories.length}
-        totalDishes={stats?.totalDishes || categories.reduce((sum, cat) => sum + (cat.dishes_count || 0), 0)}
-        emptyCategories={stats?.emptyCategories || categories.filter(cat => (cat.dishes_count || 0) === 0).length}
+        totalCategories={stats?.totalCategories || 0}
+        totalDishes={stats?.totalDishes || 0}
+        emptyCategories={stats?.emptyCategories || 0}
       />
 
       {/* Search */}
