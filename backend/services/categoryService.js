@@ -261,11 +261,7 @@ export class CategoryService {
                 .from('dish_categories')
                 .select(`
                     *,
-                    (
-                        SELECT COUNT(*)::int 
-                        FROM dish_category_relations 
-                        WHERE category_id = dish_categories.id
-                    ) as dishes_count
+                    dish_category_relations(count)
                 `)
                 .order('name')
 
@@ -273,23 +269,34 @@ export class CategoryService {
                 return this._handleError('Admin categories fetch', categoriesError, CategoryService.ERRORS.FETCH_ERROR)
             }
 
-            // Calculate statistics from the fetched data
-            const totalCategories = categories.length
-            const totalDishes = categories.reduce((sum, category) => sum + (category.dishes_count || 0), 0)
-            const emptyCategories = categories.filter(category => (category.dishes_count || 0) === 0).length
+            // Process categories to add dishes_count
+            const processedCategories = (categories || []).map(category => ({
+                ...category,
+                dishes_count: category.dish_category_relations?.length || 0
+            }))
+
+            // Remove the nested relation data
+            processedCategories.forEach(category => {
+                delete category.dish_category_relations
+            })
+
+            // Calculate statistics from the processed data
+            const totalCategories = processedCategories.length
+            const totalDishes = processedCategories.reduce((sum, category) => sum + (category.dishes_count || 0), 0)
+            const emptyCategories = processedCategories.filter(category => (category.dishes_count || 0) === 0).length
             
             // Get most used categories (top 5)
-            const mostUsedCategories = [...categories]
+            const mostUsedCategories = [...processedCategories]
                 .sort((a, b) => (b.dishes_count || 0) - (a.dishes_count || 0))
                 .slice(0, 5)
             
             // Get recently created categories (top 5)
-            const recentCategories = [...categories]
+            const recentCategories = [...processedCategories]
                 .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                 .slice(0, 5)
 
             return this._handleSuccess({ 
-                categories: categories || [],
+                categories: processedCategories,
                 stats: {
                     totalCategories,
                     totalDishes,
