@@ -256,42 +256,29 @@ export class CategoryService {
 
     async getAllCategoriesForAdmin() {
         try {
-            // First, get all categories
-            const { data: categories, categoriesError } = await this.supabase
+            // Get all categories with dish counts in a single query using a subquery
+            const { data: categories, error: categoriesError } = await this.supabase
                 .from('dish_categories')
                 .select('*')
                 .order('name')
 
-            const { data: stats, error: statsError } = await this.supabase
-                .from('dish_categories')
-                .select('id, name, description, created_at, (SELECT COUNT(*) FROM dish_category_relations WHERE category_id = dish_categories.id) AS dishes_count')
-                .order('name')
+            // Then, get all dishes categories
+            const { data: dishesCategories, dishesCategoriesError } = await this.supabase
+                .from('dish_category_relations')
+                .select('*')
+                .order('category_id')
 
             if (categoriesError) {
                 return this._handleError('Admin categories fetch', categoriesError, CategoryService.ERRORS.FETCH_ERROR)
             }
 
-            if (statsError) {
-                return this._handleError('Admin categories fetch', statsError, CategoryService.ERRORS.FETCH_ERROR)
+            if (dishesCategoriesError) {
+                return this._handleError('Admin dishes categories fetch', dishesCategoriesError, CategoryService.ERRORS.FETCH_ERROR)
             }
-
-            // Create an object with category IDs as keys and dish counts as values
-            const countDishesFromCategory = stats.reduce((acc, category) => {
-                acc[category.id] = parseInt(category.dishes_count) || 0;
-                return acc;
-            }, {});
-
-            // Count categories with no dishes
-            const countEmptyCategories = categories.filter(category => 
-                !countDishesFromCategory[category.id] || countDishesFromCategory[category.id] === 0
-            ).length;
 
             return this._handleSuccess({ 
                 categories: categories || [],
-                stats: {
-                    countDishesFromCategory: countDishesFromCategory,
-                    countEmptyCategories: countEmptyCategories
-                }
+                dishesCategories: dishesCategories || []
             })
 
         } catch (error) {
@@ -299,96 +286,26 @@ export class CategoryService {
         }
     }
 
-    async getCategoryDetails(categoryId) {
-        try {
-            const { data: category, error } = await this.supabase
-                .from('dish_categories')
-                .select(`
-                    *,
-                    dish_category_relations(
-                        dish_id,
-                        dishes(
-                            id,
-                            name,
-                            description,
-                            image_url
-                        )
-                    )
-                `)
-                .eq('id', categoryId)
-                .single()
-
-            if (error) {
-                if (error.code === 'PGRST116') {
-                    return {
-                        success: false,
-                        error: CategoryService.ERRORS.CATEGORY_NOT_FOUND,
-                        message: CategoryService.MESSAGES.CATEGORY_NOT_FOUND
-                    }
-                }
-                return this._handleError('Category details fetch', error, CategoryService.ERRORS.FETCH_ERROR)
-            }
-
-            const categoryDetails = {
-                ...category,
-                dishes: category.dish_category_relations?.map(rel => rel.dishes) || [],
-                dishes_count: category.dish_category_relations?.length || 0
-            }
-
-            delete categoryDetails.dish_category_relations
-
-            return this._handleSuccess({ category: categoryDetails })
-        } catch (error) {
-            return this._handleError('Category details fetch', error)
-        }
-    }
-
     async getCategoryStats() {
         try {
-            // Get all categories with dish counts
-            const { categories } = await this.getAllCategoriesForAdmin()
+            const { categories, dishesCategories } = await this.getAllCategoriesForAdmin()
             
             if (!categories) {
-                return this._handleError('Category stats fetch', new Error('Failed to fetch categories'))
+                return this._handleError('Category stats fetch', new Error('Не вдалося отримати категорії'))
+            }
+
+            if (!dishesCategories) {
+                return this._handleError('Category stats fetch', new Error('Не вдалося отримати категорії'))
             }
             
-            // Calculate total dishes
-            const totalDishes = categories.reduce((sum, category) => {
-                // Ensure dishes_count is a number
-                const dishesCount = typeof category.dishes_count === 'number' ? category.dishes_count : 
-                                   typeof category.dishes_count === 'string' ? parseInt(category.dishes_count, 10) : 0;
-                return sum + dishesCount;
-            }, 0)
-            
-            // Calculate empty categories
-            const emptyCategories = categories.filter(category => {
-                const dishesCount = typeof category.dishes_count === 'number' ? category.dishes_count : 
-                                   typeof category.dishes_count === 'string' ? parseInt(category.dishes_count, 10) : 0;
-                return dishesCount === 0;
-            }).length
-            
-            // Get most used categories (top 5)
-            const mostUsedCategories = [...categories]
-                .sort((a, b) => {
-                    const aCount = typeof a.dishes_count === 'number' ? a.dishes_count : 
-                                  typeof a.dishes_count === 'string' ? parseInt(a.dishes_count, 10) : 0;
-                    const bCount = typeof b.dishes_count === 'number' ? b.dishes_count : 
-                                  typeof b.dishes_count === 'string' ? parseInt(b.dishes_count, 10) : 0;
-                    return bCount - aCount;
-                })
-                .slice(0, 5)
-            
-            // Get recently created categories (top 5)
-            const recentCategories = [...categories]
-                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                .slice(0, 5)
+            //Calculate total dishes from all categories
+            const totalDishes = dishesCategories.length  
             
             const stats = {
+                categories: categories,
+                dishesCategories:dishesCategories,
                 totalCategories: categories.length,
-                totalDishes,
-                emptyCategories,
-                mostUsedCategories,
-                recentCategories
+                totalDishes: totalDishes,
             }
             
             return this._handleSuccess({ stats })

@@ -16,8 +16,7 @@ interface StatsSectionProps {
 export function StatsSection({ 
   totalDishes, 
   approvedDishes, 
-  totalChefs, 
-  dishesWithNutrition 
+  totalChefs
 }: StatsSectionProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6 mb-8">

@@ -15,7 +15,6 @@ export function useAdminCategories() {
   const [categories, setCategories] = useState<Category[]>([])
   const [stats, setStats] = useState<CategoryStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isLoadingStats, setIsLoadingStats] = useState(true)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([])
@@ -27,55 +26,19 @@ export function useAdminCategories() {
     setIsLoading(true)
     try {
       const response = await apiClient.get('/admin/categories')
-      if (response.success && response.categories) {
-        // Ensure dishes_count is a number for each category
-        const categoriesWithCounts = response.categories.map(category => ({
-          ...category,
-          dishes_count: typeof category.dishes_count === 'number' ? category.dishes_count : 
-                        typeof category.dishes_count === 'string' ? parseInt(category.dishes_count, 10) : 0
-        }));
+      if (response.success) {
+        const categoriesData = response.categories || []
+        const statsData = response.stats || null
         
-        setCategories(categoriesWithCounts)
-        setFilteredCategories(categoriesWithCounts)
+        setCategories(categoriesData)
+        setFilteredCategories(categoriesData)
+        setStats(statsData)
       }
     } catch (error) {
       console.error('Failed to fetch categories:', error)
       toast.error(error instanceof Error ? error.message : 'Не вдалося завантажити категорії')
     } finally {
       setIsLoading(false)
-    }
-  }, [])
-
-  const fetchCategoryStats = useCallback(async () => {
-    setIsLoadingStats(true)
-    try {
-      const response = await apiClient.get('/admin/categories/stats')
-      if (response.success && response.stats) {
-        // Ensure all numeric values are properly parsed
-        const parsedStats = {
-          ...response.stats,
-          totalCategories: Number(response.stats.totalCategories),
-          totalDishes: Number(response.stats.totalDishes),
-          emptyCategories: Number(response.stats.emptyCategories),
-          mostUsedCategories: response.stats.mostUsedCategories.map((cat: any) => ({
-            ...cat,
-            dishes_count: typeof cat.dishes_count === 'number' ? cat.dishes_count : 
-                          typeof cat.dishes_count === 'string' ? parseInt(cat.dishes_count, 10) : 0
-          })),
-          recentCategories: response.stats.recentCategories.map((cat: any) => ({
-            ...cat,
-            dishes_count: typeof cat.dishes_count === 'number' ? cat.dishes_count : 
-                          typeof cat.dishes_count === 'string' ? parseInt(cat.dishes_count, 10) : 0
-          }))
-        };
-        
-        setStats(parsedStats)
-      }
-    } catch (error) {
-      console.error('Failed to fetch category stats:', error)
-      // Don't show error toast for stats as it's not critical
-    } finally {
-      setIsLoadingStats(false)
     }
   }, [])
 
@@ -90,7 +53,6 @@ export function useAdminCategories() {
       if (response.success) {
         toast.success('Категорію успішно видалено')
         fetchCategories()
-        fetchCategoryStats()
         return true
       } else {
         toast.error(response.error || 'Не вдалося видалити категорію')
@@ -103,7 +65,7 @@ export function useAdminCategories() {
     } finally {
       setIsDeleting(null)
     }
-  }, [fetchCategories, fetchCategoryStats])
+  }, [fetchCategories])
 
   const handleEditCategory = useCallback((category: Category) => {
     setEditingCategory(category)
@@ -128,18 +90,16 @@ export function useAdminCategories() {
     }
   }, [searchQuery, categories])
 
-  // Fetch categories and stats on mount
+  // Fetch categories on mount
   useEffect(() => {
     fetchCategories()
-    fetchCategoryStats()
-  }, [fetchCategories, fetchCategoryStats])
+  }, [fetchCategories])
 
   return {
     categories,
     filteredCategories,
     stats,
     isLoading,
-    isLoadingStats,
     isDeleting,
     searchQuery,
     showCreateModal,
@@ -150,7 +110,6 @@ export function useAdminCategories() {
     handleDeleteCategory,
     handleEditCategory,
     handleCloseEditModal,
-    fetchCategories,
-    fetchCategoryStats
+    fetchCategories
   }
 }
