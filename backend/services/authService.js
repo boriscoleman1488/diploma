@@ -442,20 +442,49 @@ export class AuthService {
         try {
             this.logger.info('Resetting password', { tokenLength: token.length, type })
             
-            // Use the token to update the password
-            const { data, error } = await this.supabase.auth.updateUser({
+            // First, get the user from the token to verify it's valid
+            const { data: { user }, error: getUserError } = await this.supabase.auth.getUser(token)
+            
+            if (getUserError || !user) {
+                this.logger.error('Invalid reset token', { error: getUserError?.message })
+                return {
+                    success: false,
+                    error: 'Invalid or expired reset token',
+                    message: 'Токен для скидання пароля недійсний або закінчився термін його дії'
+                }
+            }
+            
+            // Create a temporary client with the reset token
+            const { createClient } = await import('@supabase/supabase-js')
+            const tempClient = createClient(
+                process.env.SUPABASE_URL,
+                process.env.SUPABASE_ANON_KEY,
+                {
+                    global: {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                }
+            )
+            
+            // Use the temporary client to update the password
+            const { data, error } = await tempClient.auth.updateUser({
                 password: password
             })
 
             if (error) {
+                this.logger.error('Password reset failed', { error: error.message })
                 return this._handleError('Password reset', error)
             }
 
+            this.logger.info('Password reset successful', { userId: user.id })
             return this._handleSuccess('Password reset', 
                 { message: 'Пароль успішно змінено' }
             )
 
         } catch (error) {
+            this.logger.error('Password reset exception', { error: error.message })
             return this._handleError('Password reset', error)
         }
     }

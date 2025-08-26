@@ -121,24 +121,14 @@ export function useAuth() {
     try {
       console.log('Resetting password with token length:', token.length)
       
-      // For Supabase, we need to use the access_token as the token
-      // Create a session object with the token
-      const now = Math.floor(Date.now() / 1000);
-      const session: AuthSession = {
-        access_token: token,
-        refresh_token: '', // Not needed for password reset
-        expires_at: now + 3600, // 1 hour from now
-        expires_in: 3600,
-        token_type: 'bearer'
-      };
-      
-      // Set the session in the auth store
-      setSession(session);
-      
-      // Now make the API call to reset the password
-      const response = await apiClient.post('/auth/reset-password', { 
+      // Make the API call to reset the password with the token in Authorization header
+      const response = await apiClient.postWithOptions('/auth/reset-password', { 
         password,
         type: 'recovery'
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       
       if (response.success) {
