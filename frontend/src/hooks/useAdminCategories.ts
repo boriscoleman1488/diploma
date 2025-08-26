@@ -28,15 +28,8 @@ export function useAdminCategories() {
     try {
       const response = await apiClient.get('/admin/categories')
       if (response.success && response.categories) {
-        // Ensure dishes_count is a number for each category
-        const categoriesWithCounts = response.categories.map(category => ({
-          ...category,
-          dishes_count: typeof category.dishes_count === 'number' ? category.dishes_count : 
-                        typeof category.dishes_count === 'string' ? parseInt(category.dishes_count, 10) : 0
-        }));
-        
-        setCategories(categoriesWithCounts)
-        setFilteredCategories(categoriesWithCounts)
+        setCategories(response.categories)
+        setFilteredCategories(response.categories)
       }
     } catch (error) {
       console.error('Failed to fetch categories:', error)
@@ -51,25 +44,7 @@ export function useAdminCategories() {
     try {
       const response = await apiClient.get('/admin/categories/stats')
       if (response.success && response.stats) {
-        // Ensure all numeric values are properly parsed
-        const parsedStats = {
-          ...response.stats,
-          totalCategories: Number(response.stats.totalCategories),
-          totalDishes: Number(response.stats.totalDishes),
-          emptyCategories: Number(response.stats.emptyCategories),
-          mostUsedCategories: response.stats.mostUsedCategories.map((cat: any) => ({
-            ...cat,
-            dishes_count: typeof cat.dishes_count === 'number' ? cat.dishes_count : 
-                          typeof cat.dishes_count === 'string' ? parseInt(cat.dishes_count, 10) : 0
-          })),
-          recentCategories: response.stats.recentCategories.map((cat: any) => ({
-            ...cat,
-            dishes_count: typeof cat.dishes_count === 'number' ? cat.dishes_count : 
-                          typeof cat.dishes_count === 'string' ? parseInt(cat.dishes_count, 10) : 0
-          }))
-        };
-        
-        setStats(parsedStats)
+        setStats(response.stats)
       }
     } catch (error) {
       console.error('Failed to fetch category stats:', error)
