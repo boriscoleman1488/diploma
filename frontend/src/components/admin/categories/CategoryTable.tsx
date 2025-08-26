@@ -77,7 +77,8 @@ export function CategoryTable({
                     <td className="py-4 px-4">
                       <div className="flex items-center">
                         <ChefHat className="w-4 h-4 mr-1 text-gray-400" />
-                        <span className="text-gray-900">{category.dishes_count || 0}</span>
+                        <span className="text-gray-900">{}</span>
+
                       </div>
                     </td>
                     <td className="py-4 px-4 text-gray-600">

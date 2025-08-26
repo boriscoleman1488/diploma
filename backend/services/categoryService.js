@@ -256,39 +256,41 @@ export class CategoryService {
 
     async getAllCategoriesForAdmin() {
         try {
-            // Get all categories with dish counts
-            const { data: categories, error: categoriesError } = await this.supabase
+            // First, get all categories
+            const { data: categories, categoriesError } = await this.supabase
                 .from('dish_categories')
-                .select(`
-                    *,
-                    dish_category_relations(count)
-                `)
+                .select('*')
+                .order('name')
+
+            const { data: stats, error: statsError } = await this.supabase
+                .from('dish_categories')
+                .select('id, name, description, created_at, (SELECT COUNT(*) FROM dish_category_relations WHERE category_id = dish_categories.id) AS dishes_count')
                 .order('name')
 
             if (categoriesError) {
                 return this._handleError('Admin categories fetch', categoriesError, CategoryService.ERRORS.FETCH_ERROR)
             }
 
-            // Process categories to add dish count
-            const processedCategories = (categories || []).map(category => ({
-                ...category,
-                dishes_count: category.dish_category_relations?.length || 0
-            }))
+            if (statsError) {
+                return this._handleError('Admin categories fetch', statsError, CategoryService.ERRORS.FETCH_ERROR)
+            }
 
-            // Remove the relations array as we don't need it in the response
-            processedCategories.forEach(category => {
-                delete category.dish_category_relations
-            })
+            // Create an object with category IDs as keys and dish counts as values
+            const countDishesFromCategory = stats.reduce((acc, category) => {
+                acc[category.id] = parseInt(category.dishes_count) || 0;
+                return acc;
+            }, {});
 
-            // Calculate stats
-            const totalDishes = processedCategories.reduce((sum, category) => sum + category.dishes_count, 0)
-            const emptyCategories = processedCategories.filter(category => category.dishes_count === 0).length
+            // Count categories with no dishes
+            const countEmptyCategories = categories.filter(category => 
+                !countDishesFromCategory[category.id] || countDishesFromCategory[category.id] === 0
+            ).length;
 
             return this._handleSuccess({ 
-                categories: processedCategories,
+                categories: categories || [],
                 stats: {
-                    totalDishes,
-                    emptyCategories
+                    countDishesFromCategory: countDishesFromCategory,
+                    countEmptyCategories: countEmptyCategories
                 }
             })
 
