@@ -22,10 +22,7 @@ export default async function categoryAdminRoutes(fastify, options) {
                 })
             }
 
-            return {
-                success: true,
-                categories: result.categories
-            }
+            return result
         } catch (error) {
             fastify.log.error('Admin categories fetch error', { error: error.message })
             return reply.code(500).send({
