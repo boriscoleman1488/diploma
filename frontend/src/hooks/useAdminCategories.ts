@@ -14,6 +14,7 @@ interface CategoryStats {
 export function useAdminCategories() {
   const [categories, setCategories] = useState<Category[]>([])
   const [stats, setStats] = useState<CategoryStats | null>(null)
+  const [dishesFromCategory, setDishesFromCategory] = useState<Record<string, number>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -27,12 +28,18 @@ export function useAdminCategories() {
     try {
       const response = await apiClient.get('/admin/categories')
       if (response.success) {
-        const categoriesData = response.categories || []
-        const statsData = response.stats || []
+        setCategories(response.categories || [])
+        setFilteredCategories(response.categories || [])
+        setDishesFromCategory(response.dishesFromCategory || {})
         
-        setCategories(categoriesData)
-        setFilteredCategories(categoriesData)
-        setStats(statsData)
+        // Set stats from the response data
+        setStats({
+          totalCategories: response.totalCategories || 0,
+          totalDishes: response.totalDishes || 0,
+          emptyCategories: response.emptyCategories || 0,
+          mostUsedCategories: [],
+          recentCategories: []
+        })
       }
     } catch (error) {
       console.error('Failed to fetch categories:', error)
@@ -99,6 +106,7 @@ export function useAdminCategories() {
     categories,
     filteredCategories,
     stats,
+    dishesFromCategory,
     isLoading,
     isDeleting,
     searchQuery,
