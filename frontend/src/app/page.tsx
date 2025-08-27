@@ -31,6 +31,8 @@ export default function HomePage() {
     hasNutrition,
     selectedDish,
     showDetailsModal,
+    ratingFilter,
+    stepsFilter,
     setSearchQuery,
     setSelectedCategory,
     setSortBy,
@@ -38,6 +40,8 @@ export default function HomePage() {
     setServingsCount,
     setHasNutrition,
     resetFilters,
+    setRatingFilter,
+    setStepsFilter,
     viewDishDetails,
     closeDetailsModal
   } = useDishes()
@@ -56,7 +60,7 @@ export default function HomePage() {
   const dishesWithNutrition = dishes.filter(d => d.ingredients && d.ingredients.length > 0).length
 
   const hasFilters = !!(searchQuery || selectedCategory || sortBy !== 'newest' || 
-                      cookingTime || servingsCount || hasNutrition)
+                      cookingTime || servingsCount || hasNutrition || ratingFilter || stepsFilter)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -86,6 +90,10 @@ export default function HomePage() {
           hasNutrition={hasNutrition}
           setHasNutrition={setHasNutrition}
           onReset={resetFilters}
+          ratingFilter={ratingFilter}
+          setRatingFilter={setRatingFilter}
+          stepsFilter={stepsFilter}
+          setStepsFilter={setStepsFilter}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           searchInputRef={searchInputRef}
