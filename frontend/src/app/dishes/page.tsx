@@ -534,7 +534,7 @@ export default function DishesPage() {
         </div>
       </div>
 
-      {/* Stats */}
+      {/*
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardContent className="p-6">
@@ -582,6 +582,7 @@ export default function DishesPage() {
           </CardContent>
         </Card>
       </div>
+      }
 
       {/* Filters */}
       <Card>

@@ -13,6 +13,7 @@ export default function AdminCategoriesPage() {
     categories,
     filteredCategories,
     stats,
+    dishesFromCategory,
     isLoading,
     isDeleting,
     searchQuery,
@@ -33,11 +34,7 @@ export default function AdminCategoriesPage() {
       <CategoryHeader onCreateClick={() => setShowCreateModal(true)} />
 
       {/* Stats */}
-      <CategoryStatsCards 
-        totalCategories={stats?.totalCategories || categories.length}
-        totalDishes={stats?.totalDishes || 0}
-        emptyCategories={stats?.emptyCategories || categories.filter(cat => (cat.dishes_count || 0) === 0).length}
-      />
+      <CategoryStatsCards stats={stats} />
 
       {/* Search */}
       <CategorySearch 
@@ -52,6 +49,7 @@ export default function AdminCategoriesPage() {
         isDeleting={isDeleting}
         onEdit={handleEditCategory}
         onDelete={handleDeleteCategory}
+        dishesFromCategory={dishesFromCategory}
       />
 
       {/* Create Category Modal */}

@@ -10,7 +10,6 @@ interface StatsSectionProps {
   totalDishes: number
   approvedDishes: number
   totalChefs: number
-  dishesWithNutrition: number
 }
 
 export function StatsSection({ 

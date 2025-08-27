@@ -97,7 +97,6 @@ export function Filters({
                 >
                   <option value="newest">Найновіші</option>
                   <option value="oldest">Найстаріші</option>
-                  <option value="popular">Найпопулярніші</option>
                   <option value="rating">За рейтингом</option>
                 </select>
               </div>

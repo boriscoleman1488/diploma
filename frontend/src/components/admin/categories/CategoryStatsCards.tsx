@@ -6,16 +6,16 @@ import {
 } from 'lucide-react'
 
 interface CategoryStatsCardsProps {
-  totalCategories: number
-  totalDishes: number
-  emptyCategories: number
+  stats: {
+    totalCategories: number
+    totalDishes: number
+    emptyCategories: number
+  } | null
 }
 
-export function CategoryStatsCards({ 
-  totalCategories, 
-  totalDishes, 
-  emptyCategories 
-}: CategoryStatsCardsProps) {
+export function CategoryStatsCards({ stats }: CategoryStatsCardsProps) {
+  if (!stats) return null
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <Card>
@@ -24,7 +24,7 @@ export function CategoryStatsCards({
             <Grid3X3 className="w-8 h-8 text-primary-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Всього категорій</p>
-              <p className="text-2xl font-bold text-gray-900">{totalCategories}</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalCategories}</p>
             </div>
           </div>
         </CardContent>
@@ -36,7 +36,7 @@ export function CategoryStatsCards({
             <ChefHat className="w-8 h-8 text-green-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Всього страв</p>
-              <p className="text-2xl font-bold text-gray-900">{totalDishes}</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalDishes}</p>
             </div>
           </div>
         </CardContent>
@@ -48,7 +48,7 @@ export function CategoryStatsCards({
             <AlertTriangle className="w-8 h-8 text-yellow-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Порожні категорії</p>
-              <p className="text-2xl font-bold text-gray-900">{emptyCategories}</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.emptyCategories}</p>
             </div>
           </div>
         </CardContent>
