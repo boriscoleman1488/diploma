@@ -9,6 +9,8 @@ interface UseDishesOptions {
   initialCookingTime?: string
   initialServingsCount?: string
   initialHasNutrition?: boolean
+  initialRatingFilter?: string
+  initialStepsFilter?: string
 }
 
 export function useDishes(options: UseDishesOptions = {}) {
@@ -21,6 +23,8 @@ export function useDishes(options: UseDishesOptions = {}) {
   const [cookingTime, setCookingTime] = useState(options.initialCookingTime || '')
   const [servingsCount, setServingsCount] = useState(options.initialServingsCount || '')
   const [hasNutrition, setHasNutrition] = useState(options.initialHasNutrition || false)
+  const [ratingFilter, setRatingFilter] = useState(options.initialRatingFilter || '')
+  const [stepsFilter, setStepsFilter] = useState(options.initialStepsFilter || '')
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
 
@@ -61,8 +65,37 @@ export function useDishes(options: UseDishesOptions = {}) {
       filtered = filtered.filter(dish =>
         dish.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         dish.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        dish.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
+        dish.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        dish.profiles?.profile_tag?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        dish.profiles?.email?.toLowerCase().includes(searchQuery.toLowerCase())
       )
+    }
+
+    // Filter by rating/likes
+    if (ratingFilter) {
+      filtered = filtered.filter(dish => {
+        const likesCount = dish.ratings?.filter(r => r.rating === 1 || r.rating === "1").length || 0
+        
+        if (ratingFilter === 'no-likes') return likesCount === 0
+        if (ratingFilter === 'few-likes') return likesCount >= 1 && likesCount <= 5
+        if (ratingFilter === 'popular') return likesCount >= 6 && likesCount <= 15
+        if (ratingFilter === 'very-popular') return likesCount > 15
+        
+        return true
+      })
+    }
+
+    // Filter by number of steps
+    if (stepsFilter) {
+      filtered = filtered.filter(dish => {
+        const stepsCount = dish.steps?.length || 0
+        
+        if (stepsFilter === 'simple') return stepsCount >= 1 && stepsCount <= 3
+        if (stepsFilter === 'medium') return stepsCount >= 4 && stepsCount <= 7
+        if (stepsFilter === 'complex') return stepsCount >= 8
+        
+        return true
+      })
     }
 
     // Filter by cooking time
@@ -124,7 +157,7 @@ export function useDishes(options: UseDishesOptions = {}) {
     }
 
     setFilteredDishes(filtered)
-  }, [dishes, searchQuery, sortBy, cookingTime, servingsCount, hasNutrition])
+  }, [dishes, searchQuery, sortBy, cookingTime, servingsCount, hasNutrition, ratingFilter, stepsFilter])
 
   const resetFilters = useCallback(() => {
     setSearchQuery('')
@@ -133,6 +166,8 @@ export function useDishes(options: UseDishesOptions = {}) {
     setCookingTime('')
     setServingsCount('')
     setHasNutrition(false)
+    setRatingFilter('')
+    setStepsFilter('')
   }, [])
 
   const viewDishDetails = useCallback(async (dishId: string) => {
@@ -164,7 +199,7 @@ export function useDishes(options: UseDishesOptions = {}) {
   // Apply filters when any filter changes or dishes change
   useEffect(() => {
     applyFilters()
-  }, [dishes, searchQuery, sortBy, cookingTime, servingsCount, hasNutrition, applyFilters])
+  }, [dishes, searchQuery, sortBy, cookingTime, servingsCount, hasNutrition, ratingFilter, stepsFilter, applyFilters])
 
   return {
     dishes,
@@ -178,6 +213,8 @@ export function useDishes(options: UseDishesOptions = {}) {
     hasNutrition,
     selectedDish,
     showDetailsModal,
+    ratingFilter,
+    stepsFilter,
     setSearchQuery,
     setSelectedCategory,
     setSortBy,
@@ -185,6 +222,8 @@ export function useDishes(options: UseDishesOptions = {}) {
     setServingsCount,
     setHasNutrition,
     resetFilters,
+    setRatingFilter,
+    setStepsFilter,
     viewDishDetails,
     closeDetailsModal
   }
