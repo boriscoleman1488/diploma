@@ -28,7 +28,7 @@ export function useAdminCategories() {
       const response = await apiClient.get('/admin/categories')
       if (response.success) {
         const categoriesData = response.categories || []
-        const statsData = response.stats || null
+        const statsData = response.stats || []
         
         setCategories(categoriesData)
         setFilteredCategories(categoriesData)

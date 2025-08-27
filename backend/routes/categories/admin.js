@@ -24,7 +24,12 @@ export default async function categoryAdminRoutes(fastify, options) {
 
             return {
                 success: true,
-                categories: result.categories
+                categories: result.categories,
+                dishesCategories: result.dishesCategories,
+                totalDishes: result.totalDishes,
+                totalCategories: result.totalCategories,
+                emptyCategories: result.emptyCategories,
+                dishesFromCategory: result.dishesFromCategory,
             }
         } catch (error) {
             fastify.log.error('Admin categories fetch error', { error: error.message })

@@ -276,9 +276,23 @@ export class CategoryService {
                 return this._handleError('Admin dishes categories fetch', dishesCategoriesError, CategoryService.ERRORS.FETCH_ERROR)
             }
 
+            // Calculate total dishes from all categories
+            const totalDishes = dishesCategories.length  
+            
+            const emptyCategories = categories.filter(category => !dishesCategories.some(dishCategory => dishCategory.category_id === category.id))
+            
+            const dishesFromCategory = dishesCategories.reduce((acc, dishCategory) => {
+                acc[dishCategory.category_id] = (acc[dishCategory.category_id] || 0) + 1
+                return acc
+            }, {})
+
             return this._handleSuccess({ 
-                categories: categories || [],
-                dishesCategories: dishesCategories || []
+                categories: categories,
+                dishesCategories:dishesCategories,
+                totalDishes: totalDishes,
+                totalCategories: categories.length,
+                emptyCategories: emptyCategories.length,
+                dishesFromCategory: dishesFromCategory,
             })
 
         } catch (error) {
@@ -286,7 +300,7 @@ export class CategoryService {
         }
     }
 
-    async getCategoryStats() {
+   /* async getCategoryStats() {
         try {
             const { categories, dishesCategories } = await this.getAllCategoriesForAdmin()
             
@@ -312,5 +326,6 @@ export class CategoryService {
         } catch (error) {
             return this._handleError('Category stats fetch', error)
         }
-    }
+    }*/
 }
+    
