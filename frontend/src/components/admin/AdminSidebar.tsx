@@ -10,7 +10,8 @@ import {
   MessageCircle, 
   Star, 
   BookOpen,
-  BarChart3
+  BarChart3,
+  Bot
 } from 'lucide-react'
 
 const adminNavigation = [
@@ -18,7 +19,8 @@ const adminNavigation = [
   { name: 'Категорії', href: '/admin/categories', icon: Grid3X3 },
   { name: 'Страви', href: '/admin/dishes', icon: ChefHat },
   { name: 'Коментарі', href: '/admin/comments', icon: MessageCircle },
-  { name: 'Рейтинги', href: '/admin/ratings', icon: Star }
+  { name: 'Рейтинги', href: '/admin/ratings', icon: Star },
+  { name: 'AI-чат', href: '/admin/ai-chat', icon: Bot }
 ]
 
 export function AdminSidebar() {

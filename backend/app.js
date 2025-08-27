@@ -22,6 +22,7 @@ import authRoutes from './routes/auth.js'
 import edamamRoutes from './routes/edamam/index.js'
 import aiRoutes from './routes/ai/index.js'
 import aiChatRoutes from './routes/ai/chat.js'
+import aiAdminRoutes from './routes/ai/admin.js'
 import translationRoutes from './routes/translation/index.js'
 
 import userRoutes from './routes/users/index.js'
@@ -150,6 +151,7 @@ await fastify.register(authRoutes, { prefix: '/api/auth' })
 await fastify.register(edamamRoutes, { prefix: '/api/edamam' })
 await fastify.register(aiRoutes, { prefix: '/api/ai' })
 await fastify.register(aiChatRoutes, { prefix: '/api/ai/chat' })
+await fastify.register(aiAdminRoutes, { prefix: '/api/admin/ai' })
 await fastify.register(translationRoutes, { prefix: '/api/translation' })
 
 // User routes
