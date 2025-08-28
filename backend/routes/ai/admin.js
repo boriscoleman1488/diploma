@@ -1,4 +1,132 @@
-e.%${searchTerm}%`)
+import { authenticateUser, requireAdmin } from '../../middleware/auth.js'
+
+export default async function aiAdminRoutes(fastify, options) {
+  // Get AI chat statistics
+  fastify.get('/stats', {
+    preHandler: [authenticateUser, requireAdmin]
+  }, async (request, reply) => {
+    try {
+      // Get total sessions count
+      const { count: totalSessions, error: sessionsError } = await fastify.supabase
+        .from('ai_chat_sessions')
+        .select('*', { count: 'exact', head: true })
+      
+      if (sessionsError) {
+        fastify.log.error('Error fetching sessions count', { error: sessionsError.message })
+        return reply.code(500).send({
+          success: false,
+          error: 'Failed to fetch sessions statistics',
+          message: 'Не вдалося отримати статистику сесій'
+        })
+      }
+      
+      // Get total messages count
+      const { count: totalMessages, error: messagesError } = await fastify.supabase
+        .from('ai_chat_messages')
+        .select('*', { count: 'exact', head: true })
+      
+      if (messagesError) {
+        fastify.log.error('Error fetching messages count', { error: messagesError.message })
+        return reply.code(500).send({
+          success: false,
+          error: 'Failed to fetch messages statistics',
+          message: 'Не вдалося отримати статистику повідомлень'
+        })
+      }
+      
+      // Get active users count (users who have at least one chat session)
+      const { data: activeUsers, error: usersError } = await fastify.supabase
+        .from('ai_chat_sessions')
+        .select('user_id')
+      
+      if (usersError) {
+        fastify.log.error('Error fetching active users', { error: usersError.message })
+        return reply.code(500).send({
+          success: false,
+          error: 'Failed to fetch active users statistics',
+          message: 'Не вдалося отримати статистику активних користувачів'
+        })
+      }
+      
+      const uniqueActiveUsers = new Set(activeUsers?.map(session => session.user_id) || []).size
+      
+      // Get recent activity (last 7 days)
+      const weekAgo = new Date()
+      weekAgo.setDate(weekAgo.getDate() - 7)
+      
+      const { count: recentSessions, error: recentError } = await fastify.supabase
+        .from('ai_chat_sessions')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', weekAgo.toISOString())
+      
+      if (recentError) {
+        fastify.log.error('Error fetching recent sessions', { error: recentError.message })
+      }
+      
+      return {
+        success: true,
+        stats: {
+          totalSessions: totalSessions || 0,
+          totalMessages: totalMessages || 0,
+          activeUsers: uniqueActiveUsers,
+          recentSessions: recentSessions || 0,
+          generatedAt: new Date().toISOString()
+        }
+      }
+    } catch (error) {
+      fastify.log.error('AI chat stats error', { error: error.message })
+      return reply.code(500).send({
+        success: false,
+        error: 'Internal server error',
+        message: 'Помилка отримання статистики AI-чату'
+      })
+    }
+  })
+  
+  // Get all chat sessions with pagination and search
+  fastify.get('/sessions', {
+    preHandler: [authenticateUser, requireAdmin],
+    schema: {
+      querystring: {
+        type: 'object',
+        properties: {
+          page: { type: 'integer', minimum: 1, default: 1 },
+          limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+          search: { type: 'string' },
+          userId: { type: 'string', format: 'uuid' }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    try {
+      const { page = 1, limit = 20, search, userId } = request.query
+      const offset = (page - 1) * limit
+      
+      let query = fastify.supabase
+        .from('ai_chat_sessions')
+        .select(`
+          *,
+          profiles:user_id(
+            id,
+            full_name,
+            email,
+            profile_tag,
+            avatar_url
+          ),
+          ai_chat_messages(id)
+        `, { count: 'exact' })
+        .order('updated_at', { ascending: false })
+        .range(offset, offset + limit - 1)
+      
+      // Filter by user if specified
+      if (userId) {
+        query = query.eq('user_id', userId)
+      }
+      
+      // Search functionality
+      if (search?.trim()) {
+        const searchTerm = search.trim()
+        query = query.or(`title.ilike.%${searchTerm}%`)
       }
       
       const { data: sessions, error, count } = await query
@@ -345,3 +473,5 @@ e.%${searchTerm}%`)
     }
   })
 }
+
+export default aiAdminRoutes
