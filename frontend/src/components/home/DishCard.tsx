@@ -98,7 +98,7 @@ export function DishCard({ dish, onViewDetails }: DishCardProps) {
                 key={index}
                 className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
               >
-                {cat.dish_categories?.name || cat.name}
+                {cat.name}
               </span>
             ))}
             {dishCategories.length > 2 && (
