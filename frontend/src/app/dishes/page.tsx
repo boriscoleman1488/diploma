@@ -18,7 +18,7 @@ import {
   Users,
   Heart,
   MessageCircle,
-  Filter,
+  SlidersHorizontal,
   Grid3X3,
   Eye,
   X,
@@ -52,7 +52,14 @@ interface NutritionData {
     protein: { quantity: number; unit: string }
     fat: { quantity: number; unit: string }
     carbs: { quantity: number; unit: string }
+    fiber?: { quantity: number; unit: string }
+    sugar?: { quantity: number; unit: string }
+    sodium?: { quantity: number; unit: string }
   }
+  totalWeight?: number
+  dietLabels?: string[]
+  healthLabels?: string[]
+  cautions?: string[]
 }
 
 interface DishDetailsModalProps {
@@ -68,7 +75,7 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
 
   if (!isOpen || !dish) return null
 
-  const likesCount = dish.ratings?.filter(r => r.rating === 1 || r.rating === "1").length || 0
+  const likesCount = dish.ratings?.filter(r => r.rating === 1).length || 0
   const totalCookingTime = dish.steps?.reduce((total, step) => total + (step.duration_minutes || 0), 0) || 0
 
   const handleAuthAction = (action: string) => {
@@ -108,17 +115,7 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
     if (!dish.categories || !Array.isArray(dish.categories)) return []
     
     return dish.categories
-      .map(categoryRelation => {
-        if (categoryRelation && typeof categoryRelation === 'object') {
-          if (categoryRelation.dish_categories && categoryRelation.dish_categories.name) {
-            return categoryRelation.dish_categories
-          }
-          if (categoryRelation.name) {
-            return categoryRelation
-          }
-        }
-        return null
-      })
+      .map(categoryRelation => categoryRelation.dish_categories)
       .filter(Boolean)
   }
 
@@ -188,7 +185,7 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
                     className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
                   >
                     <Grid3X3 className="w-3 h-3 mr-1" />
-                    {cat.dish_categories?.name || cat.name}
+                    {cat.name}
                   </span>
                 ))}
               </div>
@@ -263,6 +260,130 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
                       <div className="text-xs text-yellow-700">г жирів</div>
                     </div>
                   </div>
+
+                  {/* Загальна інформація */}
+                  {nutritionData && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-4">
+                      <h4 className="font-medium text-gray-900 mb-2">Загальна інформація</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-600">Всього калорій:</span>
+                          <span className="font-medium ml-2">{nutritionData.calories} ккал</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Порцій:</span>
+                          <span className="font-medium ml-2">{dish.servings}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Загальна вага:</span>
+                          <span className="font-medium ml-2">{nutritionData.totalWeight || 'Н/Д'} г</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Характеристики дієти */}
+                  {nutritionData && (nutritionData.dietLabels?.length > 0 || nutritionData.healthLabels?.length > 0) && (
+                    <div className="mt-4">
+                      <h4 className="font-medium text-gray-900 mb-2">Характеристики дієти</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {nutritionData.dietLabels?.map((label, index) => (
+                          <span
+                            key={index}
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDietLabelColor(label)}`}
+                          >
+                            <Target className="w-3 h-3 mr-1" />
+                            {translateDietLabel(label)}
+                          </span>
+                        ))}
+                        {nutritionData.healthLabels?.slice(0, 5).map((label, index) => (
+                          <span
+                            key={index}
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getHealthLabelColor(label)}`}
+                          >
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            {translateHealthLabel(label)}
+                          </span>
+                        ))}
+                        {nutritionData.healthLabels && nutritionData.healthLabels.length > 5 && (
+                          <span className="text-xs text-gray-500">
+                            +{nutritionData.healthLabels.length - 5} ще
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Попередження */}
+                  {nutritionData && nutritionData.cautions?.length > 0 && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+                      <div className="flex items-start">
+                        <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" />
+                        <div>
+                          <h4 className="text-sm font-medium text-yellow-800">Попередження</h4>
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {nutritionData.cautions.map((caution, index) => (
+                              <span
+                                key={index}
+                                className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800"
+                              >
+                                {translateCaution(caution)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Детальний склад (на порцію) */}
+                  {nutritionData && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-4">
+                      <h4 className="font-medium text-gray-900 mb-3">Детальний склад (на порцію)</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <div className="flex justify-between py-1">
+                            <span className="text-gray-600">Клітковина:</span>
+                            <span className="font-medium">
+                              {nutritionData.macrosPerServing?.fiber?.quantity || nutritionData.macros?.fiber?.quantity || 0} г
+                            </span>
+                          </div>
+                          <div className="flex justify-between py-1">
+                            <span className="text-gray-600">Цукор:</span>
+                            <span className="font-medium">
+                              {nutritionData.macrosPerServing?.sugar?.quantity || nutritionData.macros?.sugar?.quantity || 0} г
+                            </span>
+                          </div>
+                          <div className="flex justify-between py-1">
+                            <span className="text-gray-600">Натрій:</span>
+                            <span className="font-medium">
+                              {nutritionData.macrosPerServing?.sodium?.quantity || nutritionData.macros?.sodium?.quantity || 0} мг
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex justify-between py-1">
+                            <span className="text-gray-600">Калорії з жирів:</span>
+                            <span className="font-medium">
+                              {Math.round((nutritionData.macrosPerServing?.fat?.quantity || nutritionData.macros?.fat?.quantity || 0) * 9)} ккал
+                            </span>
+                          </div>
+                          <div className="flex justify-between py-1">
+                            <span className="text-gray-600">Калорії з білків:</span>
+                            <span className="font-medium">
+                              {Math.round((nutritionData.macrosPerServing?.protein?.quantity || nutritionData.macros?.protein?.quantity || 0) * 4)} ккал
+                            </span>
+                          </div>
+                          <div className="flex justify-between py-1">
+                            <span className="text-gray-600">Калорії з вуглеводів:</span>
+                            <span className="font-medium">
+                              {Math.round((nutritionData.macrosPerServing?.carbs?.quantity || nutritionData.macros?.carbs?.quantity || 0) * 4)} ккал
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                 {/* Загальна інформація */}
                 {nutritionData && (
@@ -711,6 +832,111 @@ const translateCaution = (caution: string): string => {
   return cautionTranslations[caution] || caution
 }
 
+// Функції для кольорів тегів
+const getDietLabelColor = (label: string) => {
+  const colors: { [key: string]: string } = {
+    'Balanced': 'bg-green-100 text-green-800',
+    'High-Fiber': 'bg-blue-100 text-blue-800',
+    'High-Protein': 'bg-purple-100 text-purple-800',
+    'Low-Carb': 'bg-orange-100 text-orange-800',
+    'Low-Fat': 'bg-yellow-100 text-yellow-800',
+    'Low-Sodium': 'bg-indigo-100 text-indigo-800',
+    'Keto-Friendly': 'bg-red-100 text-red-800',
+    'Vegan': 'bg-green-100 text-green-800',
+    'Vegetarian': 'bg-green-100 text-green-800'
+  }
+  return colors[label] || 'bg-gray-100 text-gray-800'
+}
+
+const getHealthLabelColor = (label: string) => {
+  const healthColors: { [key: string]: string } = {
+    'Vegan': 'bg-green-100 text-green-800',
+    'Vegetarian': 'bg-green-100 text-green-800',
+    'Gluten-Free': 'bg-blue-100 text-blue-800',
+    'Dairy-Free': 'bg-purple-100 text-purple-800',
+    'Sugar-Conscious': 'bg-orange-100 text-orange-800',
+    'Keto-Friendly': 'bg-red-100 text-red-800',
+    'Paleo': 'bg-yellow-100 text-yellow-800',
+    'Low-Sodium': 'bg-indigo-100 text-indigo-800'
+  }
+  return healthColors[label] || 'bg-gray-100 text-gray-800'
+}
+// Функції для перекладу характеристик дієти
+const translateDietLabel = (label: string): string => {
+  const dietTranslations: { [key: string]: string } = {
+    'Balanced': 'Збалансована',
+    'High-Fiber': 'Високий вміст клітковини',
+    'High-Protein': 'Високий вміст білка',
+    'Low-Carb': 'Низький вміст вуглеводів',
+    'Low-Fat': 'Низький вміст жирів',
+    'Low-Sodium': 'Низький вміст натрію',
+    'Keto-Friendly': 'Кето-дружня',
+    'Paleo': 'Палео',
+    'Vegan': 'Веганська',
+    'Vegetarian': 'Вегетаріанська',
+    'Pescatarian': 'Пескетаріанська',
+    'Mediterranean': 'Середземноморська',
+    'DASH': 'DASH дієта',
+    'Low-FODMAP': 'Низький FODMAP'
+  }
+  return dietTranslations[label] || label
+}
+
+// Функції для перекладу характеристик здоров'я
+const translateHealthLabel = (label: string): string => {
+  const healthTranslations: { [key: string]: string } = {
+    'Vegan': 'Веганський',
+    'Vegetarian': 'Вегетаріанський',
+    'Paleo': 'Палео',
+    'Dairy-Free': 'Без молочних продуктів',
+    'Gluten-Free': 'Без глютену',
+    'Wheat-Free': 'Без пшениці',
+    'Egg-Free': 'Без яєць',
+    'Milk-Free': 'Без молока',
+    'Peanut-Free': 'Без арахісу',
+    'Tree-Nut-Free': 'Без горіхів',
+    'Soy-Free': 'Без сої',
+    'Fish-Free': 'Без риби',
+    'Shellfish-Free': 'Без морепродуктів',
+    'Pork-Free': 'Без свинини',
+    'Red-Meat-Free': 'Без червоного м\'яса',
+    'Alcohol-Free': 'Без алкоголю',
+    'No oil added': 'Без додавання олії',
+    'Low Sugar': 'Низький вміст цукру',
+    'Keto-Friendly': 'Кето-дружній',
+    'Kidney-Friendly': 'Дружній до нирок',
+    'Kosher': 'Кошерний',
+    'Low Potassium': 'Низький вміст калію',
+    'Low Sodium': 'Низький вміст натрію',
+    'FODMAP-Free': 'Без FODMAP',
+    'Immuno-Supportive': 'Підтримує імунітет'
+  }
+  return healthTranslations[label] || label
+}
+
+// Функції для перекладу попереджень
+const translateCaution = (caution: string): string => {
+  const cautionTranslations: { [key: string]: string } = {
+    'Gluten': 'Містить глютен',
+    'Wheat': 'Містить пшеницю',
+    'Eggs': 'Містить яйця',
+    'Milk': 'Містить молоко',
+    'Peanuts': 'Містить арахіс',
+    'Tree-Nuts': 'Містить горіхи',
+    'Soy': 'Містить сою',
+    'Fish': 'Містить рибу',
+    'Shellfish': 'Містить морепродукти',
+    'Crustaceans': 'Містить ракоподібних',
+    'Mollusks': 'Містить молюсків',
+    'Celery': 'Містить селеру',
+    'Mustard': 'Містить гірчицю',
+    'Sesame': 'Містить кунжут',
+    'Lupine': 'Містить люпин',
+    'Sulfites': 'Містить сульфіти'
+  }
+  return cautionTranslations[caution] || caution
+}
+
 export default function DishesPage() {
   const [dishes, setDishes] = useState<Dish[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -720,6 +946,13 @@ export default function DishesPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [sortBy, setSortBy] = useState('newest')
+  const [cookingTime, setCookingTime] = useState('')
+  const [servingsCount, setServingsCount] = useState('')
+  const [hasNutrition, setHasNutrition] = useState(false)
+  const [ratingFilter, setRatingFilter] = useState('')
+  const [stepsFilter, setStepsFilter] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
 
   const fetchDishes = async () => {
     setIsLoading(true)
@@ -738,7 +971,6 @@ export default function DishesPage() {
       const response = await apiClient.get(url)
       if (response.success && response.dishes) {
         setDishes(response.dishes)
-        setFilteredDishes(response.dishes)
       }
     } catch (error) {
       console.error('Failed to fetch dishes:', error)
@@ -772,6 +1004,16 @@ export default function DishesPage() {
     }
   }
 
+  const resetFilters = () => {
+    setSearchQuery('')
+    setSelectedCategory('')
+    setSortBy('newest')
+    setCookingTime('')
+    setServingsCount('')
+    setHasNutrition(false)
+    setRatingFilter('')
+    setStepsFilter('')
+  }
   useEffect(() => {
     fetchCategories()
   }, [])
@@ -780,17 +1022,108 @@ export default function DishesPage() {
     fetchDishes()
   }, [selectedCategory])
 
+  // Apply all filters
   useEffect(() => {
+    let filtered = [...dishes]
+
+    // Filter by search query
     if (searchQuery.trim()) {
-      const filtered = dishes.filter(dish =>
+      filtered = filtered.filter(dish =>
         dish.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        dish.description.toLowerCase().includes(searchQuery.toLowerCase())
+        dish.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        dish.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        dish.profiles?.profile_tag?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        dish.profiles?.email?.toLowerCase().includes(searchQuery.toLowerCase())
       )
-      setFilteredDishes(filtered)
-    } else {
-      setFilteredDishes(dishes)
     }
-  }, [searchQuery, dishes])
+
+    // Filter by rating/likes
+    if (ratingFilter) {
+      filtered = filtered.filter(dish => {
+        const likesCount = dish.ratings?.filter(r => r.rating === 1).length || 0
+        
+        if (ratingFilter === 'no-likes') return likesCount === 0
+        if (ratingFilter === 'few-likes') return likesCount >= 1 && likesCount <= 5
+        if (ratingFilter === 'popular') return likesCount >= 6 && likesCount <= 15
+        if (ratingFilter === 'very-popular') return likesCount > 15
+        
+        return true
+      })
+    }
+
+    // Filter by number of steps
+    if (stepsFilter) {
+      filtered = filtered.filter(dish => {
+        const stepsCount = dish.steps?.length || 0
+        
+        if (stepsFilter === 'simple') return stepsCount >= 1 && stepsCount <= 3
+        if (stepsFilter === 'medium') return stepsCount >= 4 && stepsCount <= 7
+        if (stepsFilter === 'complex') return stepsCount >= 8
+        
+        return true
+      })
+    }
+
+    // Filter by cooking time
+    if (cookingTime) {
+      filtered = filtered.filter(dish => {
+        const totalTime = dish.steps?.reduce((total, step) => total + (step.duration_minutes || 0), 0) || 0
+        
+        if (cookingTime === 'quick') return totalTime > 0 && totalTime <= 30
+        if (cookingTime === 'medium') return totalTime > 30 && totalTime <= 60
+        if (cookingTime === 'long') return totalTime > 60
+        
+        return true
+      })
+    }
+
+    // Filter by servings count
+    if (servingsCount) {
+      filtered = filtered.filter(dish => {
+        const count = dish.servings || 0
+        
+        if (servingsCount === '1-2') return count >= 1 && count <= 2
+        if (servingsCount === '3-4') return count >= 3 && count <= 4
+        if (servingsCount === '5+') return count >= 5
+        
+        return true
+      })
+    }
+
+    // Filter by nutrition info availability
+    if (hasNutrition) {
+      filtered = filtered.filter(dish => 
+        dish.ingredients && dish.ingredients.length > 0
+      )
+    }
+
+    // Sort dishes
+    if (sortBy) {
+      filtered = [...filtered].sort((a, b) => {
+        if (sortBy === 'newest') {
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        }
+        if (sortBy === 'oldest') {
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        }
+        if (sortBy === 'popular') {
+          const aLikes = a.ratings?.filter(r => r.rating === 1).length || 0
+          const bLikes = b.ratings?.filter(r => r.rating === 1).length || 0
+          return bLikes - aLikes
+        }
+        if (sortBy === 'rating') {
+          const aLikes = a.ratings?.filter(r => r.rating === 1).length || 0
+          const bLikes = b.ratings?.filter(r => r.rating === 1).length || 0
+          const aTotal = a.ratings?.length || 1
+          const bTotal = b.ratings?.length || 1
+          return (bLikes / bTotal) - (aLikes / aTotal)
+        }
+        return 0
+      })
+    }
+
+    setFilteredDishes(filtered)
+  }, [dishes, searchQuery, sortBy, cookingTime, servingsCount, hasNutrition, ratingFilter, stepsFilter])
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -819,20 +1152,12 @@ export default function DishesPage() {
     if (!dish.categories || !Array.isArray(dish.categories)) return []
     
     return dish.categories
-      .map(categoryRelation => {
-        if (categoryRelation && typeof categoryRelation === 'object') {
-          if (categoryRelation.dish_categories && categoryRelation.dish_categories.name) {
-            return categoryRelation.dish_categories
-          }
-          if (categoryRelation.name) {
-            return categoryRelation
-          }
-        }
-        return null
-      })
+      .map(categoryRelation => categoryRelation.dish_categories)
       .filter(Boolean)
   }
 
+  const hasFilters = !!(searchQuery || selectedCategory || sortBy !== 'newest' || 
+                      cookingTime || servingsCount || hasNutrition || ratingFilter || stepsFilter)
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -861,112 +1186,269 @@ export default function DishesPage() {
         </div>
       </div>
 
-      {/*
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-primary-100 rounded-lg">
-                <ChefHat className="w-6 h-6 text-primary-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Всього страв</p>
-                <p className="text-2xl font-bold text-gray-900">{dishes.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Eye className="w-6 h-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Опубліковано</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {dishes.filter(d => d.status === 'approved').length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="w-6 h-6 text-yellow-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">На розгляді</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {dishes.filter(d => d.status === 'pending').length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      }
-
       {/* Filters */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Пошук страв за назвою або описом..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                leftIcon={<Search className="w-4 h-4" />}
-              />
-            </div>
-            <div className="md:w-64">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+          <div className="flex flex-col space-y-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <Input
+                  placeholder="Пошук страв за назвою, описом, автором або @тегом..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  leftIcon={<Search className="w-4 h-4" />}
+                />
+              </div>
+              <div className="md:w-64">
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="">Всі категорії</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+                leftIcon={<SlidersHorizontal className="w-4 h-4" />}
               >
-                <option value="">Всі категорії</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+                {showFilters ? 'Приховати фільтри' : 'Додаткові фільтри'}
+              </Button>
             </div>
-          </div>
+
+            {showFilters && (
+              <div className="pt-4 border-t border-gray-200 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Сортувати за
+                  </label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="newest">Найновіші</option>
+                    <option value="oldest">Найстаріші</option>
+                    <option value="rating">За рейтингом</option>
+                    <option value="popular">За популярністю</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    За рейтингом
+                  </label>
+                  <select
+                    value={ratingFilter}
+                    onChange={(e) => setRatingFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="">Будь-який рейтинг</option>
+                    <option value="no-likes">Без лайків</option>
+                    <option value="few-likes">1-5 лайків</option>
+                    <option value="popular">6-15 лайків</option>
+                    <option value="very-popular">15+ лайків</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    За складністю
+                  </label>
+                  <select
+                    value={stepsFilter}
+                    onChange={(e) => setStepsFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="">Будь-яка складність</option>
+                    <option value="simple">Прості (1-3 кроки)</option>
+                    <option value="medium">Середні (4-7 кроків)</option>
+                    <option value="complex">Складні (8+ кроків)</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Час приготування
+                  </label>
+                  <select
+                    value={cookingTime}
+                    onChange={(e) => setCookingTime(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="">Будь-який час</option>
+                    <option value="quick">Швидко (до 30 хв)</option>
+                    <option value="medium">Середній (30-60 хв)</option>
+                    <option value="long">Довго (більше 60 хв)</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Кількість порцій
+                  </label>
+                  <select
+                    value={servingsCount}
+                    onChange={(e) => setServingsCount(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="">Будь-яка кількість</option>
+                    <option value="1-2">1-2 порції</option>
+                    <option value="3-4">3-4 порції</option>
+                    <option value="5+">5+ порцій</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    З аналізом калорій
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={hasNutrition}
+                      onChange={(e) => setHasNutrition(e.target.checked)}
+                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 mr-2"
+                    />
+                    <span className="text-sm text-gray-700">Тільки з поживною цінністю</span>
+                  </label>
+                </div>
+                
+                <div className="md:col-span-2 lg:col-span-3 xl:col-span-6 flex justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={resetFilters}
+                    leftIcon={<X className="w-4 h-4" />}
+                  >
+                    Скинути фільтри
+                  </Button>
+                </div>
+              </div>
+            )}
           
-          {/* Active filters display */}
-          {(searchQuery || selectedCategory) && (
-            <div className="flex flex-wrap items-center gap-2 pt-4">
-              <span className="text-sm text-gray-500">Активні фільтри:</span>
-              {searchQuery && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  Пошук: "{searchQuery}"
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="ml-1 text-blue-600 hover:text-blue-800"
-                  >
-                    ×
-                  </button>
-                </span>
-              )}
-              {selectedCategory && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  Категорія: {categories.find(c => c.id === selectedCategory)?.name}
-                  <button
-                    onClick={() => setSelectedCategory('')}
-                    className="ml-1 text-green-600 hover:text-green-800"
-                  >
-                    ×
-                  </button>
-                </span>
-              )}
-            </div>
-          )}
+            {/* Active filters display */}
+            {hasFilters && (
+              <div className="flex flex-wrap items-center gap-2 pt-4">
+                <span className="text-sm text-gray-500">Активні фільтри:</span>
+                {searchQuery && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    Пошук: "{searchQuery}"
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="ml-1 text-blue-600 hover:text-blue-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {selectedCategory && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Категорія: {categories.find(c => c.id === selectedCategory)?.name}
+                    <button
+                      onClick={() => setSelectedCategory('')}
+                      className="ml-1 text-green-600 hover:text-green-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {ratingFilter && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
+                    Рейтинг: {
+                      ratingFilter === 'no-likes' ? 'Без лайків' :
+                      ratingFilter === 'few-likes' ? '1-5 лайків' :
+                      ratingFilter === 'popular' ? '6-15 лайків' :
+                      ratingFilter === 'very-popular' ? '15+ лайків' : ''
+                    }
+                    <button
+                      onClick={() => setRatingFilter('')}
+                      className="ml-1 text-pink-600 hover:text-pink-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {stepsFilter && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                    Складність: {
+                      stepsFilter === 'simple' ? 'Прості' :
+                      stepsFilter === 'medium' ? 'Середні' :
+                      stepsFilter === 'complex' ? 'Складні' : ''
+                    }
+                    <button
+                      onClick={() => setStepsFilter('')}
+                      className="ml-1 text-indigo-600 hover:text-indigo-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {sortBy !== 'newest' && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                    Сортування: {
+                      sortBy === 'oldest' ? 'Найстаріші' :
+                      sortBy === 'popular' ? 'За популярністю' :
+                      sortBy === 'rating' ? 'За рейтингом' : ''
+                    }
+                    <button
+                      onClick={() => setSortBy('newest')}
+                      className="ml-1 text-purple-600 hover:text-purple-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {cookingTime && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    Час: {
+                      cookingTime === 'quick' ? 'До 30 хв' :
+                      cookingTime === 'medium' ? '30-60 хв' :
+                      cookingTime === 'long' ? 'Більше 60 хв' : ''
+                    }
+                    <button
+                      onClick={() => setCookingTime('')}
+                      className="ml-1 text-yellow-600 hover:text-yellow-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {servingsCount && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                    Порції: {
+                      servingsCount === '1-2' ? '1-2 порції' :
+                      servingsCount === '3-4' ? '3-4 порції' :
+                      servingsCount === '5+' ? '5+ порцій' : ''
+                    }
+                    <button
+                      onClick={() => setServingsCount('')}
+                      className="ml-1 text-orange-600 hover:text-orange-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {hasNutrition && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    З аналізом калорій
+                    <button
+                      onClick={() => setHasNutrition(false)}
+                      className="ml-1 text-red-600 hover:text-red-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -982,22 +1464,20 @@ export default function DishesPage() {
         <div className="text-center py-12">
           <ChefHat className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {searchQuery || selectedCategory ? 'Страви не знайдено' : 'Немає страв'}
+            {hasFilters ? 'Страви не знайдено' : 'Немає страв'}
           </h3>
           <p className="text-gray-600 mb-6">
-            {searchQuery || selectedCategory 
+            {hasFilters 
               ? 'Спробуйте змінити критерії пошуку або очистити фільтри'
               : 'Станьте першим, хто додасть страву!'
             }
           </p>
-          {searchQuery || selectedCategory ? (
+          {hasFilters ? (
             <div className="flex justify-center gap-2">
               <Button
                 variant="outline"
-                onClick={() => {
-                  setSearchQuery('')
-                  setSelectedCategory('')
-                }}
+                onClick={resetFilters}
+                leftIcon={<X className="w-4 h-4" />}
               >
                 Очистити фільтри
               </Button>
@@ -1011,10 +1491,20 @@ export default function DishesPage() {
           )}
         </div>
       ) : (
+        <>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">
+              {hasFilters ? 'Результати пошуку' : 'Всі страви'}
+            </h2>
+            <p className="text-gray-600">
+              Знайдено {filteredDishes.length} {filteredDishes.length === 1 ? 'страва' : 'страв'}
+            </p>
+          </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDishes.map((dish) => {
             const cookingTime = getTotalCookingTime(dish)
-            const likesCount = dish.ratings?.filter(r => r.rating === 1 || r.rating === "1").length || 0
+            const likesCount = dish.ratings?.filter(r => r.rating === 1).length || 0
             const dishCategories = getDishCategories(dish)
             const hasIngredients = dish.ingredients && dish.ingredients.length > 0
 
@@ -1081,7 +1571,7 @@ export default function DishesPage() {
                           className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
                         >
                           <Grid3X3 className="w-3 h-3 mr-1" />
-                          {cat.dish_categories?.name || cat.name}
+                          {cat.name}
                         </span>
                       ))}
                       {dishCategories.length > 2 && (
@@ -1149,6 +1639,7 @@ export default function DishesPage() {
             )
           })}
         </div>
+        </>
       )}
 
       {/* Dish Details Modal */}
