@@ -155,6 +155,91 @@ export default function DishDetailPage({ params }: { params: { id: string } }) {
       .catch(() => toast.error('Не вдалося скопіювати посилання'))
   }
 
+  // Функції для перекладу та кольорів характеристик дієти
+  const getDietLabelColor = (label: string) => {
+    const colors: { [key: string]: string } = {
+      'Balanced': 'bg-green-100 text-green-800',
+      'High-Fiber': 'bg-blue-100 text-blue-800',
+      'High-Protein': 'bg-purple-100 text-purple-800',
+      'Low-Carb': 'bg-orange-100 text-orange-800',
+      'Low-Fat': 'bg-yellow-100 text-yellow-800',
+      'Low-Sodium': 'bg-indigo-100 text-indigo-800'
+    }
+    return colors[label] || 'bg-gray-100 text-gray-800'
+  }
+
+  const getHealthLabelColor = (label: string) => {
+    const healthColors: { [key: string]: string } = {
+      'Vegan': 'bg-green-100 text-green-800',
+      'Vegetarian': 'bg-green-100 text-green-800',
+      'Gluten-Free': 'bg-blue-100 text-blue-800',
+      'Dairy-Free': 'bg-purple-100 text-purple-800',
+      'Sugar-Conscious': 'bg-orange-100 text-orange-800',
+      'Keto-Friendly': 'bg-red-100 text-red-800'
+    }
+    return healthColors[label] || 'bg-gray-100 text-gray-800'
+  }
+
+  const translateDietLabel = (label: string): string => {
+    const dietTranslations: { [key: string]: string } = {
+      'Balanced': 'Збалансована',
+      'High-Fiber': 'Високий вміст клітковини',
+      'High-Protein': 'Високий вміст білка',
+      'Low-Carb': 'Низький вміст вуглеводів',
+      'Low-Fat': 'Низький вміст жирів',
+      'Low-Sodium': 'Низький вміст натрію',
+      'Keto-Friendly': 'Кето-дружня',
+      'Paleo': 'Палео',
+      'Vegan': 'Веганська',
+      'Vegetarian': 'Вегетаріанська',
+      'Mediterranean': 'Середземноморська'
+    }
+    return dietTranslations[label] || label
+  }
+
+  const translateHealthLabel = (label: string): string => {
+    const healthTranslations: { [key: string]: string } = {
+      'Vegan': 'Веганський',
+      'Vegetarian': 'Вегетаріанський',
+      'Paleo': 'Палео',
+      'Dairy-Free': 'Без молочних продуктів',
+      'Gluten-Free': 'Без глютену',
+      'Wheat-Free': 'Без пшениці',
+      'Egg-Free': 'Без яєць',
+      'Milk-Free': 'Без молока',
+      'Peanut-Free': 'Без арахісу',
+      'Tree-Nut-Free': 'Без горіхів',
+      'Soy-Free': 'Без сої',
+      'Fish-Free': 'Без риби',
+      'Shellfish-Free': 'Без морепродуктів',
+      'Alcohol-Free': 'Без алкоголю',
+      'Low Sugar': 'Низький вміст цукру',
+      'Keto-Friendly': 'Кето-дружній',
+      'Kosher': 'Кошерний',
+      'Low Sodium': 'Низький вміст натрію'
+    }
+    return healthTranslations[label] || label
+  }
+
+  const translateCaution = (caution: string): string => {
+    const cautionTranslations: { [key: string]: string } = {
+      'Gluten': 'Містить глютен',
+      'Wheat': 'Містить пшеницю',
+      'Eggs': 'Містить яйця',
+      'Milk': 'Містить молоко',
+      'Peanuts': 'Містить арахіс',
+      'Tree-Nuts': 'Містить горіхи',
+      'Soy': 'Містить сою',
+      'Fish': 'Містить рибу',
+      'Shellfish': 'Містить морепродукти',
+      'Celery': 'Містить селеру',
+      'Mustard': 'Містить гірчицю',
+      'Sesame': 'Містить кунжут',
+      'Sulfites': 'Містить сульфіти'
+    }
+    return cautionTranslations[caution] || caution
+  }
+
   useEffect(() => {
     if (id) {
       fetchDish()
