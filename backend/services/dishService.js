@@ -231,9 +231,10 @@ export class DishService {
                     dish_category_relations(
                         dish_categories!inner(id, name, description)
                     ),
-                    dish_ratings(id, rating_type),
+                    dish_ratings(id, rating),
                     dish_comments(id, content, is_deleted),
-                    dish_steps(id, step_number, description, duration_minutes)
+                    dish_steps(id, step_number, description, duration_minutes),
+                    dish_ingredients(id, name, amount, unit)
                 `)
                 .eq('status', this.DISH_STATUS.APPROVED)
                 .order('created_at', { ascending: false })
@@ -253,12 +254,14 @@ export class DishService {
                     ?.map(rel => ({
                         id: rel.dish_categories?.id,
                         name: rel.dish_categories?.name,
-                        description: rel.dish_categories?.description
+                        description: rel.dish_categories?.description,
+                        dish_categories: rel.dish_categories
                     }))
                     .filter(cat => cat && cat.id && cat.name) || [],
                 ratings: dish.dish_ratings?.filter(Boolean) || [],
                 comments_count: dish.dish_comments?.filter(comment => !comment.is_deleted).length || 0,
-                steps: dish.dish_steps?.sort((a, b) => a.step_number - b.step_number) || []
+                steps: dish.dish_steps?.sort((a, b) => a.step_number - b.step_number) || [],
+                ingredients: dish.dish_ingredients || []
             }))
 
             processedDishes.forEach(dish => {
@@ -266,6 +269,7 @@ export class DishService {
                 delete dish.dish_ratings
                 delete dish.dish_comments
                 delete dish.dish_steps
+                delete dish.dish_ingredients
             })
 
             return {

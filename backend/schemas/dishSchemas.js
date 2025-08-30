@@ -129,34 +129,64 @@ export const getDishesSchema = {
                 type: 'object',
                 properties: {
                   full_name: { type: 'string' },
-                  email: { type: 'string' },
                   profile_tag: { type: 'string' }
+                  avatar_url: { type: 'string' }
                 }
               },
               categories: {
                 type: 'array',
-                items: {
+              categories: {
                   type: 'object',
                   properties: {
                     dish_categories: {
                       type: 'object',
+                    id: { type: 'string' },
+                    name: { type: 'string' },
+                    description: { type: 'string' },
+                    dish_categories: {
+                      type: 'object',
                       properties: {
-                        name: { type: 'string' }
+                        id: { type: 'string' },
+                        name: { type: 'string' },
+                        description: { type: 'string' }
                       }
                     }
                   }
                 }
-              },
-              ratings: {
                 type: 'array',
                 items: {
                   type: 'object',
                   properties: {
-                    rating: { type: 'string' }
+                    id: { type: 'string' },
+                    rating: { type: 'number' },
+                    user_id: { type: 'string' }
+                  }
+              },
+              comments_count: { type: 'number' },
+              steps: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    step_number: { type: 'number' },
+                    description: { type: 'string' },
+                    duration_minutes: { type: 'number' }
                   }
                 }
               },
-              comments_count: { type: 'number' }
+              ingredients: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    name: { type: 'string' },
+                    amount: { type: 'number' },
+                    unit: { type: 'string' }
+                  }
+                }
+              }
             },
             additionalProperties: true
           }
