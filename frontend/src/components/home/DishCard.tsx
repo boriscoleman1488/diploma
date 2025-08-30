@@ -23,24 +23,14 @@ interface DishCardProps {
 
 export function DishCard({ dish, onViewDetails }: DishCardProps) {
   const cookingTime = dish.steps?.reduce((total, step) => total + (step.duration_minutes || 0), 0) || 0
-  const likesCount = dish.ratings?.filter(r => r.rating === 1 || r.rating === "1").length || 0
+  const likesCount = dish.ratings?.filter(r => r.rating === 1).length || 0
   const hasIngredients = dish.ingredients && dish.ingredients.length > 0
   
   const getDishCategories = (dish: Dish) => {
     if (!dish.categories || !Array.isArray(dish.categories)) return []
     
     return dish.categories
-      .map(categoryRelation => {
-        if (categoryRelation && typeof categoryRelation === 'object') {
-          if (categoryRelation.dish_categories && categoryRelation.dish_categories.name) {
-            return categoryRelation.dish_categories
-          }
-          if (categoryRelation.name) {
-            return categoryRelation
-          }
-        }
-        return null
-      })
+      .map(categoryRelation => categoryRelation.dish_categories)
       .filter(Boolean)
   }
   

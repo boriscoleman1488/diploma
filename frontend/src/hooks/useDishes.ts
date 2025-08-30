@@ -74,7 +74,7 @@ export function useDishes(options: UseDishesOptions = {}) {
     // Filter by rating/likes
     if (ratingFilter) {
       filtered = filtered.filter(dish => {
-        const likesCount = dish.ratings?.filter(r => r.rating === 1 || r.rating === "1").length || 0
+        const likesCount = dish.ratings?.filter(r => r.rating === 1).length || 0
         
         if (ratingFilter === 'no-likes') return likesCount === 0
         if (ratingFilter === 'few-likes') return likesCount >= 1 && likesCount <= 5
