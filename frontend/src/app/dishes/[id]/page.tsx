@@ -23,9 +23,7 @@ import {
   Activity,
   Zap,
   Share2,
-  BookOpen,
-  CheckCircle,
-  AlertTriangle
+  BookOpen
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -43,9 +41,6 @@ interface NutritionData {
     fat: { quantity: number; unit: string }
     carbs: { quantity: number; unit: string }
   }
-  dietLabels?: string[]
-  healthLabels?: string[]
-  cautions?: string[]
 }
 
 export default function DishDetailPage({ params }: { params: { id: string } }) {
@@ -153,91 +148,6 @@ export default function DishDetailPage({ params }: { params: { id: string } }) {
     navigator.clipboard.writeText(window.location.href)
       .then(() => toast.success('Посилання скопійовано в буфер обміну'))
       .catch(() => toast.error('Не вдалося скопіювати посилання'))
-  }
-
-  // Функції для перекладу та кольорів характеристик дієти
-  const getDietLabelColor = (label: string) => {
-    const colors: { [key: string]: string } = {
-      'Balanced': 'bg-green-100 text-green-800',
-      'High-Fiber': 'bg-blue-100 text-blue-800',
-      'High-Protein': 'bg-purple-100 text-purple-800',
-      'Low-Carb': 'bg-orange-100 text-orange-800',
-      'Low-Fat': 'bg-yellow-100 text-yellow-800',
-      'Low-Sodium': 'bg-indigo-100 text-indigo-800'
-    }
-    return colors[label] || 'bg-gray-100 text-gray-800'
-  }
-
-  const getHealthLabelColor = (label: string) => {
-    const healthColors: { [key: string]: string } = {
-      'Vegan': 'bg-green-100 text-green-800',
-      'Vegetarian': 'bg-green-100 text-green-800',
-      'Gluten-Free': 'bg-blue-100 text-blue-800',
-      'Dairy-Free': 'bg-purple-100 text-purple-800',
-      'Sugar-Conscious': 'bg-orange-100 text-orange-800',
-      'Keto-Friendly': 'bg-red-100 text-red-800'
-    }
-    return healthColors[label] || 'bg-gray-100 text-gray-800'
-  }
-
-  const translateDietLabel = (label: string): string => {
-    const dietTranslations: { [key: string]: string } = {
-      'Balanced': 'Збалансована',
-      'High-Fiber': 'Високий вміст клітковини',
-      'High-Protein': 'Високий вміст білка',
-      'Low-Carb': 'Низький вміст вуглеводів',
-      'Low-Fat': 'Низький вміст жирів',
-      'Low-Sodium': 'Низький вміст натрію',
-      'Keto-Friendly': 'Кето-дружня',
-      'Paleo': 'Палео',
-      'Vegan': 'Веганська',
-      'Vegetarian': 'Вегетаріанська',
-      'Mediterranean': 'Середземноморська'
-    }
-    return dietTranslations[label] || label
-  }
-
-  const translateHealthLabel = (label: string): string => {
-    const healthTranslations: { [key: string]: string } = {
-      'Vegan': 'Веганський',
-      'Vegetarian': 'Вегетаріанський',
-      'Paleo': 'Палео',
-      'Dairy-Free': 'Без молочних продуктів',
-      'Gluten-Free': 'Без глютену',
-      'Wheat-Free': 'Без пшениці',
-      'Egg-Free': 'Без яєць',
-      'Milk-Free': 'Без молока',
-      'Peanut-Free': 'Без арахісу',
-      'Tree-Nut-Free': 'Без горіхів',
-      'Soy-Free': 'Без сої',
-      'Fish-Free': 'Без риби',
-      'Shellfish-Free': 'Без морепродуктів',
-      'Alcohol-Free': 'Без алкоголю',
-      'Low Sugar': 'Низький вміст цукру',
-      'Keto-Friendly': 'Кето-дружній',
-      'Kosher': 'Кошерний',
-      'Low Sodium': 'Низький вміст натрію'
-    }
-    return healthTranslations[label] || label
-  }
-
-  const translateCaution = (caution: string): string => {
-    const cautionTranslations: { [key: string]: string } = {
-      'Gluten': 'Містить глютен',
-      'Wheat': 'Містить пшеницю',
-      'Eggs': 'Містить яйця',
-      'Milk': 'Містить молоко',
-      'Peanuts': 'Містить арахіс',
-      'Tree-Nuts': 'Містить горіхи',
-      'Soy': 'Містить сою',
-      'Fish': 'Містить рибу',
-      'Shellfish': 'Містить морепродукти',
-      'Celery': 'Містить селеру',
-      'Mustard': 'Містить гірчицю',
-      'Sesame': 'Містить кунжут',
-      'Sulfites': 'Містить сульфіти'
-    }
-    return cautionTranslations[caution] || caution
   }
 
   useEffect(() => {
@@ -416,62 +326,6 @@ export default function DishDetailPage({ params }: { params: { id: string } }) {
                       <div className="text-xs text-yellow-700">г жирів</div>
                     </div>
                   </div>
-
-                  {/* Diet and Health Labels */}
-                  {(nutritionData.dietLabels && nutritionData.dietLabels.length > 0) || 
-                   (nutritionData.healthLabels && nutritionData.healthLabels.length > 0) ? (
-                    <div className="mt-6">
-                      <h4 className="font-medium text-gray-900 mb-3">Характеристики дієти</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {nutritionData.dietLabels?.map((label, index) => (
-                          <span
-                            key={index}
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDietLabelColor(label)}`}
-                          >
-                            <Activity className="w-3 h-3 mr-1" />
-                            {translateDietLabel(label)}
-                          </span>
-                        ))}
-                        {nutritionData.healthLabels?.slice(0, 5).map((label, index) => (
-                          <span
-                            key={index}
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getHealthLabelColor(label)}`}
-                          >
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            {translateHealthLabel(label)}
-                          </span>
-                        ))}
-                        {nutritionData.healthLabels && nutritionData.healthLabels.length > 5 && (
-                          <span className="text-xs text-gray-500">
-                            +{nutritionData.healthLabels.length - 5} ще
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ) : null
-                }
-
-                  {/* Cautions */}
-                  {nutritionData.cautions && nutritionData.cautions.length > 0 && (
-                    <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                      <div className="flex items-start">
-                        <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" />
-                        <div>
-                          <h4 className="text-sm font-medium text-yellow-800">Попередження</h4>
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {nutritionData.cautions.map((caution, index) => (
-                              <span
-                                key={index}
-                                className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800"
-                              >
-                                {translateCaution(caution)}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 ) : (
                   <div className="text-center py-4">
                     <Activity className="w-8 h-8 text-gray-400 mx-auto mb-2" />
