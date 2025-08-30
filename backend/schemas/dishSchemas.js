@@ -129,20 +129,15 @@ export const getDishesSchema = {
                 type: 'object',
                 properties: {
                   full_name: { type: 'string' },
-                  profile_tag: { type: 'string' }
+                  profile_tag: { type: 'string' },
                   avatar_url: { type: 'string' }
                 }
               },
               categories: {
                 type: 'array',
-              categories: {
+                items: {
                   type: 'object',
                   properties: {
-                    dish_categories: {
-                      type: 'object',
-                    id: { type: 'string' },
-                    name: { type: 'string' },
-                    description: { type: 'string' },
                     dish_categories: {
                       type: 'object',
                       properties: {
@@ -153,6 +148,8 @@ export const getDishesSchema = {
                     }
                   }
                 }
+              },
+              ratings: {
                 type: 'array',
                 items: {
                   type: 'object',
@@ -161,6 +158,7 @@ export const getDishesSchema = {
                     rating: { type: 'number' },
                     user_id: { type: 'string' }
                   }
+                }
               },
               comments_count: { type: 'number' },
               steps: {
