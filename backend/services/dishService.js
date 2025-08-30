@@ -248,7 +248,9 @@ export class DishService {
 
             const processedDishes = (dishes || []).map(dish => ({
                 ...dish,
-                categories: dish.dish_category_relations?.map(rel => rel.dish_categories).filter(Boolean) || [],
+                categories: dish.dish_category_relations
+                    ?.map(rel => rel.dish_categories)
+                    .filter(cat => cat && cat.id && cat.name) || [],
                 ratings: dish.dish_ratings?.filter(Boolean) || [],
                 comments_count: dish.dish_comments?.filter(comment => !comment.is_deleted).length || 0
             }))
@@ -303,7 +305,9 @@ export class DishService {
 
             const processedDishes = (dishes || []).map(dish => ({
                 ...dish,
-                categories: dish.dish_category_relations?.map(rel => rel.dish_categories) || [],
+                categories: dish.dish_category_relations
+                    ?.map(rel => rel.dish_categories)
+                    .filter(cat => cat && cat.id && cat.name) || [],
                 ratings: dish.dish_ratings || [],
                 comments_count: dish.dish_comments?.length || 0,
                 ingredients: dish.dish_ingredients || [],
@@ -362,7 +366,9 @@ export class DishService {
 
             const processedDish = {
                 ...dish,
-                categories: dish.dish_category_relations?.map(rel => rel.dish_categories).filter(Boolean) || [],
+                categories: dish.dish_category_relations
+                    ?.map(rel => rel.dish_categories)
+                    .filter(cat => cat && cat.id && cat.name) || [],
                 ratings: dish.dish_ratings || [],
                 ingredients: dish.dish_ingredients || [],
                 steps: dish.dish_steps?.sort((a, b) => a.step_number - b.step_number) || []
@@ -880,7 +886,9 @@ export class DishService {
 
             const processedDishes = (dishes || []).map(dish => ({
                 ...dish,
-                categories: dish.dish_category_relations?.map(rel => rel.dish_categories).filter(Boolean) || [],
+                categories: dish.dish_category_relations
+                    ?.map(rel => rel.dish_categories)
+                    .filter(cat => cat && cat.id && cat.name) || [],
                 ratings: dish.dish_ratings || [],
                 comments_count: dish.dish_comments?.filter(comment => !comment.is_deleted).length || 0
             }))
