@@ -26,7 +26,10 @@ import {
   UserPlus,
   Image as ImageIcon,
   Activity,
-  Zap
+  Zap,
+  Target,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
@@ -260,6 +263,254 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
                       <div className="text-xs text-yellow-700">г жирів</div>
                     </div>
                   </div>
+
+                {/* Загальна інформація */}
+                {nutritionData && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-4">
+                    <h4 className="font-medium text-gray-900 mb-2">Загальна інформація</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">Всього калорій:</span>
+                        <span className="font-medium ml-2">{nutritionData.calories} ккал</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Порцій:</span>
+                        <span className="font-medium ml-2">{dish.servings}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Загальна вага:</span>
+                        <span className="font-medium ml-2">{nutritionData.totalWeight || 'Н/Д'} г</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Характеристики дієти */}
+                {nutritionData && (nutritionData.dietLabels?.length > 0 || nutritionData.healthLabels?.length > 0) && (
+                  <div className="mt-4">
+                    <h4 className="font-medium text-gray-900 mb-2">Характеристики дієти</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {nutritionData.dietLabels?.map((label, index) => (
+                        <span
+                          key={index}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDietLabelColor(label)}`}
+                        >
+                          <Target className="w-3 h-3 mr-1" />
+                          {translateDietLabel(label)}
+                        </span>
+                      ))}
+                      {nutritionData.healthLabels?.slice(0, 5).map((label, index) => (
+                        <span
+                          key={index}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getHealthLabelColor(label)}`}
+                        >
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          {translateHealthLabel(label)}
+                        </span>
+                      ))}
+                      {nutritionData.healthLabels && nutritionData.healthLabels.length > 5 && (
+                        <span className="text-xs text-gray-500">
+                          +{nutritionData.healthLabels.length - 5} ще
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Попередження */}
+                {nutritionData && nutritionData.cautions?.length > 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+                    <div className="flex items-start">
+                      <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" />
+                      <div>
+                        <h4 className="text-sm font-medium text-yellow-800">Попередження</h4>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {nutritionData.cautions.map((caution, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800"
+                            >
+                              {translateCaution(caution)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Детальний склад (на порцію) */}
+                {nutritionData && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-4">
+                    <h4 className="font-medium text-gray-900 mb-3">Детальний склад (на порцію)</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-600">Клітковина:</span>
+                          <span className="font-medium">
+                            {nutritionData.macrosPerServing?.fiber?.quantity || nutritionData.macros?.fiber?.quantity || 0} г
+                          </span>
+                        </div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-600">Цукор:</span>
+                          <span className="font-medium">
+                            {nutritionData.macrosPerServing?.sugar?.quantity || nutritionData.macros?.sugar?.quantity || 0} г
+                          </span>
+                        </div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-600">Натрій:</span>
+                          <span className="font-medium">
+                            {nutritionData.macrosPerServing?.sodium?.quantity || nutritionData.macros?.sodium?.quantity || 0} мг
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-600">Калорії з жирів:</span>
+                          <span className="font-medium">
+                            {Math.round((nutritionData.macrosPerServing?.fat?.quantity || nutritionData.macros?.fat?.quantity || 0) * 9)} ккал
+                          </span>
+                        </div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-600">Калорії з білків:</span>
+                          <span className="font-medium">
+                            {Math.round((nutritionData.macrosPerServing?.protein?.quantity || nutritionData.macros?.protein?.quantity || 0) * 4)} ккал
+                          </span>
+                        </div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-600">Калорії з вуглеводів:</span>
+                          <span className="font-medium">
+                            {Math.round((nutritionData.macrosPerServing?.carbs?.quantity || nutritionData.macros?.carbs?.quantity || 0) * 4)} ккал
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Загальна інформація */}
+                {nutritionData && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-4">
+                    <h4 className="font-medium text-gray-900 mb-2">Загальна інформація</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">Всього калорій:</span>
+                        <span className="font-medium ml-2">{nutritionData.calories} ккал</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Порцій:</span>
+                        <span className="font-medium ml-2">{dish.servings}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Загальна вага:</span>
+                        <span className="font-medium ml-2">{nutritionData.totalWeight || 'Н/Д'} г</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Характеристики дієти */}
+                {nutritionData && (nutritionData.dietLabels?.length > 0 || nutritionData.healthLabels?.length > 0) && (
+                  <div className="mt-4">
+                    <h4 className="font-medium text-gray-900 mb-2">Характеристики дієти</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {nutritionData.dietLabels?.map((label, index) => (
+                        <span
+                          key={index}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDietLabelColor(label)}`}
+                        >
+                          <Target className="w-3 h-3 mr-1" />
+                          {translateDietLabel(label)}
+                        </span>
+                      ))}
+                      {nutritionData.healthLabels?.slice(0, 5).map((label, index) => (
+                        <span
+                          key={index}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getHealthLabelColor(label)}`}
+                        >
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          {translateHealthLabel(label)}
+                        </span>
+                      ))}
+                      {nutritionData.healthLabels && nutritionData.healthLabels.length > 5 && (
+                        <span className="text-xs text-gray-500">
+                          +{nutritionData.healthLabels.length - 5} ще
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Попередження */}
+                {nutritionData && nutritionData.cautions?.length > 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+                    <div className="flex items-start">
+                      <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" />
+                      <div>
+                        <h4 className="text-sm font-medium text-yellow-800">Попередження</h4>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {nutritionData.cautions.map((caution, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800"
+                            >
+                              {translateCaution(caution)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Детальний склад (на порцію) */}
+                {nutritionData && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-4">
+                    <h4 className="font-medium text-gray-900 mb-3">Детальний склад (на порцію)</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-600">Клітковина:</span>
+                          <span className="font-medium">
+                            {nutritionData.macrosPerServing?.fiber?.quantity || nutritionData.macros?.fiber?.quantity || 0} г
+                          </span>
+                        </div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-600">Цукор:</span>
+                          <span className="font-medium">
+                            {nutritionData.macrosPerServing?.sugar?.quantity || nutritionData.macros?.sugar?.quantity || 0} г
+                          </span>
+                        </div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-600">Натрій:</span>
+                          <span className="font-medium">
+                            {nutritionData.macrosPerServing?.sodium?.quantity || nutritionData.macros?.sodium?.quantity || 0} мг
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-600">Калорії з жирів:</span>
+                          <span className="font-medium">
+                            {Math.round((nutritionData.macrosPerServing?.fat?.quantity || nutritionData.macros?.fat?.quantity || 0) * 9)} ккал
+                          </span>
+                        </div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-600">Калорії з білків:</span>
+                          <span className="font-medium">
+                            {Math.round((nutritionData.macrosPerServing?.protein?.quantity || nutritionData.macros?.protein?.quantity || 0) * 4)} ккал
+                          </span>
+                        </div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-600">Калорії з вуглеводів:</span>
+                          <span className="font-medium">
+                            {Math.round((nutritionData.macrosPerServing?.carbs?.quantity || nutritionData.macros?.carbs?.quantity || 0) * 4)} ккал
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 ) : (
                   <div className="text-center py-4">
                     <Activity className="w-8 h-8 text-gray-400 mx-auto mb-2" />
@@ -382,6 +633,82 @@ function DishDetailsModal({ dish, isOpen, onClose }: DishDetailsModalProps) {
       </div>
     </div>
   )
+}
+
+// Функції для перекладу характеристик дієти
+const translateDietLabel = (label: string): string => {
+  const dietTranslations: { [key: string]: string } = {
+    'Balanced': 'Збалансована',
+    'High-Fiber': 'Високий вміст клітковини',
+    'High-Protein': 'Високий вміст білка',
+    'Low-Carb': 'Низький вміст вуглеводів',
+    'Low-Fat': 'Низький вміст жирів',
+    'Low-Sodium': 'Низький вміст натрію',
+    'Keto-Friendly': 'Кето-дружня',
+    'Paleo': 'Палео',
+    'Vegan': 'Веганська',
+    'Vegetarian': 'Вегетаріанська',
+    'Pescatarian': 'Пескетаріанська',
+    'Mediterranean': 'Середземноморська',
+    'DASH': 'DASH дієта',
+    'Low-FODMAP': 'Низький FODMAP'
+  }
+  return dietTranslations[label] || label
+}
+
+// Функції для перекладу характеристик здоров'я
+const translateHealthLabel = (label: string): string => {
+  const healthTranslations: { [key: string]: string } = {
+    'Vegan': 'Веганський',
+    'Vegetarian': 'Вегетаріанський',
+    'Paleo': 'Палео',
+    'Dairy-Free': 'Без молочних продуктів',
+    'Gluten-Free': 'Без глютену',
+    'Wheat-Free': 'Без пшениці',
+    'Egg-Free': 'Без яєць',
+    'Milk-Free': 'Без молока',
+    'Peanut-Free': 'Без арахісу',
+    'Tree-Nut-Free': 'Без горіхів',
+    'Soy-Free': 'Без сої',
+    'Fish-Free': 'Без риби',
+    'Shellfish-Free': 'Без морепродуктів',
+    'Pork-Free': 'Без свинини',
+    'Red-Meat-Free': 'Без червоного м\'яса',
+    'Alcohol-Free': 'Без алкоголю',
+    'No oil added': 'Без додавання олії',
+    'Low Sugar': 'Низький вміст цукру',
+    'Keto-Friendly': 'Кето-дружній',
+    'Kidney-Friendly': 'Дружній до нирок',
+    'Kosher': 'Кошерний',
+    'Low Potassium': 'Низький вміст калію',
+    'Low Sodium': 'Низький вміст натрію',
+    'FODMAP-Free': 'Без FODMAP',
+    'Immuno-Supportive': 'Підтримує імунітет'
+  }
+  return healthTranslations[label] || label
+}
+
+// Функції для перекладу попереджень
+const translateCaution = (caution: string): string => {
+  const cautionTranslations: { [key: string]: string } = {
+    'Gluten': 'Містить глютен',
+    'Wheat': 'Містить пшеницю',
+    'Eggs': 'Містить яйця',
+    'Milk': 'Містить молоко',
+    'Peanuts': 'Містить арахіс',
+    'Tree-Nuts': 'Містить горіхи',
+    'Soy': 'Містить сою',
+    'Fish': 'Містить рибу',
+    'Shellfish': 'Містить морепродукти',
+    'Crustaceans': 'Містить ракоподібних',
+    'Mollusks': 'Містить молюсків',
+    'Celery': 'Містить селеру',
+    'Mustard': 'Містить гірчицю',
+    'Sesame': 'Містить кунжут',
+    'Lupine': 'Містить люпин',
+    'Sulfites': 'Містить сульфіти'
+  }
+  return cautionTranslations[caution] || caution
 }
 
 export default function DishesPage() {
