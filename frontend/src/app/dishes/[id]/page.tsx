@@ -448,7 +448,8 @@ export default function DishDetailPage({ params }: { params: { id: string } }) {
                         )}
                       </div>
                     </div>
-                  ) : null}
+                  ) : null
+                }
 
                   {/* Cautions */}
                   {nutritionData.cautions && nutritionData.cautions.length > 0 && (
